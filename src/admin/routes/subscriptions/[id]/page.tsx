@@ -1,4 +1,5 @@
 import {
+  Alert,
   Container,
   Drawer,
   Heading,
@@ -17,6 +18,7 @@ import {
   EllipsisHorizontal,
   Pause,
   PencilSquare,
+  Spinner,
   TriangleRightMini,
   Trash,
 } from "@medusajs/icons";
@@ -90,6 +92,8 @@ const SubscriptionDetailPage = () => {
   const {
     data: planOptionsData,
     isLoading: isLoadingPlanOptions,
+    isError: isPlanOptionsError,
+    error: planOptionsError,
   } = useAdminSubscriptionPlanOptionsQuery(
     subscription?.product.product_id,
     planDrawerOpen && Boolean(subscription?.product.product_id),
@@ -254,18 +258,47 @@ const SubscriptionDetailPage = () => {
     );
   }, [planOptionsData]);
 
-  if (isError) {
-    throw error;
-  }
-
-  if (isLoading || !subscription) {
+  if (isLoading) {
     return (
       <Container className="divide-y p-0">
         <div className="px-6 py-4">
           <Heading level="h1">Subscription</Heading>
+        </div>
+        <div className="flex items-center gap-x-2 px-6 py-6 text-ui-fg-subtle">
+          <Spinner className="animate-spin" />
           <Text size="small" leading="compact" className="text-ui-fg-subtle">
             Loading subscription details...
           </Text>
+        </div>
+      </Container>
+    );
+  }
+
+  if (isError) {
+    return (
+      <Container className="divide-y p-0">
+        <div className="px-6 py-4">
+          <Heading level="h1">Subscription</Heading>
+        </div>
+        <div className="px-6 py-6">
+          <Alert variant="error">
+            {error instanceof Error
+              ? error.message
+              : "Failed to load subscription details."}
+          </Alert>
+        </div>
+      </Container>
+    );
+  }
+
+  if (!subscription) {
+    return (
+      <Container className="divide-y p-0">
+        <div className="px-6 py-4">
+          <Heading level="h1">Subscription</Heading>
+        </div>
+        <div className="px-6 py-6">
+          <Alert variant="warning">Subscription details are unavailable.</Alert>
         </div>
       </Container>
     );
@@ -576,8 +609,23 @@ const SubscriptionDetailPage = () => {
                   </Select.Content>
                 </Select>
                 {isLoadingPlanOptions ? (
+                  <div className="flex items-center gap-x-2 text-ui-fg-subtle">
+                    <Spinner className="animate-spin" />
+                    <Text size="small" leading="compact" className="text-ui-fg-subtle">
+                      Loading variants...
+                    </Text>
+                  </div>
+                ) : null}
+                {isPlanOptionsError ? (
+                  <Alert variant="error">
+                    {planOptionsError instanceof Error
+                      ? planOptionsError.message
+                      : "Failed to load product variants."}
+                  </Alert>
+                ) : null}
+                {!isLoadingPlanOptions && !isPlanOptionsError && !variantOptions.length ? (
                   <Text size="small" leading="compact" className="text-ui-fg-subtle">
-                    Loading variants...
+                    No variants are available for this product.
                   </Text>
                 ) : null}
               </div>
@@ -637,7 +685,12 @@ const SubscriptionDetailPage = () => {
                 size="small"
                 onClick={handleSubmit}
                 isLoading={planChangeMutation.isPending}
-                disabled={planChangeMutation.isPending || isLoadingPlanOptions}
+                disabled={
+                  planChangeMutation.isPending ||
+                  isLoadingPlanOptions ||
+                  isPlanOptionsError ||
+                  !variantOptions.length
+                }
               >
                 Save
               </Button>

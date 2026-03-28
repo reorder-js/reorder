@@ -7,6 +7,7 @@ import {
   XMarkMini,
 } from "@medusajs/icons";
 import {
+  Alert,
   Button,
   Container,
   createDataTableColumnHelper,
@@ -482,7 +483,23 @@ const SubscriptionsPage = () => {
   });
 
   if (isError) {
-    throw error;
+    return (
+      <Container className="divide-y p-0">
+        <div className="px-6 py-4">
+          <Heading level="h1">Subscriptions</Heading>
+          <Text size="small" leading="compact" className="text-ui-fg-subtle">
+            Monitor subscription status, cadence, and upcoming renewals.
+          </Text>
+        </div>
+        <div className="px-6 py-6">
+          <Alert variant="error">
+            {error instanceof Error
+              ? error.message
+              : "Failed to load subscriptions."}
+          </Alert>
+        </div>
+      </Container>
+    );
   }
 
   return (
