@@ -1,7 +1,8 @@
 import { defineRouteConfig } from "@medusajs/admin-sdk";
-import { ListCheckbox } from "@medusajs/icons";
+import { ListCheckbox, XMarkMini } from "@medusajs/icons";
 import {
   Badge,
+  Button,
   Container,
   createDataTableColumnHelper,
   createDataTableFilterHelper,
@@ -9,6 +10,7 @@ import {
   DataTableFilteringState,
   DataTablePaginationState,
   DataTableSortingState,
+  DropdownMenu,
   Heading,
   Text,
   useDataTable,
@@ -139,6 +141,8 @@ const filters = [
   }),
 ];
 
+const statusFilter = filters[0];
+
 const SubscriptionsPage = () => {
   const [search, setSearch] = useState("");
   const [filtering, setFiltering] = useState<DataTableFilteringState>({});
@@ -159,6 +163,16 @@ const SubscriptionsPage = () => {
   const statusFilters = useMemo(() => {
     return (filtering.status || []) as SubscriptionAdminStatus[];
   }, [filtering]);
+
+  const activeStatusLabels = useMemo(() => {
+    return (
+      statusFilter.options
+        ?.filter((option) =>
+          statusFilters.includes(option.value as SubscriptionAdminStatus),
+        )
+        .map((option) => option.label) ?? []
+    );
+  }, [statusFilters]);
 
   const { data, isLoading, isError, error } =
     useQuery<SubscriptionAdminListResponse>({
@@ -220,22 +234,142 @@ const SubscriptionsPage = () => {
         <div className="px-6 py-4">
           <Heading level="h1">Subscriptions</Heading>
           <Text size="small" leading="compact" className="text-ui-fg-subtle">
-            Monitor subscription status, cadence, and upcoming renewals.
+            Monitor1 subscription status, cadence, and upcoming renewals.
           </Text>
         </div>
         <DataTable instance={table}>
-          <DataTable.Toolbar className="flex flex-col items-start justify-between gap-2 px-6 py-4 md:flex-row md:items-center">
-            <div className="flex w-full items-center justify-between gap-2">
-              <div />
-              <div className="flex items-center gap-x-2">
-                <DataTable.FilterMenu />
-                <DataTable.SortingMenu />
-                <div className="w-full md:w-auto">
-                  <DataTable.Search placeholder="Search subscriptions" />
+          <div className="flex flex-col gap-2 px-6 py-4 md:flex-row md:items-center md:justify-between">
+            <div className="flex flex-wrap items-center gap-2">
+              {statusFilters.length ? (
+                <div className="shadow-buttons-neutral txt-compact-small-plus bg-ui-button-neutral text-ui-fg-base inline-flex items-center overflow-hidden rounded-md">
+                  <span className="border-ui-border-base border-r px-3 py-1.5">
+                    {statusFilter.label}
+                  </span>
+                  <span className="border-ui-border-base border-r px-3 py-1.5 text-ui-fg-subtle">
+                    is
+                  </span>
+                  <span className="border-ui-border-base border-r px-3 py-1.5">
+                    {activeStatusLabels.join(", ")}
+                  </span>
+                  <button
+                    type="button"
+                    className="hover:bg-ui-button-neutral-hover px-2 py-1.5 transition-fg"
+                    onClick={() => {
+                      setFiltering((current) => {
+                        const { status, ...rest } = current;
+
+                        return rest;
+                      });
+                    }}
+                  >
+                    <XMarkMini />
+                  </button>
                 </div>
-              </div>
+              ) : null}
+              <DropdownMenu>
+                <DropdownMenu.Trigger asChild>
+                  <Button size="small" variant="secondary" type="button">
+                    Add filter
+                  </Button>
+                </DropdownMenu.Trigger>
+                <DropdownMenu.Content align="start">
+                  <DropdownMenu.SubMenu>
+                    <DropdownMenu.SubMenuTrigger>
+                      {statusFilter.label}
+                    </DropdownMenu.SubMenuTrigger>
+                    <DropdownMenu.SubMenuContent>
+                      {statusFilter.options?.map((option) => {
+                        const checked = statusFilters.includes(
+                          option.value as SubscriptionAdminStatus,
+                        );
+
+                        return (
+                          <DropdownMenu.CheckboxItem
+                            key={option.value}
+                            checked={checked}
+                            onSelect={(event) => {
+                              event.preventDefault();
+                            }}
+                            onCheckedChange={(nextChecked) => {
+                              const value =
+                                option.value as SubscriptionAdminStatus;
+
+                              setFiltering((current) => {
+                                const currentValues = Array.isArray(
+                                  current.status,
+                                )
+                                  ? (current.status as SubscriptionAdminStatus[])
+                                  : [];
+
+                                const nextValues = nextChecked
+                                  ? currentValues.includes(value)
+                                    ? currentValues
+                                    : [...currentValues, value]
+                                  : currentValues.filter(
+                                      (currentValue) => currentValue !== value,
+                                    );
+
+                                if (!nextValues.length) {
+                                  const { status, ...rest } = current;
+
+                                  return rest;
+                                }
+
+                                return {
+                                  ...current,
+                                  status: nextValues,
+                                };
+                              });
+                            }}
+                          >
+                            {option.label}
+                          </DropdownMenu.CheckboxItem>
+                        );
+                      })}
+                    </DropdownMenu.SubMenuContent>
+                  </DropdownMenu.SubMenu>
+                  {statusFilters.length ? (
+                    <>
+                      <DropdownMenu.Separator />
+                      <DropdownMenu.Item
+                        onSelect={(event) => {
+                          event.preventDefault();
+                          setFiltering((current) => {
+                            const { status, ...rest } = current;
+
+                            return rest;
+                          });
+                        }}
+                      >
+                        Clear status filter
+                      </DropdownMenu.Item>
+                    </>
+                  ) : null}
+                </DropdownMenu.Content>
+              </DropdownMenu>
+              {statusFilters.length ? (
+                <button
+                  type="button"
+                  className="text-ui-fg-muted hover:text-ui-fg-subtle txt-compact-small-plus rounded-md px-2 py-1 transition-fg"
+                  onClick={() => {
+                    setFiltering((current) => {
+                      const { status, ...rest } = current;
+
+                      return rest;
+                    });
+                  }}
+                >
+                  Clear all
+                </button>
+              ) : null}
             </div>
-          </DataTable.Toolbar>
+            <div className="flex items-center gap-x-2 self-end md:self-auto">
+              <div className="w-full md:w-auto">
+                <DataTable.Search placeholder="Search" />
+              </div>
+              <DataTable.SortingMenu />
+            </div>
+          </div>
           <DataTable.Table
             emptyState={{
               empty: {
