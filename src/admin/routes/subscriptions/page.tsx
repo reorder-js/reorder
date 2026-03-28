@@ -1,5 +1,12 @@
 import { defineRouteConfig } from "@medusajs/admin-sdk";
-import { Calendar, XMarkMini } from "@medusajs/icons";
+import {
+  Calendar,
+  EllipsisHorizontal,
+  Pause,
+  TriangleRightMini,
+  Trash,
+  XMarkMini,
+} from "@medusajs/icons";
 import {
   Badge,
   Button,
@@ -8,16 +15,25 @@ import {
   createDataTableFilterHelper,
   DataTable,
   DataTableFilteringState,
+  IconButton,
   DataTablePaginationState,
   DataTableSortingState,
   DropdownMenu,
   Heading,
   Text,
+  toast,
   useDataTable,
+  usePrompt,
 } from "@medusajs/ui";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import { useAdminSubscriptionsDisplayQuery } from "./data-loading";
 import {
+  adminSubscriptionsQueryKeys,
+  useAdminSubscriptionsDisplayQuery,
+} from "./data-loading";
+import { sdk } from "../../lib/client";
+import {
+  SubscriptionAdminDetailResponse,
   SubscriptionAdminListItem,
   SubscriptionAdminStatus,
 } from "../../types/subscription";
@@ -34,7 +50,7 @@ const statusFilterOptions = [
   { label: "Past due", value: SubscriptionAdminStatus.PAST_DUE },
 ] as const;
 
-const columns = [
+const baseColumns = [
   columnHelper.accessor("reference", {
     header: "Reference",
     cell: ({ getValue, row }) => (
@@ -141,6 +157,8 @@ const statusFilter = filterHelper.accessor("status", {
 
 const filters = [statusFilter];
 
+type SubscriptionActionType = "pause" | "resume" | "cancel";
+
 const SubscriptionsPage = () => {
   const [search, setSearch] = useState("");
   const [filtering, setFiltering] = useState<DataTableFilteringState>({});
@@ -152,6 +170,8 @@ const SubscriptionsPage = () => {
     pageIndex: 0,
     pageSize: PAGE_SIZE,
   });
+  const prompt = usePrompt();
+  const queryClient = useQueryClient();
 
   const statusFilters = useMemo(() => {
     return (filtering.status || []) as SubscriptionAdminStatus[];
@@ -160,9 +180,7 @@ const SubscriptionsPage = () => {
   const activeStatusLabels = useMemo(() => {
     return (
       statusFilterOptions
-        ?.filter((option) =>
-          statusFilters.includes(option.value),
-        )
+        .filter((option) => statusFilters.includes(option.value))
         .map((option) => option.label) ?? []
     );
   }, [statusFilters]);
@@ -174,6 +192,201 @@ const SubscriptionsPage = () => {
       filtering,
       sorting,
     });
+
+  const pauseMutation = useMutation({
+    mutationFn: async (subscriptionId: string) =>
+      sdk.client.fetch<SubscriptionAdminDetailResponse>(
+        `/admin/subscriptions/${subscriptionId}/pause`,
+        {
+          method: "POST",
+          body: {},
+        },
+      ),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: adminSubscriptionsQueryKeys.all,
+      });
+      toast.success("Subscription paused");
+    },
+    onError: (error) => {
+      toast.error(
+        error instanceof Error ? error.message : "Failed to pause subscription",
+      );
+    },
+  });
+
+  const resumeMutation = useMutation({
+    mutationFn: async (subscriptionId: string) =>
+      sdk.client.fetch<SubscriptionAdminDetailResponse>(
+        `/admin/subscriptions/${subscriptionId}/resume`,
+        {
+          method: "POST",
+          body: {},
+        },
+      ),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: adminSubscriptionsQueryKeys.all,
+      });
+      toast.success("Subscription resumed");
+    },
+    onError: (error) => {
+      toast.error(
+        error instanceof Error ? error.message : "Failed to resume subscription",
+      );
+    },
+  });
+
+  const cancelMutation = useMutation({
+    mutationFn: async (subscriptionId: string) =>
+      sdk.client.fetch<SubscriptionAdminDetailResponse>(
+        `/admin/subscriptions/${subscriptionId}/cancel`,
+        {
+          method: "POST",
+          body: {},
+        },
+      ),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: adminSubscriptionsQueryKeys.all,
+      });
+      toast.success("Subscription cancelled");
+    },
+    onError: (error) => {
+      toast.error(
+        error instanceof Error ? error.message : "Failed to cancel subscription",
+      );
+    },
+  });
+
+  const pendingActionBySubscriptionId = useMemo(() => {
+    const pending = new Map<string, SubscriptionActionType>();
+
+    if (pauseMutation.isPending && pauseMutation.variables) {
+      pending.set(pauseMutation.variables, "pause");
+    }
+
+    if (resumeMutation.isPending && resumeMutation.variables) {
+      pending.set(resumeMutation.variables, "resume");
+    }
+
+    if (cancelMutation.isPending && cancelMutation.variables) {
+      pending.set(cancelMutation.variables, "cancel");
+    }
+
+    return pending;
+  }, [
+    cancelMutation.isPending,
+    cancelMutation.variables,
+    pauseMutation.isPending,
+    pauseMutation.variables,
+    resumeMutation.isPending,
+    resumeMutation.variables,
+  ]);
+
+  const handleSubscriptionAction = async (
+    subscription: SubscriptionAdminListItem,
+    action: SubscriptionActionType,
+  ) => {
+    const confirmed = await prompt(getSubscriptionActionPromptConfig(action));
+
+    if (!confirmed) {
+      return;
+    }
+
+    switch (action) {
+      case "pause":
+        await pauseMutation.mutateAsync(subscription.id);
+        break;
+      case "resume":
+        await resumeMutation.mutateAsync(subscription.id);
+        break;
+      case "cancel":
+        await cancelMutation.mutateAsync(subscription.id);
+        break;
+    }
+  };
+
+  const columns = useMemo(
+    () => [
+      ...baseColumns,
+      columnHelper.display({
+        id: "actions",
+        cell: ({ row }) => {
+          const subscription = row.original;
+          const pendingAction = pendingActionBySubscriptionId.get(subscription.id);
+          const isPending = Boolean(pendingAction);
+          const canPause =
+            subscription.status === SubscriptionAdminStatus.ACTIVE;
+          const canResume =
+            subscription.status === SubscriptionAdminStatus.PAUSED;
+          const canCancel =
+            subscription.status !== SubscriptionAdminStatus.CANCELLED;
+
+          return (
+            <DropdownMenu>
+              <DropdownMenu.Trigger asChild>
+                <IconButton
+                  size="small"
+                  variant="transparent"
+                  disabled={isPending}
+                >
+                  <EllipsisHorizontal />
+                </IconButton>
+              </DropdownMenu.Trigger>
+              <DropdownMenu.Content align="end">
+                {canPause ? (
+                  <DropdownMenu.Item
+                    className="flex items-center gap-x-2"
+                    disabled={isPending}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      void handleSubscriptionAction(subscription, "pause");
+                    }}
+                  >
+                    <Pause className="text-ui-fg-subtle" />
+                    <span>{pendingAction === "pause" ? "Pausing..." : "Pause"}</span>
+                  </DropdownMenu.Item>
+                ) : null}
+                {canResume ? (
+                  <DropdownMenu.Item
+                    className="flex items-center gap-x-2"
+                    disabled={isPending}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      void handleSubscriptionAction(subscription, "resume");
+                    }}
+                  >
+                    <TriangleRightMini className="text-ui-fg-subtle" />
+                    <span>{pendingAction === "resume" ? "Resuming..." : "Resume"}</span>
+                  </DropdownMenu.Item>
+                ) : null}
+                {canCancel ? (
+                  <>
+                    {(canPause || canResume) ? <DropdownMenu.Separator /> : null}
+                    <DropdownMenu.Item
+                      className="flex items-center gap-x-2"
+                      disabled={isPending}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        void handleSubscriptionAction(subscription, "cancel");
+                      }}
+                    >
+                      <Trash className="text-ui-fg-subtle" />
+                      <span>
+                        {pendingAction === "cancel" ? "Cancelling..." : "Cancel"}
+                      </span>
+                    </DropdownMenu.Item>
+                  </>
+                ) : null}
+              </DropdownMenu.Content>
+            </DropdownMenu>
+          );
+        },
+      }),
+    ],
+    [pendingActionBySubscriptionId],
+  );
 
   const table = useDataTable({
     columns,
@@ -407,3 +620,35 @@ export const config = defineRouteConfig({
 });
 
 export default SubscriptionsPage;
+
+function getSubscriptionActionPromptConfig(action: SubscriptionActionType) {
+  switch (action) {
+    case "pause":
+      return {
+        title: "Pause subscription?",
+        description:
+          "You are about to pause this subscription. Do you want to continue?",
+        confirmText: "Pause",
+        cancelText: "Cancel",
+        variant: "confirmation" as const,
+      };
+    case "resume":
+      return {
+        title: "Resume subscription?",
+        description:
+          "You are about to resume this subscription. Do you want to continue?",
+        confirmText: "Resume",
+        cancelText: "Cancel",
+        variant: "confirmation" as const,
+      };
+    case "cancel":
+      return {
+        title: "Cancel subscription?",
+        description:
+          "You are about to cancel this subscription. This action cannot be undone.",
+        confirmText: "Cancel subscription",
+        cancelText: "Keep subscription",
+        variant: "danger" as const,
+      };
+  }
+}
