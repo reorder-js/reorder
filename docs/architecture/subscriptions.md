@@ -1,0 +1,276 @@
+# Subscriptions Architecture
+
+This document describes the current architecture of the `Subscriptions` area in the `Reorder` plugin.
+
+It focuses on the implemented system, not on the initial design assumptions.
+
+## Goal
+
+The `Subscriptions` area provides Admin users with an operational view over recurring subscriptions.
+
+The current implementation supports:
+- listing subscriptions
+- viewing subscription details
+- pausing subscriptions
+- resuming subscriptions
+- cancelling subscriptions
+- scheduling plan changes
+- editing the shipping address
+
+## Architectural Overview
+
+The implementation is split into four main layers:
+
+1. domain module
+2. workflows
+3. admin API
+4. admin UI
+
+Each layer has a clear responsibility:
+
+- the domain module owns the subscription data model and persistence
+- workflows own business mutations
+- admin API exposes read and write endpoints for the dashboard
+- admin UI renders list and detail views and calls the admin endpoints
+
+## 1. Domain Module
+
+The `subscription` custom module is the owner of the recurring subscription domain.
+
+It contains:
+- domain types
+- data model
+- service
+- module export
+
+Key design choice:
+- the subscription entity stores the operational state required by Admin and future renewal flows directly in its own model
+- it does not rely on live reads from customer or product modules for core list/detail rendering
+
+This keeps the Admin read model stable and reduces coupling to external entity changes.
+
+## 2. Data Model
+
+The `subscription` model stores:
+- identity and lifecycle fields
+- cadence fields
+- scheduling fields
+- operational flags
+- snapshots used by Admin and future renewals
+
+Core scalar fields include:
+- `id`
+- `reference`
+- `status`
+- `customer_id`
+- `product_id`
+- `variant_id`
+- `frequency_interval`
+- `frequency_value`
+- `started_at`
+- `next_renewal_at`
+- `last_renewal_at`
+- `paused_at`
+- `cancelled_at`
+- `cancel_effective_at`
+- `skip_next_cycle`
+- `is_trial`
+- `trial_ends_at`
+
+Snapshot JSON fields include:
+- `customer_snapshot`
+- `product_snapshot`
+- `pricing_snapshot`
+- `shipping_address`
+- `pending_update_data`
+- `metadata`
+
+Why snapshots are used:
+- the Admin should display a stable picture of the subscription even if the linked customer or product changes later
+- future renewal logic needs operational data local to the subscription
+
+## 3. Read Path
+
+The read path is optimized for Admin list and detail views.
+
+Main components:
+- admin route handlers under `src/api/admin/subscriptions`
+- normalization helpers in `src/api/admin/subscriptions/utils.ts`
+- query helpers in `src/modules/subscription/utils/admin-query.ts`
+
+### List Flow
+
+For the list view:
+1. the Admin UI sends query params to `GET /admin/subscriptions`
+2. the admin route validates and normalizes query input
+3. `listAdminSubscriptions(...)` builds filters and sorting rules
+4. the query layer reads subscriptions through `query.graph(...)`
+5. records are mapped to Admin DTOs used by the DataTable
+
+Supported capabilities include:
+- pagination
+- search
+- filtering
+- sorting
+
+Some sorting is handled in the database, while some derived fields are sorted in memory.
+
+### Detail Flow
+
+For the detail view:
+1. the Admin UI requests `GET /admin/subscriptions/:id`
+2. the route resolves the subscription through the query helper
+3. the result is mapped to a detail DTO
+4. the Admin detail page renders the current subscription state and pending plan change preview
+
+## 4. Write Path
+
+All state-changing operations are routed through workflows.
+
+Implemented mutations:
+- `pause`
+- `resume`
+- `cancel`
+- `schedule-plan-change`
+- `update-shipping-address`
+
+Write path pattern:
+1. the Admin UI submits a mutation to a custom admin route
+2. the route validates the request payload
+3. the route calls a workflow
+4. the workflow performs business validation and updates the subscription
+5. the route returns the refreshed subscription detail payload
+
+This keeps business logic out of HTTP handlers.
+
+## 5. Workflows
+
+Workflows are the mutation boundary of the `Subscriptions` area.
+
+They are responsible for:
+- validating legal state transitions
+- updating subscription lifecycle fields
+- updating pending plan change data
+- updating shipping address data
+- returning a consistent subscription result back to the API layer
+
+The route layer remains thin and orchestration-focused.
+
+## 6. Admin API Architecture
+
+The Admin API exposes custom routes dedicated to the `Subscriptions` pages.
+
+Implemented read routes:
+- `GET /admin/subscriptions`
+- `GET /admin/subscriptions/:id`
+
+Implemented mutation routes:
+- `POST /admin/subscriptions/:id/pause`
+- `POST /admin/subscriptions/:id/resume`
+- `POST /admin/subscriptions/:id/cancel`
+- `POST /admin/subscriptions/:id/schedule-plan-change`
+- `POST /admin/subscriptions/:id/update-shipping-address`
+
+The API layer uses:
+- Zod validators
+- authenticated admin requests
+- query helpers for reads
+- workflows for writes
+
+## 7. Admin UI Architecture
+
+The Admin UI is implemented as custom Medusa Admin routes.
+
+Current screens:
+- subscriptions list page
+- subscription detail page
+
+### List Page
+
+The list page is built with Medusa `DataTable`.
+
+It supports:
+- pagination
+- search
+- filters
+- sorting
+- row actions
+- row navigation to detail
+
+Data loading follows the Medusa pattern:
+- the display query always loads on mount
+- modal and drawer queries are separate from the main display query
+
+### Detail Page
+
+The detail page contains:
+- subscription overview
+- customer and product information
+- shipping address
+- pending plan change preview
+- top-right action menu
+
+It also provides two edit flows through Drawers:
+- schedule plan change
+- edit shipping address
+
+This matches the Medusa pattern of using Drawers for editing existing data.
+
+## 8. Query Invalidation Strategy
+
+The Admin UI uses explicit query invalidation after mutations.
+
+After a successful mutation:
+- the subscriptions list query is invalidated
+- the subscription detail query is invalidated
+
+This ensures that:
+- the detail page stays fresh after edits
+- the list reflects the latest status after navigation back
+
+## 9. Error and Loading Handling
+
+The `Subscriptions` UI follows Medusa-style state handling:
+- list pages use DataTable loading and empty states
+- detail pages show explicit loading and error states
+- drawers show local loading and error states for modal-only data
+
+This avoids coupling the main display state to drawer-only data loading.
+
+## 10. Testing Strategy
+
+The area is covered by:
+- module/service tests
+- workflow and query integration tests
+- admin HTTP integration tests
+- scenario-based admin flow integration test
+
+Important note:
+- there is no browser E2E layer in the current plugin
+- the main end-to-end business flow is verified through Medusa-supported integration tests
+
+## 11. Boundaries of Responsibility
+
+`Subscriptions` currently owns:
+- the subscription entity
+- Admin operational management of subscriptions
+- pending plan changes
+- shipping address updates
+
+It does not yet own:
+- offer definition and subscription configuration rules
+- renewal execution
+- payment recovery and dunning
+
+Those concerns are intentionally left for later areas:
+- `Plans & Offers`
+- `Renewals`
+- `Dunning`
+
+## 12. Why This Structure
+
+This architecture keeps the system practical:
+- reads are optimized for Admin operations
+- writes are centralized in workflows
+- UI state is separated cleanly from domain logic
+- future renewal and dunning logic can build on the same subscription core without rewriting the Admin layer
