@@ -16,10 +16,11 @@ import {
 import {
   EllipsisHorizontal,
   Pause,
+  PencilSquare,
   TriangleRightMini,
   Trash,
 } from "@medusajs/icons";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { QueryClient, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ReactNode, useEffect, useMemo, useState } from "react";
 import {
   LoaderFunctionArgs,
@@ -35,6 +36,7 @@ import {
 } from "../data-loading";
 import {
   SubscriptionAdminDetailResponse,
+  SubscriptionAdminShippingAddress,
   SubscriptionAdminStatus,
   SubscriptionFrequencyInterval,
 } from "../../../types/subscription";
@@ -51,18 +53,33 @@ const intervalOptions = [
   { label: "Yearly", value: SubscriptionFrequencyInterval.YEAR },
 ] as const;
 type SubscriptionActionType = "pause" | "resume" | "cancel";
+type ShippingAddressFormState = {
+  first_name: string;
+  last_name: string;
+  company: string;
+  address_1: string;
+  address_2: string;
+  city: string;
+  postal_code: string;
+  province: string;
+  country_code: string;
+  phone: string;
+};
 
 const SubscriptionDetailPage = () => {
   const { id } = useParams();
   const loaderData = useLoaderData() as Awaited<ReturnType<typeof loader>>;
   const queryClient = useQueryClient();
   const prompt = usePrompt();
-  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [planDrawerOpen, setPlanDrawerOpen] = useState(false);
+  const [shippingDrawerOpen, setShippingDrawerOpen] = useState(false);
   const [variantId, setVariantId] = useState("");
   const [frequencyInterval, setFrequencyInterval] =
     useState<SubscriptionFrequencyInterval>(SubscriptionFrequencyInterval.MONTH);
   const [frequencyValue, setFrequencyValue] = useState("1");
   const [effectiveAt, setEffectiveAt] = useState("");
+  const [shippingAddressForm, setShippingAddressForm] =
+    useState<ShippingAddressFormState>(getEmptyShippingAddressFormState());
 
   const { data, isLoading, isError, error } = useAdminSubscriptionDetailQuery(
     id,
@@ -75,7 +92,7 @@ const SubscriptionDetailPage = () => {
     isLoading: isLoadingPlanOptions,
   } = useAdminSubscriptionPlanOptionsQuery(
     subscription?.product.product_id,
-    drawerOpen && Boolean(subscription?.product.product_id),
+    planDrawerOpen && Boolean(subscription?.product.product_id),
   );
 
   const planChangeMutation = useMutation({
@@ -93,11 +110,9 @@ const SubscriptionDetailPage = () => {
         },
       ),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({
-        queryKey: adminSubscriptionsQueryKeys.all,
-      });
+      await invalidateSubscriptionQueries(queryClient, id);
       toast.success("Plan change scheduled");
-      setDrawerOpen(false);
+      setPlanDrawerOpen(false);
     },
     onError: (mutationError) => {
       toast.error(
@@ -118,9 +133,7 @@ const SubscriptionDetailPage = () => {
         },
       ),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({
-        queryKey: adminSubscriptionsQueryKeys.all,
-      });
+      await invalidateSubscriptionQueries(queryClient, id);
       toast.success("Subscription paused");
     },
     onError: (mutationError) => {
@@ -142,9 +155,7 @@ const SubscriptionDetailPage = () => {
         },
       ),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({
-        queryKey: adminSubscriptionsQueryKeys.all,
-      });
+      await invalidateSubscriptionQueries(queryClient, id);
       toast.success("Subscription resumed");
     },
     onError: (mutationError) => {
@@ -166,9 +177,7 @@ const SubscriptionDetailPage = () => {
         },
       ),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({
-        queryKey: adminSubscriptionsQueryKeys.all,
-      });
+      await invalidateSubscriptionQueries(queryClient, id);
       toast.success("Subscription cancelled");
     },
     onError: (mutationError) => {
@@ -180,8 +189,31 @@ const SubscriptionDetailPage = () => {
     },
   });
 
+  const updateShippingAddressMutation = useMutation({
+    mutationFn: async (body: SubscriptionAdminShippingAddress) =>
+      sdk.client.fetch<SubscriptionAdminDetailResponse>(
+        `/admin/subscriptions/${id}/update-shipping-address`,
+        {
+          method: "POST",
+          body,
+        },
+      ),
+    onSuccess: async () => {
+      await invalidateSubscriptionQueries(queryClient, id);
+      toast.success("Shipping address updated");
+      setShippingDrawerOpen(false);
+    },
+    onError: (mutationError) => {
+      toast.error(
+        mutationError instanceof Error
+          ? mutationError.message
+          : "Failed to update shipping address",
+      );
+    },
+  });
+
   useEffect(() => {
-    if (!drawerOpen || !subscription) {
+    if (!planDrawerOpen || !subscription) {
       return;
     }
 
@@ -201,7 +233,17 @@ const SubscriptionDetailPage = () => {
     setEffectiveAt(
       toDateTimeLocalValue(subscription.pending_update_data?.effective_at ?? null),
     );
-  }, [drawerOpen, subscription]);
+  }, [planDrawerOpen, subscription]);
+
+  useEffect(() => {
+    if (!shippingDrawerOpen || !subscription) {
+      return;
+    }
+
+    setShippingAddressForm(
+      getShippingAddressFormState(subscription.shipping_address),
+    );
+  }, [shippingDrawerOpen, subscription]);
 
   const variantOptions = useMemo(() => {
     return (
@@ -237,7 +279,8 @@ const SubscriptionDetailPage = () => {
     pauseMutation.isPending ||
     resumeMutation.isPending ||
     cancelMutation.isPending ||
-    planChangeMutation.isPending;
+    planChangeMutation.isPending ||
+    updateShippingAddressMutation.isPending;
 
   const handleSubscriptionAction = async (action: SubscriptionActionType) => {
     const confirmed = await prompt(getSubscriptionActionPromptConfig(action));
@@ -278,6 +321,45 @@ const SubscriptionDetailPage = () => {
       frequency_value: parsedFrequencyValue,
       effective_at: effectiveAt ? new Date(effectiveAt).toISOString() : undefined,
     });
+  };
+
+  const handleShippingAddressChange = <
+    TField extends keyof ShippingAddressFormState,
+  >(
+    field: TField,
+    value: ShippingAddressFormState[TField],
+  ) => {
+    setShippingAddressForm((current) => ({
+      ...current,
+      [field]: value,
+    }));
+  };
+
+  const handleShippingAddressSubmit = async () => {
+    const body = {
+      first_name: shippingAddressForm.first_name.trim(),
+      last_name: shippingAddressForm.last_name.trim(),
+      company: normalizeOptionalString(shippingAddressForm.company),
+      address_1: shippingAddressForm.address_1.trim(),
+      address_2: normalizeOptionalString(shippingAddressForm.address_2),
+      city: shippingAddressForm.city.trim(),
+      postal_code: shippingAddressForm.postal_code.trim(),
+      province: normalizeOptionalString(shippingAddressForm.province),
+      country_code: shippingAddressForm.country_code.trim().toLowerCase(),
+      phone: normalizeOptionalString(shippingAddressForm.phone),
+    };
+
+    if (!body.first_name || !body.last_name || !body.address_1 || !body.city) {
+      toast.error("Fill in all required address fields");
+      return;
+    }
+
+    if (!body.postal_code || body.country_code.length !== 2) {
+      toast.error("Enter a valid postal code and 2-letter country code");
+      return;
+    }
+
+    await updateShippingAddressMutation.mutateAsync(body);
   };
 
   return (
@@ -332,17 +414,23 @@ const SubscriptionDetailPage = () => {
                   <DropdownMenu.Item
                     className="flex items-center gap-x-2"
                     disabled={isActionPending}
-                    onClick={() => setDrawerOpen(true)}
+                    onClick={() => setPlanDrawerOpen(true)}
                   >
                     <TriangleRightMini className="text-ui-fg-subtle" />
                     <span>Schedule plan change</span>
                   </DropdownMenu.Item>
                 ) : null}
+                <DropdownMenu.Item
+                  className="flex items-center gap-x-2"
+                  disabled={isActionPending}
+                  onClick={() => setShippingDrawerOpen(true)}
+                >
+                  <PencilSquare className="text-ui-fg-subtle" />
+                  <span>Edit shipping address</span>
+                </DropdownMenu.Item>
                 {canCancel ? (
                   <>
-                    {(canPause || canResume || canSchedulePlanChange) ? (
-                      <DropdownMenu.Separator />
-                    ) : null}
+                    <DropdownMenu.Separator />
                     <DropdownMenu.Item
                       className="flex items-center gap-x-2"
                       disabled={isActionPending}
@@ -466,7 +554,7 @@ const SubscriptionDetailPage = () => {
         </div>
       </Container>
 
-      <Drawer open={drawerOpen} onOpenChange={setDrawerOpen}>
+      <Drawer open={planDrawerOpen} onOpenChange={setPlanDrawerOpen}>
         <Drawer.Content>
           <Drawer.Header>
             <Drawer.Title>Schedule plan change</Drawer.Title>
@@ -550,6 +638,149 @@ const SubscriptionDetailPage = () => {
                 onClick={handleSubmit}
                 isLoading={planChangeMutation.isPending}
                 disabled={planChangeMutation.isPending || isLoadingPlanOptions}
+              >
+                Save
+              </Button>
+            </div>
+          </Drawer.Footer>
+        </Drawer.Content>
+      </Drawer>
+
+      <Drawer open={shippingDrawerOpen} onOpenChange={setShippingDrawerOpen}>
+        <Drawer.Content>
+          <Drawer.Header>
+            <Drawer.Title>Edit shipping address</Drawer.Title>
+          </Drawer.Header>
+          <Drawer.Body className="flex flex-1 flex-col gap-y-4 p-4">
+            <div className="grid gap-4">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div className="grid gap-2">
+                  <Label htmlFor="first-name">First name</Label>
+                  <Input
+                    id="first-name"
+                    value={shippingAddressForm.first_name}
+                    onChange={(event) =>
+                      handleShippingAddressChange("first_name", event.target.value)
+                    }
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="last-name">Last name</Label>
+                  <Input
+                    id="last-name"
+                    value={shippingAddressForm.last_name}
+                    onChange={(event) =>
+                      handleShippingAddressChange("last_name", event.target.value)
+                    }
+                  />
+                </div>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="company">Company</Label>
+                <Input
+                  id="company"
+                  value={shippingAddressForm.company}
+                  onChange={(event) =>
+                    handleShippingAddressChange("company", event.target.value)
+                  }
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="address-1">Address line 1</Label>
+                <Input
+                  id="address-1"
+                  value={shippingAddressForm.address_1}
+                  onChange={(event) =>
+                    handleShippingAddressChange("address_1", event.target.value)
+                  }
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="address-2">Address line 2</Label>
+                <Input
+                  id="address-2"
+                  value={shippingAddressForm.address_2}
+                  onChange={(event) =>
+                    handleShippingAddressChange("address_2", event.target.value)
+                  }
+                />
+              </div>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div className="grid gap-2">
+                  <Label htmlFor="city">City</Label>
+                  <Input
+                    id="city"
+                    value={shippingAddressForm.city}
+                    onChange={(event) =>
+                      handleShippingAddressChange("city", event.target.value)
+                    }
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="postal-code">Postal code</Label>
+                  <Input
+                    id="postal-code"
+                    value={shippingAddressForm.postal_code}
+                    onChange={(event) =>
+                      handleShippingAddressChange("postal_code", event.target.value)
+                    }
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div className="grid gap-2">
+                  <Label htmlFor="province">Province / State</Label>
+                  <Input
+                    id="province"
+                    value={shippingAddressForm.province}
+                    onChange={(event) =>
+                      handleShippingAddressChange("province", event.target.value)
+                    }
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="country-code">Country code</Label>
+                  <Input
+                    id="country-code"
+                    maxLength={2}
+                    value={shippingAddressForm.country_code}
+                    onChange={(event) =>
+                      handleShippingAddressChange("country_code", event.target.value)
+                    }
+                  />
+                  <Text size="small" leading="compact" className="text-ui-fg-subtle">
+                    Use the two-letter ISO country code, for example PL or US.
+                  </Text>
+                </div>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="phone">Phone</Label>
+                <Input
+                  id="phone"
+                  value={shippingAddressForm.phone}
+                  onChange={(event) =>
+                    handleShippingAddressChange("phone", event.target.value)
+                  }
+                />
+              </div>
+            </div>
+          </Drawer.Body>
+          <Drawer.Footer>
+            <div className="flex items-center justify-end gap-x-2">
+              <Drawer.Close asChild>
+                <Button
+                  size="small"
+                  variant="secondary"
+                  disabled={updateShippingAddressMutation.isPending}
+                >
+                  Cancel
+                </Button>
+              </Drawer.Close>
+              <Button
+                size="small"
+                onClick={handleShippingAddressSubmit}
+                isLoading={updateShippingAddressMutation.isPending}
+                disabled={updateShippingAddressMutation.isPending}
               >
                 Save
               </Button>
@@ -690,6 +921,62 @@ function getSubscriptionActionPromptConfig(action: SubscriptionActionType) {
         variant: "danger" as const,
       };
   }
+}
+
+async function invalidateSubscriptionQueries(
+  queryClient: QueryClient,
+  id?: string,
+) {
+  await Promise.all([
+    queryClient.invalidateQueries({
+      queryKey: adminSubscriptionsQueryKeys.all,
+    }),
+    ...(id
+      ? [
+          queryClient.invalidateQueries({
+            queryKey: adminSubscriptionsQueryKeys.detail(id),
+          }),
+        ]
+      : []),
+  ]);
+}
+
+function getShippingAddressFormState(
+  address: SubscriptionAdminShippingAddress,
+): ShippingAddressFormState {
+  return {
+    first_name: address.first_name,
+    last_name: address.last_name,
+    company: address.company ?? "",
+    address_1: address.address_1,
+    address_2: address.address_2 ?? "",
+    city: address.city,
+    postal_code: address.postal_code,
+    province: address.province ?? "",
+    country_code: address.country_code.toUpperCase(),
+    phone: address.phone ?? "",
+  };
+}
+
+function getEmptyShippingAddressFormState(): ShippingAddressFormState {
+  return {
+    first_name: "",
+    last_name: "",
+    company: "",
+    address_1: "",
+    address_2: "",
+    city: "",
+    postal_code: "",
+    province: "",
+    country_code: "",
+    phone: "",
+  };
+}
+
+function normalizeOptionalString(value: string) {
+  const normalized = value.trim();
+
+  return normalized ? normalized : null;
 }
 
 export const handle = {
