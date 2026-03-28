@@ -1,25 +1,23 @@
 import { defineRouteConfig } from "@medusajs/admin-sdk";
 import {
   Calendar,
-  EllipsisHorizontal,
   Pause,
   TriangleRightMini,
   Trash,
   XMarkMini,
 } from "@medusajs/icons";
 import {
-  Badge,
   Button,
   Container,
   createDataTableColumnHelper,
   createDataTableFilterHelper,
   DataTable,
   DataTableFilteringState,
-  IconButton,
   DataTablePaginationState,
   DataTableSortingState,
   DropdownMenu,
   Heading,
+  StatusBadge,
   Text,
   toast,
   useDataTable,
@@ -27,6 +25,7 @@ import {
 } from "@medusajs/ui";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   adminSubscriptionsQueryKeys,
   useAdminSubscriptionsDisplayQuery,
@@ -101,9 +100,9 @@ const baseColumns = [
     enableSorting: true,
     sortLabel: "Status",
     cell: ({ getValue }) => (
-      <Badge color={getStatusColor(getValue())} size="xsmall">
+      <StatusBadge color={getStatusColor(getValue())} className="text-nowrap">
         {formatStatus(getValue())}
-      </Badge>
+      </StatusBadge>
     ),
   }),
   columnHelper.accessor("frequency.label", {
@@ -172,6 +171,7 @@ const SubscriptionsPage = () => {
   });
   const prompt = usePrompt();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   const statusFilters = useMemo(() => {
     return (filtering.status || []) as SubscriptionAdminStatus[];
@@ -310,9 +310,8 @@ const SubscriptionsPage = () => {
   const columns = useMemo(
     () => [
       ...baseColumns,
-      columnHelper.display({
-        id: "actions",
-        cell: ({ row }) => {
+      columnHelper.action({
+        actions: ({ row }) => {
           const subscription = row.original;
           const pendingAction = pendingActionBySubscriptionId.get(subscription.id);
           const isPending = Boolean(pendingAction);
@@ -323,64 +322,59 @@ const SubscriptionsPage = () => {
           const canCancel =
             subscription.status !== SubscriptionAdminStatus.CANCELLED;
 
-          return (
-            <DropdownMenu>
-              <DropdownMenu.Trigger asChild>
-                <IconButton
-                  size="small"
-                  variant="transparent"
-                  disabled={isPending}
-                >
-                  <EllipsisHorizontal />
-                </IconButton>
-              </DropdownMenu.Trigger>
-              <DropdownMenu.Content align="end">
-                {canPause ? (
-                  <DropdownMenu.Item
-                    className="flex items-center gap-x-2"
-                    disabled={isPending}
-                    onClick={(event) => {
-                      event.stopPropagation();
+          const actionGroups = [
+            canPause
+              ? [
+                  {
+                    label: pendingAction === "pause" ? "Pausing..." : "Pause",
+                    icon: <Pause />,
+                    onClick: () => {
                       void handleSubscriptionAction(subscription, "pause");
-                    }}
-                  >
-                    <Pause className="text-ui-fg-subtle" />
-                    <span>{pendingAction === "pause" ? "Pausing..." : "Pause"}</span>
-                  </DropdownMenu.Item>
-                ) : null}
-                {canResume ? (
-                  <DropdownMenu.Item
-                    className="flex items-center gap-x-2"
-                    disabled={isPending}
-                    onClick={(event) => {
-                      event.stopPropagation();
+                    },
+                  },
+                ]
+              : [],
+            canResume
+              ? [
+                  {
+                    label: pendingAction === "resume" ? "Resuming..." : "Resume",
+                    icon: <TriangleRightMini />,
+                    onClick: () => {
                       void handleSubscriptionAction(subscription, "resume");
-                    }}
-                  >
-                    <TriangleRightMini className="text-ui-fg-subtle" />
-                    <span>{pendingAction === "resume" ? "Resuming..." : "Resume"}</span>
-                  </DropdownMenu.Item>
-                ) : null}
-                {canCancel ? (
-                  <>
-                    {(canPause || canResume) ? <DropdownMenu.Separator /> : null}
-                    <DropdownMenu.Item
-                      className="flex items-center gap-x-2"
-                      disabled={isPending}
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        void handleSubscriptionAction(subscription, "cancel");
-                      }}
-                    >
-                      <Trash className="text-ui-fg-subtle" />
-                      <span>
-                        {pendingAction === "cancel" ? "Cancelling..." : "Cancel"}
-                      </span>
-                    </DropdownMenu.Item>
-                  </>
-                ) : null}
-              </DropdownMenu.Content>
-            </DropdownMenu>
+                    },
+                  },
+                ]
+              : [],
+            canCancel
+              ? [
+                  {
+                    label:
+                      pendingAction === "cancel" ? "Cancelling..." : "Cancel",
+                    icon: <Trash />,
+                    onClick: () => {
+                      void handleSubscriptionAction(subscription, "cancel");
+                    },
+                  },
+                ]
+              : [],
+          ].filter((group) => group.length);
+
+          return actionGroups.map((group) =>
+            group.map((action) => ({
+              ...action,
+              icon: (
+                <span className="text-ui-fg-subtle [&_svg]:text-ui-fg-subtle">
+                  {action.icon}
+                </span>
+              ),
+              onClick: () => {
+                if (isPending) {
+                  return;
+                }
+
+                action.onClick();
+              },
+            })),
           );
         },
       }),
@@ -410,6 +404,9 @@ const SubscriptionsPage = () => {
     pagination: {
       state: pagination,
       onPaginationChange: setPagination,
+    },
+    onRowClick: (_event, row) => {
+      navigate(`/subscriptions/${row.id}`);
     },
   });
 
@@ -572,7 +569,6 @@ const SubscriptionsPage = () => {
           <DataTable.Pagination />
         </DataTable>
       </Container>
-      <Container className="divide-y p-0"></Container>
     </div>
   );
 };
@@ -618,6 +614,10 @@ export const config = defineRouteConfig({
   label: "Subscriptions",
   icon: Calendar,
 });
+
+export const handle = {
+  breadcrumb: () => "Subscriptions",
+};
 
 export default SubscriptionsPage;
 

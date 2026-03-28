@@ -7,8 +7,10 @@ import { keepPreviousData, useQuery } from "@tanstack/react-query"
 import { sdk } from "../../lib/client"
 import {
   SubscriptionAdminListResponse,
+  SubscriptionAdminDetailResponse,
   SubscriptionAdminStatus,
 } from "../../types/subscription"
+import { HttpTypes } from "@medusajs/framework/types"
 
 type UseAdminSubscriptionsDisplayQueryInput = {
   pagination: DataTablePaginationState
@@ -19,6 +21,9 @@ type UseAdminSubscriptionsDisplayQueryInput = {
 
 export const adminSubscriptionsQueryKeys = {
   all: ["admin-subscriptions"] as const,
+  detail: (id: string) => [...adminSubscriptionsQueryKeys.all, "detail", id] as const,
+  planOptions: (productId: string) =>
+    [...adminSubscriptionsQueryKeys.all, "plan-options", productId] as const,
   display: (params: {
     pageSize: number
     offset: number
@@ -81,5 +86,32 @@ export function useAdminSubscriptionsDisplayQuery(
         },
       }),
     placeholderData: keepPreviousData,
+  })
+}
+
+export function useAdminSubscriptionDetailQuery(
+  id?: string,
+  initialData?: SubscriptionAdminDetailResponse
+) {
+  return useQuery<SubscriptionAdminDetailResponse>({
+    queryKey: adminSubscriptionsQueryKeys.detail(id ?? ""),
+    queryFn: () => sdk.client.fetch(`/admin/subscriptions/${id}`),
+    enabled: Boolean(id),
+    initialData,
+  })
+}
+
+export function useAdminSubscriptionPlanOptionsQuery(
+  productId?: string,
+  enabled = false
+) {
+  return useQuery<HttpTypes.AdminProductVariantListResponse>({
+    queryKey: adminSubscriptionsQueryKeys.planOptions(productId ?? ""),
+    queryFn: () =>
+      sdk.admin.product.listVariants(productId!, {
+        limit: 100,
+        offset: 0,
+      }),
+    enabled: enabled && Boolean(productId),
   })
 }
