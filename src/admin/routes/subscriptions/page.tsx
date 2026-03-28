@@ -1,5 +1,5 @@
 import { defineRouteConfig } from "@medusajs/admin-sdk";
-import { ListCheckbox, XMarkMini } from "@medusajs/icons";
+import { Calendar, XMarkMini } from "@medusajs/icons";
 import {
   Badge,
   Button,
@@ -15,12 +15,10 @@ import {
   Text,
   useDataTable,
 } from "@medusajs/ui";
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import { sdk } from "../../lib/client";
+import { useAdminSubscriptionsDisplayQuery } from "./data-loading";
 import {
   SubscriptionAdminListItem,
-  SubscriptionAdminListResponse,
   SubscriptionAdminStatus,
 } from "../../types/subscription";
 
@@ -28,6 +26,13 @@ const PAGE_SIZE = 20;
 
 const columnHelper = createDataTableColumnHelper<SubscriptionAdminListItem>();
 const filterHelper = createDataTableFilterHelper<SubscriptionAdminListItem>();
+
+const statusFilterOptions = [
+  { label: "Active", value: SubscriptionAdminStatus.ACTIVE },
+  { label: "Paused", value: SubscriptionAdminStatus.PAUSED },
+  { label: "Cancelled", value: SubscriptionAdminStatus.CANCELLED },
+  { label: "Past due", value: SubscriptionAdminStatus.PAST_DUE },
+] as const;
 
 const columns = [
   columnHelper.accessor("reference", {
@@ -128,20 +133,13 @@ const columns = [
   }),
 ];
 
-const filters = [
-  filterHelper.accessor("status", {
-    type: "multiselect",
-    label: "Status",
-    options: [
-      { label: "Active", value: SubscriptionAdminStatus.ACTIVE },
-      { label: "Paused", value: SubscriptionAdminStatus.PAUSED },
-      { label: "Cancelled", value: SubscriptionAdminStatus.CANCELLED },
-      { label: "Past due", value: SubscriptionAdminStatus.PAST_DUE },
-    ],
-  }),
-];
+const statusFilter = filterHelper.accessor("status", {
+  type: "multiselect",
+  label: "Status",
+  options: [...statusFilterOptions],
+});
 
-const statusFilter = filters[0];
+const filters = [statusFilter];
 
 const SubscriptionsPage = () => {
   const [search, setSearch] = useState("");
@@ -155,48 +153,26 @@ const SubscriptionsPage = () => {
     pageSize: PAGE_SIZE,
   });
 
-  const offset = useMemo(
-    () => pagination.pageIndex * pagination.pageSize,
-    [pagination],
-  );
-
   const statusFilters = useMemo(() => {
     return (filtering.status || []) as SubscriptionAdminStatus[];
   }, [filtering]);
 
   const activeStatusLabels = useMemo(() => {
     return (
-      statusFilter.options
+      statusFilterOptions
         ?.filter((option) =>
-          statusFilters.includes(option.value as SubscriptionAdminStatus),
+          statusFilters.includes(option.value),
         )
         .map((option) => option.label) ?? []
     );
   }, [statusFilters]);
 
   const { data, isLoading, isError, error } =
-    useQuery<SubscriptionAdminListResponse>({
-      queryKey: [
-        "admin-subscriptions",
-        pagination.pageSize,
-        offset,
-        search,
-        statusFilters,
-        sorting?.id,
-        sorting?.desc,
-      ],
-      queryFn: () =>
-        sdk.client.fetch("/admin/subscriptions", {
-          query: {
-            limit: pagination.pageSize,
-            offset,
-            q: search || undefined,
-            status: statusFilters.length ? statusFilters : undefined,
-            order: sorting?.id,
-            direction: sorting ? (sorting.desc ? "desc" : "asc") : undefined,
-          },
-        }),
-      placeholderData: keepPreviousData,
+    useAdminSubscriptionsDisplayQuery({
+      pagination,
+      search,
+      filtering,
+      sorting,
     });
 
   const table = useDataTable({
@@ -234,7 +210,7 @@ const SubscriptionsPage = () => {
         <div className="px-6 py-4">
           <Heading level="h1">Subscriptions</Heading>
           <Text size="small" leading="compact" className="text-ui-fg-subtle">
-            Monitor1 subscription status, cadence, and upcoming renewals.
+            Monitor subscription status, cadence, and upcoming renewals.
           </Text>
         </div>
         <DataTable instance={table}>
@@ -278,10 +254,8 @@ const SubscriptionsPage = () => {
                       {statusFilter.label}
                     </DropdownMenu.SubMenuTrigger>
                     <DropdownMenu.SubMenuContent>
-                      {statusFilter.options?.map((option) => {
-                        const checked = statusFilters.includes(
-                          option.value as SubscriptionAdminStatus,
-                        );
+                      {statusFilterOptions.map((option) => {
+                        const checked = statusFilters.includes(option.value);
 
                         return (
                           <DropdownMenu.CheckboxItem
@@ -291,8 +265,7 @@ const SubscriptionsPage = () => {
                               event.preventDefault();
                             }}
                             onCheckedChange={(nextChecked) => {
-                              const value =
-                                option.value as SubscriptionAdminStatus;
+                              const value = option.value;
 
                               setFiltering((current) => {
                                 const currentValues = Array.isArray(
@@ -430,7 +403,7 @@ function formatDateTime(value: string | null) {
 
 export const config = defineRouteConfig({
   label: "Subscriptions",
-  icon: ListCheckbox,
+  icon: Calendar,
 });
 
 export default SubscriptionsPage;
