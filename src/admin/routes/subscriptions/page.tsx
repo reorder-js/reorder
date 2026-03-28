@@ -49,6 +49,18 @@ const statusFilterOptions = [
   { label: "Past due", value: SubscriptionAdminStatus.PAST_DUE },
 ] as const;
 
+const booleanFilterOptions = [
+  { label: "Yes", value: true },
+  { label: "No", value: false },
+] as const;
+
+const nextRenewalFilterOptions = [
+  { label: "Overdue", value: "overdue" },
+  { label: "Next 7 days", value: "next_7_days" },
+  { label: "Next 30 days", value: "next_30_days" },
+  { label: "Next 90 days", value: "next_90_days" },
+] as const;
+
 const baseColumns = [
   columnHelper.accessor("reference", {
     header: "Reference",
@@ -154,7 +166,32 @@ const statusFilter = filterHelper.accessor("status", {
   options: [...statusFilterOptions],
 });
 
-const filters = [statusFilter];
+const trialFilter = filterHelper.accessor("trial.is_trial", {
+  id: "is_trial",
+  type: "radio",
+  label: "Trial",
+  options: [...booleanFilterOptions],
+});
+
+const skipNextCycleFilter = filterHelper.accessor("skip_next_cycle", {
+  type: "radio",
+  label: "Skip next cycle",
+  options: [...booleanFilterOptions],
+});
+
+const nextRenewalFilter = filterHelper.accessor("next_renewal_at", {
+  id: "next_renewal",
+  type: "radio",
+  label: "Next renewal",
+  options: [...nextRenewalFilterOptions],
+});
+
+const filters = [
+  statusFilter,
+  trialFilter,
+  skipNextCycleFilter,
+  nextRenewalFilter,
+];
 
 type SubscriptionActionType = "pause" | "resume" | "cancel";
 
@@ -176,6 +213,21 @@ const SubscriptionsPage = () => {
   const statusFilters = useMemo(() => {
     return (filtering.status || []) as SubscriptionAdminStatus[];
   }, [filtering]);
+  const trialFilterValue = useMemo(() => {
+    return typeof filtering.is_trial === "boolean"
+      ? filtering.is_trial
+      : undefined;
+  }, [filtering]);
+  const skipNextCycleFilterValue = useMemo(() => {
+    return typeof filtering.skip_next_cycle === "boolean"
+      ? filtering.skip_next_cycle
+      : undefined;
+  }, [filtering]);
+  const nextRenewalFilterValue = useMemo(() => {
+    return typeof filtering.next_renewal === "string"
+      ? filtering.next_renewal
+      : undefined;
+  }, [filtering]);
 
   const activeStatusLabels = useMemo(() => {
     return (
@@ -184,6 +236,25 @@ const SubscriptionsPage = () => {
         .map((option) => option.label) ?? []
     );
   }, [statusFilters]);
+  const activeTrialLabel = useMemo(() => {
+    return booleanFilterOptions.find((option) => option.value === trialFilterValue)
+      ?.label;
+  }, [trialFilterValue]);
+  const activeSkipNextCycleLabel = useMemo(() => {
+    return booleanFilterOptions.find(
+      (option) => option.value === skipNextCycleFilterValue,
+    )?.label;
+  }, [skipNextCycleFilterValue]);
+  const activeNextRenewalLabel = useMemo(() => {
+    return nextRenewalFilterOptions.find(
+      (option) => option.value === nextRenewalFilterValue,
+    )?.label;
+  }, [nextRenewalFilterValue]);
+  const hasActiveFilters =
+    statusFilters.length ||
+    typeof trialFilterValue === "boolean" ||
+    typeof skipNextCycleFilterValue === "boolean" ||
+    Boolean(nextRenewalFilterValue);
 
   const { data, isLoading, isError, error } =
     useAdminSubscriptionsDisplayQuery({
@@ -427,30 +498,42 @@ const SubscriptionsPage = () => {
           <div className="flex flex-col gap-2 px-6 py-4 md:flex-row md:items-center md:justify-between">
             <div className="flex flex-wrap items-center gap-2">
               {statusFilters.length ? (
-                <div className="shadow-buttons-neutral txt-compact-small-plus bg-ui-button-neutral text-ui-fg-base inline-flex items-center overflow-hidden rounded-md">
-                  <span className="border-ui-border-base border-r px-3 py-1.5">
-                    {statusFilter.label}
-                  </span>
-                  <span className="border-ui-border-base border-r px-3 py-1.5 text-ui-fg-subtle">
-                    is
-                  </span>
-                  <span className="border-ui-border-base border-r px-3 py-1.5">
-                    {activeStatusLabels.join(", ")}
-                  </span>
-                  <button
-                    type="button"
-                    className="hover:bg-ui-button-neutral-hover px-2 py-1.5 transition-fg"
-                    onClick={() => {
-                      setFiltering((current) => {
-                        const { status, ...rest } = current;
-
-                        return rest;
-                      });
-                    }}
-                  >
-                    <XMarkMini />
-                  </button>
-                </div>
+                <FilterChip
+                  label={statusFilter.label}
+                  value={activeStatusLabels.join(", ")}
+                  onRemove={() => {
+                    setFiltering((current) => removeFilter(current, "status"));
+                  }}
+                />
+              ) : null}
+              {activeTrialLabel ? (
+                <FilterChip
+                  label={trialFilter.label}
+                  value={activeTrialLabel}
+                  onRemove={() => {
+                    setFiltering((current) => removeFilter(current, "is_trial"));
+                  }}
+                />
+              ) : null}
+              {activeSkipNextCycleLabel ? (
+                <FilterChip
+                  label={skipNextCycleFilter.label}
+                  value={activeSkipNextCycleLabel}
+                  onRemove={() => {
+                    setFiltering((current) =>
+                      removeFilter(current, "skip_next_cycle"),
+                    );
+                  }}
+                />
+              ) : null}
+              {activeNextRenewalLabel ? (
+                <FilterChip
+                  label={nextRenewalFilter.label}
+                  value={activeNextRenewalLabel}
+                  onRemove={() => {
+                    setFiltering((current) => removeFilter(current, "next_renewal"));
+                  }}
+                />
               ) : null}
               <DropdownMenu>
                 <DropdownMenu.Trigger asChild>
@@ -511,35 +594,117 @@ const SubscriptionsPage = () => {
                       })}
                     </DropdownMenu.SubMenuContent>
                   </DropdownMenu.SubMenu>
-                  {statusFilters.length ? (
+                  <DropdownMenu.SubMenu>
+                    <DropdownMenu.SubMenuTrigger>
+                      {trialFilter.label}
+                    </DropdownMenu.SubMenuTrigger>
+                    <DropdownMenu.SubMenuContent>
+                      {booleanFilterOptions.map((option) => (
+                        <DropdownMenu.CheckboxItem
+                          key={`trial-${String(option.value)}`}
+                          checked={trialFilterValue === option.value}
+                          onSelect={(event) => {
+                            event.preventDefault();
+                          }}
+                          onCheckedChange={(nextChecked) => {
+                            setFiltering((current) => {
+                              if (!nextChecked) {
+                                return removeFilter(current, "is_trial");
+                              }
+
+                              return {
+                                ...current,
+                                is_trial: option.value,
+                              };
+                            });
+                          }}
+                        >
+                          {option.label}
+                        </DropdownMenu.CheckboxItem>
+                      ))}
+                    </DropdownMenu.SubMenuContent>
+                  </DropdownMenu.SubMenu>
+                  <DropdownMenu.SubMenu>
+                    <DropdownMenu.SubMenuTrigger>
+                      {skipNextCycleFilter.label}
+                    </DropdownMenu.SubMenuTrigger>
+                    <DropdownMenu.SubMenuContent>
+                      {booleanFilterOptions.map((option) => (
+                        <DropdownMenu.CheckboxItem
+                          key={`skip-next-cycle-${String(option.value)}`}
+                          checked={skipNextCycleFilterValue === option.value}
+                          onSelect={(event) => {
+                            event.preventDefault();
+                          }}
+                          onCheckedChange={(nextChecked) => {
+                            setFiltering((current) => {
+                              if (!nextChecked) {
+                                return removeFilter(current, "skip_next_cycle");
+                              }
+
+                              return {
+                                ...current,
+                                skip_next_cycle: option.value,
+                              };
+                            });
+                          }}
+                        >
+                          {option.label}
+                        </DropdownMenu.CheckboxItem>
+                      ))}
+                    </DropdownMenu.SubMenuContent>
+                  </DropdownMenu.SubMenu>
+                  <DropdownMenu.SubMenu>
+                    <DropdownMenu.SubMenuTrigger>
+                      {nextRenewalFilter.label}
+                    </DropdownMenu.SubMenuTrigger>
+                    <DropdownMenu.SubMenuContent>
+                      {nextRenewalFilterOptions.map((option) => (
+                        <DropdownMenu.CheckboxItem
+                          key={option.value}
+                          checked={nextRenewalFilterValue === option.value}
+                          onSelect={(event) => {
+                            event.preventDefault();
+                          }}
+                          onCheckedChange={(nextChecked) => {
+                            setFiltering((current) => {
+                              if (!nextChecked) {
+                                return removeFilter(current, "next_renewal");
+                              }
+
+                              return {
+                                ...current,
+                                next_renewal: option.value,
+                              };
+                            });
+                          }}
+                        >
+                          {option.label}
+                        </DropdownMenu.CheckboxItem>
+                      ))}
+                    </DropdownMenu.SubMenuContent>
+                  </DropdownMenu.SubMenu>
+                  {hasActiveFilters ? (
                     <>
                       <DropdownMenu.Separator />
                       <DropdownMenu.Item
                         onSelect={(event) => {
                           event.preventDefault();
-                          setFiltering((current) => {
-                            const { status, ...rest } = current;
-
-                            return rest;
-                          });
+                          setFiltering({});
                         }}
                       >
-                        Clear status filter
+                        Clear all filters
                       </DropdownMenu.Item>
                     </>
                   ) : null}
                 </DropdownMenu.Content>
               </DropdownMenu>
-              {statusFilters.length ? (
+              {hasActiveFilters ? (
                 <button
                   type="button"
                   className="text-ui-fg-muted hover:text-ui-fg-subtle txt-compact-small-plus rounded-md px-2 py-1 transition-fg"
                   onClick={() => {
-                    setFiltering((current) => {
-                      const { status, ...rest } = current;
-
-                      return rest;
-                    });
+                    setFiltering({});
                   }}
                 >
                   Clear all
@@ -621,6 +786,33 @@ export const handle = {
 
 export default SubscriptionsPage;
 
+const FilterChip = ({
+  label,
+  value,
+  onRemove,
+}: {
+  label: string;
+  value: string;
+  onRemove: () => void;
+}) => {
+  return (
+    <div className="shadow-buttons-neutral txt-compact-small-plus bg-ui-button-neutral text-ui-fg-base inline-flex items-center overflow-hidden rounded-md">
+      <span className="border-ui-border-base border-r px-3 py-1.5">{label}</span>
+      <span className="border-ui-border-base border-r px-3 py-1.5 text-ui-fg-subtle">
+        is
+      </span>
+      <span className="border-ui-border-base border-r px-3 py-1.5">{value}</span>
+      <button
+        type="button"
+        className="hover:bg-ui-button-neutral-hover px-2 py-1.5 transition-fg"
+        onClick={onRemove}
+      >
+        <XMarkMini />
+      </button>
+    </div>
+  );
+};
+
 function getSubscriptionActionPromptConfig(action: SubscriptionActionType) {
   switch (action) {
     case "pause":
@@ -651,4 +843,13 @@ function getSubscriptionActionPromptConfig(action: SubscriptionActionType) {
         variant: "danger" as const,
       };
   }
+}
+
+function removeFilter(
+  current: DataTableFilteringState,
+  key: string,
+) {
+  const { [key]: _removed, ...rest } = current;
+
+  return rest;
 }

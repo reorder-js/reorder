@@ -12,6 +12,12 @@ import {
 } from "../../types/subscription"
 import { HttpTypes } from "@medusajs/framework/types"
 
+type NextRenewalFilterValue =
+  | "overdue"
+  | "next_7_days"
+  | "next_30_days"
+  | "next_90_days"
+
 type UseAdminSubscriptionsDisplayQueryInput = {
   pagination: DataTablePaginationState
   search: string
@@ -29,6 +35,11 @@ export const adminSubscriptionsQueryKeys = {
     offset: number
     search: string
     status: SubscriptionAdminStatus[]
+    isTrial?: boolean
+    skipNextCycle?: boolean
+    nextRenewalFilter?: NextRenewalFilterValue
+    nextRenewalFrom?: string
+    nextRenewalTo?: string
     sortingId?: string
     sortingDesc?: boolean
   }) =>
@@ -39,6 +50,11 @@ export const adminSubscriptionsQueryKeys = {
       params.offset,
       params.search,
       params.status,
+      params.isTrial,
+      params.skipNextCycle,
+      params.nextRenewalFilter,
+      params.nextRenewalFrom,
+      params.nextRenewalTo,
       params.sortingId,
       params.sortingDesc,
     ] as const,
@@ -51,12 +67,30 @@ export function getAdminSubscriptionsDisplayQueryInput(
   const status = Array.isArray(input.filtering.status)
     ? (input.filtering.status as SubscriptionAdminStatus[])
     : []
+  const isTrial =
+    typeof input.filtering.is_trial === "boolean"
+      ? input.filtering.is_trial
+      : undefined
+  const skipNextCycle =
+    typeof input.filtering.skip_next_cycle === "boolean"
+      ? input.filtering.skip_next_cycle
+      : undefined
+  const nextRenewalFilter =
+    typeof input.filtering.next_renewal === "string"
+      ? (input.filtering.next_renewal as NextRenewalFilterValue)
+      : undefined
+  const nextRenewalRange = getNextRenewalRange(nextRenewalFilter)
 
   return {
     pageSize: input.pagination.pageSize,
     offset,
     search: input.search,
     status,
+    isTrial,
+    skipNextCycle,
+    nextRenewalFilter,
+    nextRenewalFrom: nextRenewalRange?.from,
+    nextRenewalTo: nextRenewalRange?.to,
     sortingId: input.sorting?.id,
     sortingDesc: input.sorting?.desc,
   }
@@ -76,6 +110,10 @@ export function useAdminSubscriptionsDisplayQuery(
           offset: queryInput.offset,
           q: queryInput.search || undefined,
           status: queryInput.status.length ? queryInput.status : undefined,
+          is_trial: queryInput.isTrial,
+          skip_next_cycle: queryInput.skipNextCycle,
+          next_renewal_from: queryInput.nextRenewalFrom,
+          next_renewal_to: queryInput.nextRenewalTo,
           order: queryInput.sortingId,
           direction:
             queryInput.sortingId && typeof queryInput.sortingDesc === "boolean"
@@ -114,4 +152,40 @@ export function useAdminSubscriptionPlanOptionsQuery(
       }),
     enabled: enabled && Boolean(productId),
   })
+}
+
+function getNextRenewalRange(value?: NextRenewalFilterValue) {
+  if (!value) {
+    return
+  }
+
+  const now = new Date()
+
+  switch (value) {
+    case "overdue":
+      return {
+        to: now.toISOString(),
+      }
+    case "next_7_days":
+      return {
+        from: now.toISOString(),
+        to: addDays(now, 7).toISOString(),
+      }
+    case "next_30_days":
+      return {
+        from: now.toISOString(),
+        to: addDays(now, 30).toISOString(),
+      }
+    case "next_90_days":
+      return {
+        from: now.toISOString(),
+        to: addDays(now, 90).toISOString(),
+      }
+  }
+}
+
+function addDays(date: Date, amount: number) {
+  const next = new Date(date)
+  next.setDate(next.getDate() + amount)
+  return next
 }
