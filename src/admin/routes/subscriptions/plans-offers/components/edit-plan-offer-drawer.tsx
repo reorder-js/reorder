@@ -39,6 +39,14 @@ const editPlanOfferSchema = z
   .object({
     name: z.string().trim().min(1).max(255),
     is_enabled: z.boolean(),
+    minimum_cycles: z.number().int().positive().nullable(),
+    trial_enabled: z.boolean(),
+    trial_days: z.number().int().positive().nullable(),
+    stacking_policy: z.enum([
+      "allowed",
+      "disallow_all",
+      "disallow_subscription_discounts",
+    ]),
     frequency_rows: z.array(frequencyRowSchema).min(1),
   })
   .superRefine((values, ctx) => {
@@ -65,6 +73,22 @@ const editPlanOfferSchema = z
         })
       }
     })
+
+    if (!values.trial_enabled && values.trial_days !== null) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Trial days must be empty when trial is disabled",
+        path: ["trial_days"],
+      })
+    }
+
+    if (values.trial_enabled && values.trial_days === null) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Trial days is required when trial is enabled",
+        path: ["trial_days"],
+      })
+    }
   })
 
 type EditPlanOfferFormValues = z.infer<typeof editPlanOfferSchema>
@@ -92,6 +116,10 @@ export const EditPlanOfferDrawer = ({
     defaultValues: {
       name: "",
       is_enabled: true,
+      minimum_cycles: null,
+      trial_enabled: false,
+      trial_days: null,
+      stacking_policy: "allowed",
       frequency_rows: [],
     },
   })
@@ -127,6 +155,10 @@ export const EditPlanOfferDrawer = ({
     form.reset({
       name: detail.name,
       is_enabled: detail.is_enabled,
+      minimum_cycles: detail.rules?.minimum_cycles ?? null,
+      trial_enabled: detail.rules?.trial_enabled ?? false,
+      trial_days: detail.rules?.trial_days ?? null,
+      stacking_policy: detail.rules?.stacking_policy ?? "allowed",
       frequency_rows: nextRows,
     })
     replace(nextRows)
@@ -193,22 +225,26 @@ export const EditPlanOfferDrawer = ({
           type: row.discount_type,
           value: row.discount_value!,
         })),
+      rules: {
+        minimum_cycles: values.minimum_cycles,
+        trial_enabled: values.trial_enabled,
+        trial_days: values.trial_enabled ? values.trial_days : null,
+        stacking_policy: values.stacking_policy,
+      },
     })
   })
 
   const detail = data?.plan_offer
+  const trialEnabled = form.watch("trial_enabled")
 
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
-      <Drawer.Content>
-        <form
-          onSubmit={handleSubmit}
-          className="flex h-full flex-1 flex-col overflow-hidden"
-        >
-          <Drawer.Header>
-            <Drawer.Title>Edit plan offer</Drawer.Title>
-          </Drawer.Header>
-          <Drawer.Body className="flex flex-1 flex-col gap-y-6 p-4">
+      <Drawer.Content className="flex flex-col overflow-hidden">
+        <Drawer.Header>
+          <Drawer.Title>Edit plan offer</Drawer.Title>
+        </Drawer.Header>
+        <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+          <Drawer.Body className="flex min-h-0 flex-1 flex-col gap-y-6 overflow-y-auto p-4">
             {isLoading ? (
               <div className="flex items-center gap-x-2 text-ui-fg-subtle">
                 <div className="bg-ui-fg-subtle size-2 rounded-full" />
@@ -314,6 +350,133 @@ export const EditPlanOfferDrawer = ({
                     >
                       Add frequency
                     </Button>
+                  </div>
+
+                  <div className="grid gap-4 rounded-lg border border-ui-border-base p-4">
+                    <div className="flex flex-col gap-y-1">
+                      <Heading level="h2">Offer rules</Heading>
+                      <Text
+                        size="small"
+                        leading="compact"
+                        className="text-ui-fg-subtle"
+                      >
+                        Update minimum period, trial behavior, and stacking
+                        policy.
+                      </Text>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                      <div className="grid gap-2">
+                        <Label htmlFor="edit-minimum-cycles">Minimum cycles</Label>
+                        <Input
+                          id="edit-minimum-cycles"
+                          type="number"
+                          min={1}
+                          step={1}
+                          {...form.register("minimum_cycles", {
+                            setValueAs: (value) =>
+                              value === "" ? null : Number(value),
+                          })}
+                        />
+                        <Text
+                          size="small"
+                          leading="compact"
+                          className="text-ui-fg-subtle"
+                        >
+                          Leave empty if there is no minimum subscription
+                          period.
+                        </Text>
+                        <FieldError
+                          message={form.formState.errors.minimum_cycles?.message}
+                        />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="edit-stacking-policy">Stacking policy</Label>
+                        <Controller
+                          control={form.control}
+                          name="stacking_policy"
+                          render={({ field }) => (
+                            <Select
+                              value={field.value}
+                              onValueChange={field.onChange}
+                            >
+                              <Select.Trigger id="edit-stacking-policy">
+                                <Select.Value />
+                              </Select.Trigger>
+                              <Select.Content>
+                                <Select.Item value="allowed">Allowed</Select.Item>
+                                <Select.Item value="disallow_all">
+                                  Disallow all
+                                </Select.Item>
+                                <Select.Item value="disallow_subscription_discounts">
+                                  Disallow subscription discounts
+                                </Select.Item>
+                              </Select.Content>
+                            </Select>
+                          )}
+                        />
+                        <Text
+                          size="small"
+                          leading="compact"
+                          className="text-ui-fg-subtle"
+                        >
+                          Control whether this offer can stack with other discounts.
+                        </Text>
+                      </div>
+                    </div>
+
+                    <div className="grid gap-3">
+                      <div className="flex items-center justify-between rounded-lg border border-ui-border-base px-4 py-3">
+                        <div className="flex flex-col">
+                          <Text size="small" leading="compact" weight="plus">
+                            Trial enabled
+                          </Text>
+                          <Text
+                            size="small"
+                            leading="compact"
+                            className="text-ui-fg-subtle"
+                          >
+                            Allow a trial period for this offer.
+                          </Text>
+                        </div>
+                        <Controller
+                          control={form.control}
+                          name="trial_enabled"
+                          render={({ field }) => (
+                            <Switch
+                              checked={field.value}
+                              onCheckedChange={(checked) => {
+                                field.onChange(checked)
+
+                                if (!checked) {
+                                  form.setValue("trial_days", null, {
+                                    shouldValidate: true,
+                                  })
+                                }
+                              }}
+                            />
+                          )}
+                        />
+                      </div>
+
+                      <div className="grid gap-2">
+                        <Label htmlFor="edit-trial-days">Trial days</Label>
+                        <Input
+                          id="edit-trial-days"
+                          type="number"
+                          min={1}
+                          step={1}
+                          disabled={!trialEnabled}
+                          {...form.register("trial_days", {
+                            setValueAs: (value) =>
+                              value === "" ? null : Number(value),
+                          })}
+                        />
+                        <FieldError
+                          message={form.formState.errors.trial_days?.message}
+                        />
+                      </div>
+                    </div>
                   </div>
 
                   <div className="grid gap-4">
