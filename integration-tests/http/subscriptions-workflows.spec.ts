@@ -12,9 +12,14 @@ import {
   updateSubscriptionShippingAddressWorkflow,
 } from "../../src/workflows"
 import {
+  createPlanOfferSeed,
   createProductWithVariant,
   createSubscriptionSeed,
-} from "../helpers/subscription-fixtures"
+} from "../helpers/plan-offer-fixtures"
+import {
+  PlanOfferFrequencyInterval,
+  PlanOfferScope,
+} from "../../src/modules/plan-offer/types"
 import {
   SubscriptionFrequencyInterval,
   SubscriptionStatus,
@@ -141,6 +146,19 @@ medusaIntegrationTestRunner({
       it("schedules a plan change with a real variant", async () => {
         const container = getContainer()
         const { product, variant } = await createProductWithVariant(container)
+        await createPlanOfferSeed(container, {
+          name: "PLAN-SUB-WF-004",
+          scope: PlanOfferScope.VARIANT,
+          product_id: product.id,
+          variant_id: variant.id,
+          is_enabled: true,
+          allowed_frequencies: [
+            {
+              interval: PlanOfferFrequencyInterval.MONTH,
+              value: 2,
+            },
+          ],
+        })
         const subscription = await createSubscriptionSeed(container, {
           reference: "SUB-WF-004",
           product_id: product.id,

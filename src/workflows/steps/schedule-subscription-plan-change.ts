@@ -1,5 +1,6 @@
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
+import { resolveProductSubscriptionConfig } from "../../modules/plan-offer/utils/effective-config"
 import { SUBSCRIPTION_MODULE } from "../../modules/subscription"
 import SubscriptionModuleService from "../../modules/subscription/service"
 import { SubscriptionFrequencyInterval, SubscriptionStatus } from "../../modules/subscription/types"
@@ -59,6 +60,38 @@ export const scheduleSubscriptionPlanChangeStep = createStep(
 
     if (!variant) {
       throw subscriptionErrors.notFound("Variant", input.variant_id)
+    }
+
+    if (variant.product?.id !== subscription.product_id) {
+      throw subscriptionErrors.planChangeVariantMismatch(
+        input.variant_id,
+        subscription.product_id
+      )
+    }
+
+    const effectiveConfig = await resolveProductSubscriptionConfig(container, {
+      product_id: subscription.product_id,
+      variant_id: variant.id,
+    })
+
+    if (!effectiveConfig.is_enabled) {
+      throw subscriptionErrors.planChangeNotAllowed(
+        subscription.product_id,
+        variant.id
+      )
+    }
+
+    const isAllowedFrequency = effectiveConfig.allowed_frequencies.some(
+      (frequency) =>
+        String(frequency.interval) === input.frequency_interval &&
+        frequency.value === input.frequency_value
+    )
+
+    if (!isAllowedFrequency) {
+      throw subscriptionErrors.planChangeFrequencyNotAllowed(
+        input.frequency_interval,
+        input.frequency_value
+      )
     }
 
     const requestedAt = new Date().toISOString()

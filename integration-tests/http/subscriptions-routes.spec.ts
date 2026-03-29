@@ -2,9 +2,11 @@ import { medusaIntegrationTestRunner } from "@medusajs/test-utils"
 import path from "path"
 import {
   createAdminAuthHeaders,
+  createPlanOfferSeed,
   createProductWithVariant,
   createSubscriptionSeed,
-} from "../helpers/subscription-fixtures"
+} from "../helpers/plan-offer-fixtures"
+import { PlanOfferScope } from "../../src/modules/plan-offer/types"
 import { SubscriptionStatus } from "../../src/modules/subscription/types"
 
 medusaIntegrationTestRunner({
@@ -131,6 +133,16 @@ medusaIntegrationTestRunner({
         const container = getContainer()
         const headers = await createAdminAuthHeaders(container)
         const { product, variant } = await createProductWithVariant(container)
+        await createPlanOfferSeed(container, {
+          name: "PLAN-SUB-API-006",
+          scope: PlanOfferScope.VARIANT,
+          product_id: product.id,
+          variant_id: variant.id,
+          is_enabled: true,
+          allowed_frequencies: [
+            { interval: "month", value: 2 },
+          ],
+        })
         const subscription = await createSubscriptionSeed(container, {
           reference: "SUB-API-006",
           product_id: product.id,
@@ -151,6 +163,97 @@ medusaIntegrationTestRunner({
         expect(response.data.subscription.pending_update_data).toMatchObject({
           variant_id: variant.id,
           frequency_value: 2,
+        })
+      })
+
+      it("uses plan offer rules to allow and block scheduled plan changes", async () => {
+        const container = getContainer()
+        const headers = await createAdminAuthHeaders(container)
+        const { product, variant } = await createProductWithVariant(container)
+
+        await createPlanOfferSeed(container, {
+          name: "PLAN-SUB-SMOKE-001",
+          scope: PlanOfferScope.PRODUCT,
+          product_id: product.id,
+          variant_id: null,
+          is_enabled: true,
+          allowed_frequencies: [
+            { interval: "month", value: 2 },
+          ],
+        })
+
+        const subscription = await createSubscriptionSeed(container, {
+          reference: "SUB-SMOKE-PLAN-OFFER-001",
+          product_id: product.id,
+          variant_id: variant.id,
+        })
+
+        const allowedResponse = await api.post(
+          `/admin/subscriptions/${subscription.id}/schedule-plan-change`,
+          {
+            variant_id: variant.id,
+            frequency_interval: "month",
+            frequency_value: 2,
+          },
+          { headers }
+        )
+
+        expect(allowedResponse.status).toEqual(200)
+        expect(allowedResponse.data.subscription.pending_update_data).toMatchObject(
+          {
+            variant_id: variant.id,
+            frequency_interval: "month",
+            frequency_value: 2,
+          }
+        )
+
+        await expect(
+          api.post(
+            `/admin/subscriptions/${subscription.id}/schedule-plan-change`,
+            {
+              variant_id: variant.id,
+              frequency_interval: "year",
+              frequency_value: 1,
+            },
+            { headers }
+          )
+        ).rejects.toMatchObject({
+          response: {
+            status: 400,
+            data: {
+              message: expect.stringContaining("not allowed"),
+            },
+          },
+        })
+      })
+
+      it("rejects scheduled plan change when no active subscription offer exists", async () => {
+        const container = getContainer()
+        const headers = await createAdminAuthHeaders(container)
+        const { product, variant } = await createProductWithVariant(container)
+        const subscription = await createSubscriptionSeed(container, {
+          reference: "SUB-SMOKE-PLAN-OFFER-002",
+          product_id: product.id,
+          variant_id: variant.id,
+        })
+
+        await expect(
+          api.post(
+            `/admin/subscriptions/${subscription.id}/schedule-plan-change`,
+            {
+              variant_id: variant.id,
+              frequency_interval: "month",
+              frequency_value: 1,
+            },
+            { headers }
+          )
+        ).rejects.toMatchObject({
+          response: {
+            status: 400,
+            data: {
+              message: expect.stringContaining("No active subscription offer"),
+            },
+          },
         })
       })
 

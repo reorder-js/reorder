@@ -10,6 +10,7 @@ import {
 import {
   createAdminAuthHeaders,
   createProductWithVariant,
+  createSubscriptionSeed,
 } from "./subscription-fixtures"
 
 type PlanOfferSeedInput = {
@@ -38,7 +39,7 @@ type PlanOfferSeedInput = {
   metadata?: Record<string, unknown> | null
 }
 
-export { createAdminAuthHeaders, createProductWithVariant }
+export { createAdminAuthHeaders, createProductWithVariant, createSubscriptionSeed }
 
 export async function createPlanOfferSeed(
   container: MedusaContainer,

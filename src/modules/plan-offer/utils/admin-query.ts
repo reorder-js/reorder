@@ -20,8 +20,14 @@ import type {
   PlanOfferRules,
   ProductSubscriptionConfig,
 } from "../types"
-import { PlanOfferScope as DomainPlanOfferScope } from "../types"
 import { planOfferErrors } from "./errors"
+import {
+  getInactiveEffectiveConfig,
+  mapRecordToEffectiveConfig,
+  resolveProductSubscriptionConfig,
+} from "./effective-config"
+
+export { resolveProductSubscriptionConfig } from "./effective-config"
 
 export type ListAdminPlanOffersInput = {
   limit?: number
@@ -306,95 +312,6 @@ async function getActiveProductSourceMap(
   return new Map(
     productRecords.map((record) => [record.product_id, record])
   )
-}
-
-function mapRecordToEffectiveConfig(
-  record: PlanOfferRecord
-): ProductSubscriptionConfig {
-  return {
-    product_id: record.product_id,
-    variant_id: record.variant_id,
-    source_offer_id: record.id,
-    source_scope:
-      record.scope === "product"
-        ? DomainPlanOfferScope.PRODUCT
-        : DomainPlanOfferScope.VARIANT,
-    is_enabled: true,
-    allowed_frequencies: record.allowed_frequencies ?? [],
-    discount_per_frequency: record.discount_per_frequency ?? [],
-    rules: record.rules,
-  }
-}
-
-function getInactiveEffectiveConfig(input: {
-  product_id: string
-  variant_id?: string | null
-}): ProductSubscriptionConfig {
-  return {
-    product_id: input.product_id,
-    variant_id: input.variant_id ?? null,
-    source_offer_id: null,
-    source_scope: null,
-    is_enabled: false,
-    allowed_frequencies: [],
-    discount_per_frequency: [],
-    rules: null,
-  }
-}
-
-export async function resolveProductSubscriptionConfig(
-  container: MedusaContainer,
-  input: {
-    product_id: string
-    variant_id?: string | null
-  }
-): Promise<ProductSubscriptionConfig> {
-  const query = container.resolve(ContainerRegistrationKeys.QUERY)
-
-  if (input.variant_id) {
-    const { data: variantData } = await query.graph({
-      entity: "plan_offer",
-      fields: [...listFields],
-      filters: {
-        scope: "variant",
-        variant_id: input.variant_id,
-        is_enabled: true,
-      },
-      pagination: {
-        take: 1,
-      },
-    })
-
-    const variantRecord = (variantData as PlanOfferRecord[])[0]
-
-    if (variantRecord) {
-      return mapRecordToEffectiveConfig(variantRecord)
-    }
-  }
-
-  const { data: productData } = await query.graph({
-    entity: "plan_offer",
-    fields: [...listFields],
-    filters: {
-      scope: "product",
-      product_id: input.product_id,
-      is_enabled: true,
-    },
-    pagination: {
-      take: 1,
-    },
-  })
-
-  const productRecord = (productData as PlanOfferRecord[])[0]
-
-  if (productRecord) {
-    return {
-      ...mapRecordToEffectiveConfig(productRecord),
-      variant_id: input.variant_id ?? null,
-    }
-  }
-
-  return getInactiveEffectiveConfig(input)
 }
 
 function mapEffectiveConfigSummary(

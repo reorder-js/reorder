@@ -158,6 +158,241 @@ medusaIntegrationTestRunner({
         expect(toggleResponse.data.plan_offer.is_enabled).toBe(false)
       })
 
+      it("covers admin flow from list to create edit save and refresh verification", async () => {
+        const container = getContainer()
+        const headers = await createAdminAuthHeaders(container)
+        const { product, variant } = await createProductWithVariant(container)
+
+        const initialListResponse = await api.get(
+          "/admin/subscription-offers?limit=20&offset=0&q=PLAN-ADMIN-FLOW-001",
+          {
+            headers,
+          }
+        )
+
+        expect(initialListResponse.status).toEqual(200)
+        expect(initialListResponse.data.plan_offers).toHaveLength(0)
+
+        const createResponse = await api.post(
+          "/admin/subscription-offers",
+          {
+            name: "PLAN-ADMIN-FLOW-001",
+            scope: "variant",
+            product_id: product.id,
+            variant_id: variant.id,
+            is_enabled: true,
+            allowed_frequencies: [
+              { interval: "month", value: 1 },
+            ],
+            discounts: [
+              {
+                interval: "month",
+                frequency_value: 1,
+                type: "percentage",
+                value: 10,
+              },
+            ],
+            rules: {
+              minimum_cycles: 1,
+              trial_enabled: false,
+              trial_days: null,
+              stacking_policy: "allowed",
+            },
+            metadata: {
+              source: "admin-flow-test",
+            },
+          },
+          { headers }
+        )
+
+        expect(createResponse.status).toEqual(200)
+        expect(createResponse.data.plan_offer).toMatchObject({
+          name: "PLAN-ADMIN-FLOW-001",
+          status: "enabled",
+          target: expect.objectContaining({
+            scope: "variant",
+            product_id: product.id,
+            variant_id: variant.id,
+          }),
+          allowed_frequencies: [
+            expect.objectContaining({
+              interval: "month",
+              value: 1,
+              label: "Every month",
+            }),
+          ],
+          discounts: [
+            expect.objectContaining({
+              interval: "month",
+              frequency_value: 1,
+              type: "percentage",
+              value: 10,
+              label: "10% off",
+            }),
+          ],
+          rules: expect.objectContaining({
+            minimum_cycles: 1,
+            trial_enabled: false,
+            trial_days: null,
+            stacking_policy: "allowed",
+          }),
+          metadata: {
+            source: "admin-flow-test",
+          },
+        })
+
+        const createdId = createResponse.data.plan_offer.id as string
+
+        const detailResponse = await api.get(
+          `/admin/subscription-offers/${createdId}`,
+          {
+            headers,
+          }
+        )
+
+        expect(detailResponse.status).toEqual(200)
+        expect(detailResponse.data.plan_offer).toMatchObject({
+          id: createdId,
+          name: "PLAN-ADMIN-FLOW-001",
+          status: "enabled",
+        })
+
+        const updateResponse = await api.post(
+          `/admin/subscription-offers/${createdId}`,
+          {
+            name: "PLAN-ADMIN-FLOW-001-UPDATED",
+            is_enabled: true,
+            allowed_frequencies: [
+              { interval: "month", value: 2 },
+              { interval: "year", value: 1 },
+            ],
+            discounts: [
+              {
+                interval: "month",
+                frequency_value: 2,
+                type: "percentage",
+                value: 12,
+              },
+              {
+                interval: "year",
+                frequency_value: 1,
+                type: "fixed",
+                value: 30,
+              },
+            ],
+            rules: {
+              minimum_cycles: 3,
+              trial_enabled: true,
+              trial_days: 14,
+              stacking_policy: "disallow_subscription_discounts",
+            },
+            metadata: {
+              source: "admin-flow-test-updated",
+              revision: 2,
+            },
+          },
+          { headers }
+        )
+
+        expect(updateResponse.status).toEqual(200)
+        expect(updateResponse.data.plan_offer).toMatchObject({
+          id: createdId,
+          name: "PLAN-ADMIN-FLOW-001-UPDATED",
+          status: "enabled",
+          allowed_frequencies: [
+            expect.objectContaining({
+              interval: "month",
+              value: 2,
+              label: "Every 2 months",
+            }),
+            expect.objectContaining({
+              interval: "year",
+              value: 1,
+              label: "Every year",
+            }),
+          ],
+          discounts: [
+            expect.objectContaining({
+              interval: "month",
+              frequency_value: 2,
+              type: "percentage",
+              value: 12,
+              label: "12% off",
+            }),
+            expect.objectContaining({
+              interval: "year",
+              frequency_value: 1,
+              type: "fixed",
+              value: 30,
+              label: "30 off",
+            }),
+          ],
+          rules: expect.objectContaining({
+            minimum_cycles: 3,
+            trial_enabled: true,
+            trial_days: 14,
+            stacking_policy: "disallow_subscription_discounts",
+          }),
+          metadata: {
+            source: "admin-flow-test-updated",
+            revision: 2,
+          },
+        })
+
+        const refreshedDetailResponse = await api.get(
+          `/admin/subscription-offers/${createdId}`,
+          {
+            headers,
+          }
+        )
+
+        expect(refreshedDetailResponse.status).toEqual(200)
+        expect(refreshedDetailResponse.data.plan_offer).toMatchObject({
+          id: createdId,
+          name: "PLAN-ADMIN-FLOW-001-UPDATED",
+          status: "enabled",
+          metadata: {
+            source: "admin-flow-test-updated",
+            revision: 2,
+          },
+        })
+        expect(refreshedDetailResponse.data.plan_offer.allowed_frequencies).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              interval: "month",
+              value: 2,
+            }),
+            expect.objectContaining({
+              interval: "year",
+              value: 1,
+            }),
+          ])
+        )
+
+        const refreshedListResponse = await api.get(
+          "/admin/subscription-offers?limit=20&offset=0&q=PLAN-ADMIN-FLOW-001-UPDATED",
+          {
+            headers,
+          }
+        )
+
+        expect(refreshedListResponse.status).toEqual(200)
+        expect(refreshedListResponse.data.plan_offers).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              id: createdId,
+              name: "PLAN-ADMIN-FLOW-001-UPDATED",
+              status: "enabled",
+              target: expect.objectContaining({
+                scope: "variant",
+                product_id: product.id,
+                variant_id: variant.id,
+              }),
+            }),
+          ])
+        )
+      })
+
       it("returns 400 for invalid validation payloads", async () => {
         const container = getContainer()
         const headers = await createAdminAuthHeaders(container)

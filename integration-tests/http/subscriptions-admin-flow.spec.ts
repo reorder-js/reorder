@@ -2,9 +2,11 @@ import { medusaIntegrationTestRunner } from "@medusajs/test-utils"
 import path from "path"
 import {
   createAdminAuthHeaders,
+  createPlanOfferSeed,
   createProductWithVariant,
   createSubscriptionSeed,
-} from "../helpers/subscription-fixtures"
+} from "../helpers/plan-offer-fixtures"
+import { PlanOfferScope } from "../../src/modules/plan-offer/types"
 import { SubscriptionStatus } from "../../src/modules/subscription/types"
 
 medusaIntegrationTestRunner({
@@ -19,9 +21,16 @@ medusaIntegrationTestRunner({
         const container = getContainer()
         const headers = await createAdminAuthHeaders(container)
         const { product, variant } = await createProductWithVariant(container)
-        const alternateVariant = (
-          await createProductWithVariant(container)
-        ).variant
+        await createPlanOfferSeed(container, {
+          name: "PLAN-SUB-ADMIN-FLOW-001",
+          scope: PlanOfferScope.PRODUCT,
+          product_id: product.id,
+          variant_id: null,
+          is_enabled: true,
+          allowed_frequencies: [
+            { interval: "month", value: 2 },
+          ],
+        })
 
         const subscription = await createSubscriptionSeed(container, {
           reference: "SUB-ADMIN-FLOW-001",
@@ -93,7 +102,7 @@ medusaIntegrationTestRunner({
         const schedulePlanChangeResponse = await api.post(
           `/admin/subscriptions/${subscription.id}/schedule-plan-change`,
           {
-            variant_id: alternateVariant.id,
+            variant_id: variant.id,
             frequency_interval: "month",
             frequency_value: 2,
           },
@@ -104,7 +113,7 @@ medusaIntegrationTestRunner({
         expect(
           schedulePlanChangeResponse.data.subscription.pending_update_data
         ).toMatchObject({
-          variant_id: alternateVariant.id,
+          variant_id: variant.id,
           frequency_value: 2,
         })
 
@@ -147,7 +156,7 @@ medusaIntegrationTestRunner({
         expect(updatedDetailResponse.data.subscription).toMatchObject({
           status: "active",
           pending_update_data: expect.objectContaining({
-            variant_id: alternateVariant.id,
+            variant_id: variant.id,
             frequency_value: 2,
           }),
           shipping_address: expect.objectContaining({
