@@ -8,7 +8,7 @@ This document describes product direction, not a promise of delivery dates.
 
 ## Current Status
 
-The first major area of the plugin, `Subscriptions`, is complete and tested.
+The first two major areas of the plugin, `Subscriptions` and `Plans & Offers`, are complete and tested.
 
 Implemented today:
 - subscription domain model and storage
@@ -19,9 +19,14 @@ Implemented today:
 - edit shipping address
 - filtering, sorting, pagination, and UI state handling
 - backend integration tests and admin flow integration coverage
+- plan offer domain model and storage
+- admin API routes for plan offer list, detail, create, update, and toggle
+- Admin UI for plans and offers management
+- effective config resolution with `variant > product` semantics
+- backend integration tests and admin flow integration coverage for `Plans & Offers`
+- smoke-level integration between `Plans & Offers` and `Subscriptions`
 
 Planned next:
-- `Plans & Offers`
 - `Renewals`
 - `Dunning`
 - `Cancellation & Retention`
@@ -44,18 +49,22 @@ This area is considered the current stable base for the plugin.
 
 ### 2. Plans & Offers
 
-Status: `Planned`
+Status: `Completed`
 
-This area will define which products and variants can be sold as subscriptions and under which terms.
+This area defines which products and variants can be sold as subscriptions and under which terms.
 
-Planned scope:
+Implemented scope:
 - product and variant level subscription configuration
 - allowed billing frequencies
 - offer-level discount configuration
+- additional offer rules such as trial and stacking settings
+- effective config resolution with `variant > product` priority
 - admin management UI for plans and offers
-- validation and rules for supported combinations
+- workflow-backed mutations and validation for supported combinations
+- backend integration tests and admin flow coverage
+- integration with `Subscriptions` plan-change validation
 
-This area will provide the commercial configuration layer used by subscriptions and future storefront work.
+This area provides the commercial configuration layer used by subscriptions and future storefront work.
 
 ### 3. Renewals
 
@@ -143,3 +152,7 @@ If you want to contribute:
 - [Admin Subscriptions API](../api/admin-subscriptions.md)
 - [Admin Subscriptions UI](../admin/subscriptions.md)
 - [Subscriptions Testing](../testing/subscriptions.md)
+- [Plans & Offers Architecture](../architecture/plan-offers.md)
+- [Admin Plans & Offers API](../api/admin-plan-offers.md)
+- [Admin Plans & Offers UI](../admin/plan-offers.md)
+- [Plans & Offers Testing](../testing/plan-offers.md)
