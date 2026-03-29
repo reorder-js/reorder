@@ -277,9 +277,14 @@ const PlansOffersPage = () => {
         }
       ),
     onSuccess: async (_response, variables) => {
-      await queryClient.invalidateQueries({
-        queryKey: adminPlanOffersQueryKeys.all,
-      });
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: adminPlanOffersQueryKeys.all,
+        }),
+        queryClient.invalidateQueries({
+          queryKey: adminPlanOffersQueryKeys.detail(variables.id),
+        }),
+      ]);
       toast.success(
         variables.is_enabled ? "Plan offer enabled" : "Plan offer disabled"
       );
