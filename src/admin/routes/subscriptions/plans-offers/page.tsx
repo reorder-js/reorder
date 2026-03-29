@@ -1,6 +1,7 @@
 import { defineRouteConfig } from "@medusajs/admin-sdk";
 import {
-  Adjustments,
+  CheckCircle,
+  Pause,
   PencilSquare,
   Plus,
   XMarkMini,
@@ -14,10 +15,8 @@ import {
   DataTable,
   DataTableFilteringState,
   DataTablePaginationState,
-  DataTableRowSelectionState,
   DataTableSortingState,
   DropdownMenu,
-  FocusModal,
   Heading,
   StatusBadge,
   Text,
@@ -28,12 +27,9 @@ import {
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { HttpTypes } from "@medusajs/framework/types";
 import { sdk } from "../../../lib/client";
 import {
   adminPlanOffersQueryKeys,
-  useAdminProductsSelectionQuery,
-  useAdminProductVariantsSelectionQuery,
   useAdminPlanOffersDisplayQuery,
 } from "./data-loading";
 import {
@@ -43,6 +39,12 @@ import {
   PlanOfferFrequencyInterval,
   PlanOfferScope,
 } from "../../../types/plan-offer";
+import { CreatePlanOfferModal } from "./components/create-plan-offer-modal";
+import { EditPlanOfferDrawer } from "./components/edit-plan-offer-drawer";
+import {
+  PlanOfferProductPickerModal,
+  PlanOfferVariantPickerModal,
+} from "./components/selection-modals";
 
 const PAGE_SIZE = 20;
 
@@ -200,18 +202,11 @@ const PlansOffersPage = () => {
     pageIndex: 0,
     pageSize: PAGE_SIZE,
   });
+  const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [editDrawerOpen, setEditDrawerOpen] = useState(false);
+  const [editPlanOfferId, setEditPlanOfferId] = useState<string>();
   const [productPickerOpen, setProductPickerOpen] = useState(false);
   const [variantPickerOpen, setVariantPickerOpen] = useState(false);
-  const [productSelectionSearch, setProductSelectionSearch] = useState("");
-  const [productSelectionPagination, setProductSelectionPagination] =
-    useState<DataTablePaginationState>({
-      pageIndex: 0,
-      pageSize: 10,
-    });
-  const [productRowSelection, setProductRowSelection] =
-    useState<DataTableRowSelectionState>({});
-  const [variantRowSelection, setVariantRowSelection] =
-    useState<DataTableRowSelectionState>({});
   const prompt = usePrompt();
   const queryClient = useQueryClient();
 
@@ -269,21 +264,6 @@ const PlansOffersPage = () => {
     filtering,
     sorting,
   });
-  const {
-    data: productsSelectionData,
-    isLoading: isProductsSelectionLoading,
-  } = useAdminProductsSelectionQuery({
-    open: productPickerOpen,
-    pagination: productSelectionPagination,
-    search: productSelectionSearch,
-  });
-  const {
-    data: variantsSelectionData,
-    isLoading: isVariantsSelectionLoading,
-  } = useAdminProductVariantsSelectionQuery(
-    productIdFilterValue,
-    variantPickerOpen
-  );
 
   const toggleMutation = useMutation({
     mutationFn: async (input: { id: string; is_enabled: boolean }) =>
@@ -373,9 +353,9 @@ const PlansOffersPage = () => {
               {
                 label: "Edit",
                 icon: <PencilSquare />,
-                disabled: true,
                 onClick: () => {
-                  toast.info("Edit flow will be added in the next step");
+                  setEditPlanOfferId(planOffer.id);
+                  setEditDrawerOpen(true);
                 },
               },
               {
@@ -387,7 +367,7 @@ const PlansOffersPage = () => {
                     : planOffer.is_enabled
                       ? "Disable"
                       : "Enable",
-                icon: <Adjustments />,
+                icon: planOffer.is_enabled ? <Pause /> : <CheckCircle />,
                 onClick: () => {
                   if (isPending) {
                     return;
@@ -403,97 +383,6 @@ const PlansOffersPage = () => {
     ],
     [pendingToggleId]
   );
-
-  const productSelectionColumns = useMemo(() => {
-    const selectionColumnHelper =
-      createDataTableColumnHelper<HttpTypes.AdminProduct>();
-
-    return [
-      selectionColumnHelper.select(),
-      selectionColumnHelper.accessor("title", {
-        header: "Product",
-        cell: ({ row }) => (
-          <Text size="small" leading="compact" weight="plus">
-            {row.original.title}
-          </Text>
-        ),
-      }),
-      selectionColumnHelper.accessor("id", {
-        header: "ID",
-        cell: ({ getValue }) => (
-          <Text size="small" leading="compact" className="text-ui-fg-subtle">
-            {getValue() || "-"}
-          </Text>
-        ),
-      }),
-    ];
-  }, []);
-
-  const productSelectionTable = useDataTable({
-    columns: productSelectionColumns,
-    data: productsSelectionData?.products || [],
-    getRowId: (row) => row.id,
-    rowCount: productsSelectionData?.count || 0,
-    isLoading: isProductsSelectionLoading,
-    rowSelection: {
-      state: productRowSelection,
-      onRowSelectionChange: (nextState) => {
-        const firstSelectedId = Object.keys(nextState).find(
-          (key) => nextState[key]
-        );
-
-        setProductRowSelection(firstSelectedId ? { [firstSelectedId]: true } : {});
-      },
-    },
-    search: {
-      state: productSelectionSearch,
-      onSearchChange: setProductSelectionSearch,
-    },
-    pagination: {
-      state: productSelectionPagination,
-      onPaginationChange: setProductSelectionPagination,
-    },
-  });
-
-  const variantSelectionColumns = useMemo(() => {
-    const selectionColumnHelper =
-      createDataTableColumnHelper<HttpTypes.AdminProductVariant>();
-
-    return [
-      selectionColumnHelper.select(),
-      selectionColumnHelper.accessor("title", {
-        header: "Variant",
-        cell: ({ row }) => (
-          <div className="flex flex-col">
-            <Text size="small" leading="compact" weight="plus">
-              {row.original.title}
-            </Text>
-            <Text size="small" leading="compact" className="text-ui-fg-subtle">
-              {row.original.sku || "-"}
-            </Text>
-          </div>
-        ),
-      }),
-    ];
-  }, []);
-
-  const variantSelectionTable = useDataTable({
-    columns: variantSelectionColumns,
-    data: variantsSelectionData?.variants || [],
-    getRowId: (row) => row.id,
-    rowCount: variantsSelectionData?.variants?.length || 0,
-    isLoading: isVariantsSelectionLoading,
-    rowSelection: {
-      state: variantRowSelection,
-      onRowSelectionChange: (nextState) => {
-        const firstSelectedId = Object.keys(nextState).find(
-          (key) => nextState[key]
-        );
-
-        setVariantRowSelection(firstSelectedId ? { [firstSelectedId]: true } : {});
-      },
-    },
-  });
 
   const table = useDataTable({
     columns,
@@ -562,146 +451,43 @@ const PlansOffersPage = () => {
     typeof discountMinFilterValue === "number" ||
     typeof discountMaxFilterValue === "number";
 
-  const selectedProductRowId = Object.keys(productRowSelection).find(
-    (key) => productRowSelection[key]
-  );
-  const selectedProductCandidate = useMemo(
-    () =>
-      productsSelectionData?.products?.find(
-        (product) => product.id === selectedProductRowId
-      ) || null,
-    [productsSelectionData?.products, selectedProductRowId]
-  );
-  const selectedVariantRowId = Object.keys(variantRowSelection).find(
-    (key) => variantRowSelection[key]
-  );
-  const selectedVariantCandidate = useMemo(
-    () =>
-      variantsSelectionData?.variants?.find(
-        (variant) => variant.id === selectedVariantRowId
-      ) || null,
-    [variantsSelectionData?.variants, selectedVariantRowId]
-  );
-
   return (
     <div className="flex flex-col gap-y-4">
-      <FocusModal open={productPickerOpen} onOpenChange={setProductPickerOpen}>
-        <FocusModal.Content>
-          <div className="flex h-full flex-col overflow-hidden">
-            <FocusModal.Header />
-            <FocusModal.Body className="flex items-start justify-center">
-              <div className="w-full max-w-4xl">
-                <div className="flex flex-col gap-y-4">
-                  <div className="flex flex-col gap-y-1">
-                    <Heading level="h2">Select product</Heading>
-                    <Text
-                      size="small"
-                      leading="compact"
-                      className="text-ui-fg-subtle"
-                    >
-                      Filter the table by a specific product using the standard
-                      Medusa selection pattern.
-                    </Text>
-                  </div>
-                  <DataTable instance={productSelectionTable}>
-                    <DataTable.Toolbar>
-                      <div className="flex gap-2">
-                        <DataTable.Search placeholder="Search products..." />
-                      </div>
-                    </DataTable.Toolbar>
-                    <DataTable.Table />
-                    <DataTable.Pagination />
-                  </DataTable>
-                </div>
-              </div>
-            </FocusModal.Body>
-            <FocusModal.Footer>
-              <div className="flex items-center justify-end gap-x-2">
-                <FocusModal.Close asChild>
-                  <Button size="small" variant="secondary">
-                    Cancel
-                  </Button>
-                </FocusModal.Close>
-                <Button
-                  size="small"
-                  disabled={!selectedProductCandidate}
-                  onClick={() => {
-                    if (!selectedProductCandidate) {
-                      return;
-                    }
-
-                    setFiltering((current) => ({
-                      ...removeFilter(removeFilter(current, "variant_id"), "variant_title"),
-                      product_id: selectedProductCandidate.id,
-                      product_title: selectedProductCandidate.title,
-                    }));
-                    setVariantRowSelection({});
-                    setProductPickerOpen(false);
-                  }}
-                >
-                  Apply
-                </Button>
-              </div>
-            </FocusModal.Footer>
-          </div>
-        </FocusModal.Content>
-      </FocusModal>
-
-      <FocusModal open={variantPickerOpen} onOpenChange={setVariantPickerOpen}>
-        <FocusModal.Content>
-          <div className="flex h-full flex-col overflow-hidden">
-            <FocusModal.Header />
-            <FocusModal.Body className="flex items-start justify-center">
-              <div className="w-full max-w-3xl">
-                <div className="flex flex-col gap-y-4">
-                  <div className="flex flex-col gap-y-1">
-                    <Heading level="h2">Select variant</Heading>
-                    <Text
-                      size="small"
-                      leading="compact"
-                      className="text-ui-fg-subtle"
-                    >
-                      {selectedProduct
-                        ? `Choose a variant from ${selectedProduct.title}.`
-                        : "Select a product first."}
-                    </Text>
-                  </div>
-                  <DataTable instance={variantSelectionTable}>
-                    <DataTable.Table />
-                  </DataTable>
-                </div>
-              </div>
-            </FocusModal.Body>
-            <FocusModal.Footer>
-              <div className="flex items-center justify-end gap-x-2">
-                <FocusModal.Close asChild>
-                  <Button size="small" variant="secondary">
-                    Cancel
-                  </Button>
-                </FocusModal.Close>
-                <Button
-                  size="small"
-                  disabled={!selectedVariantCandidate}
-                  onClick={() => {
-                    if (!selectedVariantCandidate) {
-                      return;
-                    }
-
-                    setFiltering((current) => ({
-                      ...current,
-                      variant_id: selectedVariantCandidate.id,
-                      variant_title: selectedVariantCandidate.title,
-                    }));
-                    setVariantPickerOpen(false);
-                  }}
-                >
-                  Apply
-                </Button>
-              </div>
-            </FocusModal.Footer>
-          </div>
-        </FocusModal.Content>
-      </FocusModal>
+      <PlanOfferProductPickerModal
+        open={productPickerOpen}
+        onOpenChange={setProductPickerOpen}
+        selectedProductId={selectedProduct?.id}
+        onSelect={(product) => {
+          setFiltering((current) => ({
+            ...removeFilter(removeFilter(current, "variant_id"), "variant_title"),
+            product_id: product.id,
+            product_title: product.title,
+          }));
+        }}
+      />
+      <PlanOfferVariantPickerModal
+        open={variantPickerOpen}
+        onOpenChange={setVariantPickerOpen}
+        productId={selectedProduct?.id}
+        productTitle={selectedProduct?.title}
+        selectedVariantId={selectedVariant?.id}
+        onSelect={(variant) => {
+          setFiltering((current) => ({
+            ...current,
+            variant_id: variant.id,
+            variant_title: variant.title,
+          }));
+        }}
+      />
+      <CreatePlanOfferModal
+        open={createModalOpen}
+        onOpenChange={setCreateModalOpen}
+      />
+      <EditPlanOfferDrawer
+        open={editDrawerOpen}
+        onOpenChange={setEditDrawerOpen}
+        planOfferId={editPlanOfferId}
+      />
 
       <Container className="divide-y p-0">
         <div className="flex items-center justify-between px-6 py-4">
@@ -725,10 +511,7 @@ const PlansOffersPage = () => {
             <Button
               size="small"
               type="button"
-              disabled
-              onClick={() => {
-                toast.info("Create flow will be added in the next step");
-              }}
+              onClick={() => setCreateModalOpen(true)}
             >
               <Plus />
               Create
@@ -940,9 +723,6 @@ const PlansOffersPage = () => {
                   <DropdownMenu.Separator />
                   <DropdownMenu.Item
                     onClick={() => {
-                      setProductRowSelection(
-                        selectedProduct ? { [selectedProduct.id]: true } : {}
-                      );
                       setProductPickerOpen(true);
                     }}
                   >
@@ -955,9 +735,6 @@ const PlansOffersPage = () => {
                         return;
                       }
 
-                      setVariantRowSelection(
-                        selectedVariant ? { [selectedVariant.id]: true } : {}
-                      );
                       setVariantPickerOpen(true);
                     }}
                   >
@@ -971,8 +748,6 @@ const PlansOffersPage = () => {
                   className="text-ui-fg-muted hover:text-ui-fg-subtle txt-compact-small-plus rounded-md px-2 py-1 transition-fg"
                   onClick={() => {
                     setFiltering({});
-                    setProductRowSelection({});
-                    setVariantRowSelection({});
                   }}
                 >
                   Clear all
@@ -992,7 +767,7 @@ const PlansOffersPage = () => {
               <Heading level="h2">No plans and offers yet</Heading>
               <Text size="small" leading="compact" className="text-ui-fg-subtle">
                 Create your first subscription offer configuration for a product
-                or variant in the next step.
+                or variant.
               </Text>
             </div>
           ) : null}

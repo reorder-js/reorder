@@ -6,6 +6,7 @@ import {
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { sdk } from "../../../lib/client";
 import {
+  PlanOfferAdminDetailResponse,
   PlanOfferAdminListResponse,
   PlanOfferAdminStatus,
   PlanOfferFrequencyInterval,
@@ -22,6 +23,7 @@ type UseAdminPlanOffersDisplayQueryInput = {
 
 export const adminPlanOffersQueryKeys = {
   all: ["admin-plan-offers"] as const,
+  detail: (id: string) => [...adminPlanOffersQueryKeys.all, "detail", id] as const,
   productSelection: (params: {
     pageSize: number;
     offset: number;
@@ -153,6 +155,14 @@ export function useAdminPlanOffersDisplayQuery(
         },
       }),
     placeholderData: keepPreviousData,
+  });
+}
+
+export function useAdminPlanOfferDetailQuery(id?: string, enabled = false) {
+  return useQuery<PlanOfferAdminDetailResponse>({
+    queryKey: adminPlanOffersQueryKeys.detail(id ?? ""),
+    queryFn: () => sdk.client.fetch(`/admin/subscription-offers/${id}`),
+    enabled: enabled && Boolean(id),
   });
 }
 

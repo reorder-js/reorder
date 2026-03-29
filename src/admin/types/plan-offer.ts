@@ -35,6 +35,8 @@ export type PlanOfferAdminFrequencyOption = {
 }
 
 export type PlanOfferAdminDiscountValue = {
+  interval: PlanOfferFrequencyInterval
+  frequency_value: number
   type: PlanOfferDiscountType
   value: number
   label: string

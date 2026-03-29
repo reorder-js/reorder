@@ -144,6 +144,13 @@ function mapDiscountValue(
       : `${discount.discount_value} off`
 
   return {
+    interval:
+      discount.interval === "week"
+        ? PlanOfferFrequencyInterval.WEEK
+        : discount.interval === "month"
+          ? PlanOfferFrequencyInterval.MONTH
+          : PlanOfferFrequencyInterval.YEAR,
+    frequency_value: discount.value,
     type:
       discount.discount_type === "percentage"
         ? PlanOfferDiscountType.PERCENTAGE
