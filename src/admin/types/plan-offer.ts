@@ -48,8 +48,8 @@ export type PlanOfferAdminRules = {
 }
 
 export type PlanOfferAdminEffectiveConfigSummary = {
-  source_scope: PlanOfferScope
-  source_offer_id: string
+  source_scope: PlanOfferScope | null
+  source_offer_id: string | null
   allowed_frequencies: PlanOfferAdminFrequencyOption[]
   discounts: PlanOfferAdminDiscountValue[]
   rules: PlanOfferAdminRules | null
