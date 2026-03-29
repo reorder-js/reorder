@@ -42,7 +42,7 @@ const editPlanOfferSchema = z
     is_enabled: z.boolean(),
     minimum_cycles: z.number().int().positive().nullable(),
     trial_enabled: z.boolean(),
-    trial_days: z.number().int().positive().nullable(),
+    trial_days: z.number().int().nullable(),
     stacking_policy: z.enum([
       "allowed",
       "disallow_all",
@@ -75,18 +75,22 @@ const editPlanOfferSchema = z
       }
     })
 
-    if (!values.trial_enabled && values.trial_days !== null) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "Trial days must be empty when trial is disabled",
-        path: ["trial_days"],
-      })
-    }
-
     if (values.trial_enabled && values.trial_days === null) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: "Trial days is required when trial is enabled",
+        path: ["trial_days"],
+      })
+    }
+
+    if (
+      values.trial_enabled &&
+      values.trial_days !== null &&
+      values.trial_days <= 0
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Trial days must be greater than 0",
         path: ["trial_days"],
       })
     }
@@ -159,7 +163,9 @@ export const EditPlanOfferDrawer = ({
       is_enabled: detail.is_enabled,
       minimum_cycles: detail.rules?.minimum_cycles ?? null,
       trial_enabled: detail.rules?.trial_enabled ?? false,
-      trial_days: detail.rules?.trial_days ?? null,
+      trial_days: detail.rules?.trial_enabled
+        ? detail.rules?.trial_days ?? null
+        : null,
       stacking_policy: detail.rules?.stacking_policy ?? "allowed",
       frequency_rows: nextRows,
     })
@@ -258,6 +264,18 @@ export const EditPlanOfferDrawer = ({
 
   const detail = data?.plan_offer
   const trialEnabled = form.watch("trial_enabled")
+
+  useEffect(() => {
+    if (trialEnabled) {
+      return
+    }
+
+    form.setValue("trial_days", null, {
+      shouldValidate: false,
+      shouldDirty: true,
+    })
+    form.clearErrors("trial_days")
+  }, [form, trialEnabled])
 
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
@@ -490,8 +508,15 @@ export const EditPlanOfferDrawer = ({
                           step={1}
                           disabled={!trialEnabled}
                           {...form.register("trial_days", {
-                            setValueAs: (value) =>
-                              value === "" ? null : Number(value),
+                            setValueAs: (value) => {
+                              if (value === "" || value === undefined) {
+                                return null
+                              }
+
+                              const parsed = Number(value)
+
+                              return Number.isNaN(parsed) ? null : parsed
+                            },
                           })}
                         />
                         <FieldError
