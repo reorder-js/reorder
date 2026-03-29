@@ -11,6 +11,7 @@ import {
   Switch,
   Text,
   toast,
+  usePrompt,
 } from "@medusajs/ui"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useEffect, useState } from "react"
@@ -142,6 +143,7 @@ export const CreatePlanOfferModal = ({
   onOpenChange,
 }: CreatePlanOfferModalProps) => {
   const queryClient = useQueryClient()
+  const prompt = usePrompt()
   const [productPickerOpen, setProductPickerOpen] = useState(false)
   const [variantPickerOpen, setVariantPickerOpen] = useState(false)
 
@@ -223,6 +225,26 @@ export const CreatePlanOfferModal = ({
 
     createMutation.mutate(payload)
   })
+
+  const handleRemoveFrequency = async (index: number) => {
+    if (fields.length === 1) {
+      return
+    }
+
+    const confirmed = await prompt({
+      title: "Remove frequency?",
+      description:
+        "This frequency row and its discount configuration will be removed.",
+      confirmText: "Remove",
+      cancelText: "Cancel",
+    })
+
+    if (!confirmed) {
+      return
+    }
+
+    remove(index)
+  }
 
   return (
     <>
@@ -626,7 +648,9 @@ export const CreatePlanOfferModal = ({
                                   size="small"
                                   variant="secondary"
                                   disabled={fields.length === 1}
-                                  onClick={() => remove(index)}
+                                  onClick={() => {
+                                    void handleRemoveFrequency(index)
+                                  }}
                                 >
                                   <Trash />
                                 </Button>

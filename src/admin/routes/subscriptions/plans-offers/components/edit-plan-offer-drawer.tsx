@@ -11,6 +11,7 @@ import {
   Switch,
   Text,
   toast,
+  usePrompt,
 } from "@medusajs/ui"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useEffect } from "react"
@@ -105,6 +106,7 @@ export const EditPlanOfferDrawer = ({
   planOfferId,
 }: EditPlanOfferDrawerProps) => {
   const queryClient = useQueryClient()
+  const prompt = usePrompt()
 
   const { data, isLoading, isError, error } = useAdminPlanOfferDetailQuery(
     planOfferId,
@@ -233,6 +235,26 @@ export const EditPlanOfferDrawer = ({
       },
     })
   })
+
+  const handleRemoveFrequency = async (index: number) => {
+    if (fields.length === 1) {
+      return
+    }
+
+    const confirmed = await prompt({
+      title: "Remove frequency?",
+      description:
+        "This frequency row and its discount configuration will be removed.",
+      confirmText: "Remove",
+      cancelText: "Cancel",
+    })
+
+    if (!confirmed) {
+      return
+    }
+
+    remove(index)
+  }
 
   const detail = data?.plan_offer
   const trialEnabled = form.watch("trial_enabled")
@@ -531,7 +553,9 @@ export const EditPlanOfferDrawer = ({
                               size="small"
                               variant="secondary"
                               disabled={fields.length === 1}
-                              onClick={() => remove(index)}
+                              onClick={() => {
+                                void handleRemoveFrequency(index)
+                              }}
                             >
                               <Trash />
                             </Button>

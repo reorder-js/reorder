@@ -766,16 +766,19 @@ const PlansOffersPage = () => {
               <DataTable.SortingMenu />
             </div>
           </div>
-          <DataTable.Table />
-          {data?.count === 0 && !isLoading ? (
-            <div className="flex flex-col gap-y-2 px-6 py-12">
-              <Heading level="h2">No plans and offers yet</Heading>
-              <Text size="small" leading="compact" className="text-ui-fg-subtle">
-                Create your first subscription offer configuration for a product
-                or variant.
-              </Text>
-            </div>
-          ) : null}
+          <DataTable.Table
+            emptyState={{
+              empty: {
+                heading: "No plan offers yet",
+                description:
+                  "Create a product-level or variant-level subscription offer to get started.",
+              },
+              filtered: {
+                heading: "No matching plan offers",
+                description: "Try changing the search term or active filters.",
+              },
+            }}
+          />
           <DataTable.Pagination />
         </DataTable>
       </Container>
