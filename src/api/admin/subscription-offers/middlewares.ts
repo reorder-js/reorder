@@ -1,10 +1,14 @@
 import {
   MiddlewareRoute,
+  validateAndTransformBody,
   validateAndTransformQuery,
 } from "@medusajs/framework/http"
 import {
   GetAdminSubscriptionOfferSchema,
   GetAdminSubscriptionOffersSchema,
+  PostAdminCreateSubscriptionOfferSchema,
+  PostAdminToggleSubscriptionOfferSchema,
+  PostAdminUpdateSubscriptionOfferSchema,
 } from "./validators"
 
 export const adminSubscriptionOffersMiddlewares: MiddlewareRoute[] = [
@@ -42,5 +46,20 @@ export const adminSubscriptionOffersMiddlewares: MiddlewareRoute[] = [
         isList: false,
       }),
     ],
+  },
+  {
+    matcher: "/admin/subscription-offers",
+    method: "POST",
+    middlewares: [validateAndTransformBody(PostAdminCreateSubscriptionOfferSchema)],
+  },
+  {
+    matcher: "/admin/subscription-offers/:id",
+    method: "POST",
+    middlewares: [validateAndTransformBody(PostAdminUpdateSubscriptionOfferSchema)],
+  },
+  {
+    matcher: "/admin/subscription-offers/:id/toggle",
+    method: "POST",
+    middlewares: [validateAndTransformBody(PostAdminToggleSubscriptionOfferSchema)],
   },
 ]

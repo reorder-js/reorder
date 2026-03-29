@@ -95,8 +95,9 @@ export type CreatePlanOfferAdminRequest = {
     interval: PlanOfferFrequencyInterval
     value: number
   }>
-  discounts: Array<{
+  discounts?: Array<{
     interval: PlanOfferFrequencyInterval
+    frequency_value: number
     value: number
     type: PlanOfferDiscountType
   }>

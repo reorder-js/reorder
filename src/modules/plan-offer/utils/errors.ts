@@ -10,4 +10,7 @@ export const planOfferErrors = {
   invalidData(message: string) {
     return new MedusaError(MedusaError.Types.INVALID_DATA, message)
   },
+  conflict(message: string) {
+    return new MedusaError(MedusaError.Types.CONFLICT, message)
+  },
 }
