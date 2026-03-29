@@ -1,10 +1,12 @@
 import {
   MiddlewareRoute,
+  validateAndTransformBody,
   validateAndTransformQuery,
 } from "@medusajs/framework/http"
 import {
   GetAdminRenewalSchema,
   GetAdminRenewalsSchema,
+  PostAdminForceRenewalSchema,
 } from "./validators"
 
 export const adminRenewalsMiddlewares: MiddlewareRoute[] = [
@@ -45,5 +47,10 @@ export const adminRenewalsMiddlewares: MiddlewareRoute[] = [
         isList: false,
       }),
     ],
+  },
+  {
+    matcher: "/admin/renewals/:id/force",
+    method: "POST",
+    middlewares: [validateAndTransformBody(PostAdminForceRenewalSchema)],
   },
 ]
