@@ -32,6 +32,8 @@ export type ListAdminPlanOffersInput = {
   product_id?: string
   variant_id?: string
   frequency?: "week" | "month" | "year"
+  discount_min?: number
+  discount_max?: number
   order?: string
   direction?: "asc" | "desc"
 }
@@ -504,6 +506,32 @@ function matchesFrequency(item: PlanOfferAdminListItem, frequency?: string) {
   return item.allowed_frequencies.some((item) => item.interval === frequency)
 }
 
+function matchesDiscountRange(
+  item: PlanOfferAdminListItem,
+  discountMin?: number,
+  discountMax?: number
+) {
+  if (typeof discountMin !== "number" && typeof discountMax !== "number") {
+    return true
+  }
+
+  if (!item.discounts.length) {
+    return false
+  }
+
+  return item.discounts.some((discount) => {
+    if (typeof discountMin === "number" && discount.value < discountMin) {
+      return false
+    }
+
+    if (typeof discountMax === "number" && discount.value > discountMax) {
+      return false
+    }
+
+    return true
+  })
+}
+
 function getSortableValue(item: PlanOfferAdminListItem, order: string) {
   switch (order) {
     case "name":
@@ -563,7 +591,11 @@ export async function listAdminPlanOffers(
   const isInMemorySort =
     typeof order === "string" && inMemorySortableFields.has(order)
   const requiresInMemoryProcessing =
-    Boolean(input.q) || Boolean(input.frequency) || isInMemorySort
+    Boolean(input.q) ||
+    Boolean(input.frequency) ||
+    typeof input.discount_min === "number" ||
+    typeof input.discount_max === "number" ||
+    isInMemorySort
 
   if (!requiresInMemoryProcessing) {
     const {
@@ -615,6 +647,15 @@ export async function listAdminPlanOffers(
 
   if (input.frequency) {
     items = items.filter((item) => matchesFrequency(item, input.frequency))
+  }
+
+  if (
+    typeof input.discount_min === "number" ||
+    typeof input.discount_max === "number"
+  ) {
+    items = items.filter((item) =>
+      matchesDiscountRange(item, input.discount_min, input.discount_max)
+    )
   }
 
   if (order && isInMemorySort) {

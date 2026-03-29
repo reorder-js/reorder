@@ -70,6 +70,8 @@ export const GetAdminSubscriptionOffersSchema = createFindParams({
   product_id: z.string().optional(),
   variant_id: z.string().optional(),
   frequency: planOfferFrequencyIntervalSchema.optional(),
+  discount_min: z.coerce.number().nonnegative().optional(),
+  discount_max: z.coerce.number().nonnegative().optional(),
 })
 
 export type GetAdminSubscriptionOffersSchemaType = z.infer<

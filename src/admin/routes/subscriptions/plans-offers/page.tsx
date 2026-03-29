@@ -14,8 +14,10 @@ import {
   DataTable,
   DataTableFilteringState,
   DataTablePaginationState,
+  DataTableRowSelectionState,
   DataTableSortingState,
   DropdownMenu,
+  FocusModal,
   Heading,
   StatusBadge,
   Text,
@@ -26,9 +28,12 @@ import {
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { HttpTypes } from "@medusajs/framework/types";
 import { sdk } from "../../../lib/client";
 import {
   adminPlanOffersQueryKeys,
+  useAdminProductsSelectionQuery,
+  useAdminProductVariantsSelectionQuery,
   useAdminPlanOffersDisplayQuery,
 } from "./data-loading";
 import {
@@ -58,6 +63,12 @@ const frequencyFilterOptions = [
   { label: "Weekly", value: PlanOfferFrequencyInterval.WEEK },
   { label: "Monthly", value: PlanOfferFrequencyInterval.MONTH },
   { label: "Yearly", value: PlanOfferFrequencyInterval.YEAR },
+] as const;
+
+const discountRangeFilterOptions = [
+  { label: "1-9", min: 1, max: 9 },
+  { label: "10-24", min: 10, max: 24 },
+  { label: "25+", min: 25 },
 ] as const;
 
 const statusFilter = filterHelper.accessor("status", {
@@ -189,6 +200,18 @@ const PlansOffersPage = () => {
     pageIndex: 0,
     pageSize: PAGE_SIZE,
   });
+  const [productPickerOpen, setProductPickerOpen] = useState(false);
+  const [variantPickerOpen, setVariantPickerOpen] = useState(false);
+  const [productSelectionSearch, setProductSelectionSearch] = useState("");
+  const [productSelectionPagination, setProductSelectionPagination] =
+    useState<DataTablePaginationState>({
+      pageIndex: 0,
+      pageSize: 10,
+    });
+  const [productRowSelection, setProductRowSelection] =
+    useState<DataTableRowSelectionState>({});
+  const [variantRowSelection, setVariantRowSelection] =
+    useState<DataTableRowSelectionState>({});
   const prompt = usePrompt();
   const queryClient = useQueryClient();
 
@@ -209,6 +232,36 @@ const PlansOffersPage = () => {
       ? (filtering.frequency as PlanOfferFrequencyInterval)
       : undefined;
   }, [filtering]);
+  const productIdFilterValue = useMemo(() => {
+    return typeof filtering.product_id === "string"
+      ? filtering.product_id
+      : undefined;
+  }, [filtering]);
+  const productTitleFilterValue = useMemo(() => {
+    return typeof filtering.product_title === "string"
+      ? filtering.product_title
+      : undefined;
+  }, [filtering]);
+  const variantIdFilterValue = useMemo(() => {
+    return typeof filtering.variant_id === "string"
+      ? filtering.variant_id
+      : undefined;
+  }, [filtering]);
+  const variantTitleFilterValue = useMemo(() => {
+    return typeof filtering.variant_title === "string"
+      ? filtering.variant_title
+      : undefined;
+  }, [filtering]);
+  const discountMinFilterValue = useMemo(() => {
+    return typeof filtering.discount_min === "number"
+      ? filtering.discount_min
+      : undefined;
+  }, [filtering]);
+  const discountMaxFilterValue = useMemo(() => {
+    return typeof filtering.discount_max === "number"
+      ? filtering.discount_max
+      : undefined;
+  }, [filtering]);
 
   const { data, isLoading, isError, error } = useAdminPlanOffersDisplayQuery({
     pagination,
@@ -216,6 +269,21 @@ const PlansOffersPage = () => {
     filtering,
     sorting,
   });
+  const {
+    data: productsSelectionData,
+    isLoading: isProductsSelectionLoading,
+  } = useAdminProductsSelectionQuery({
+    open: productPickerOpen,
+    pagination: productSelectionPagination,
+    search: productSelectionSearch,
+  });
+  const {
+    data: variantsSelectionData,
+    isLoading: isVariantsSelectionLoading,
+  } = useAdminProductVariantsSelectionQuery(
+    productIdFilterValue,
+    variantPickerOpen
+  );
 
   const toggleMutation = useMutation({
     mutationFn: async (input: { id: string; is_enabled: boolean }) =>
@@ -248,6 +316,28 @@ const PlansOffersPage = () => {
   const pendingToggleId = toggleMutation.isPending
     ? toggleMutation.variables?.id
     : undefined;
+
+  const selectedProduct = useMemo(() => {
+    if (!productIdFilterValue || !productTitleFilterValue) {
+      return null;
+    }
+
+    return {
+      id: productIdFilterValue,
+      title: productTitleFilterValue,
+    };
+  }, [productIdFilterValue, productTitleFilterValue]);
+
+  const selectedVariant = useMemo(() => {
+    if (!variantIdFilterValue || !variantTitleFilterValue) {
+      return null;
+    }
+
+    return {
+      id: variantIdFilterValue,
+      title: variantTitleFilterValue,
+    };
+  }, [variantIdFilterValue, variantTitleFilterValue]);
 
   const handleToggle = async (planOffer: PlanOfferAdminListItem) => {
     const nextEnabled = !planOffer.is_enabled;
@@ -314,6 +404,97 @@ const PlansOffersPage = () => {
     [pendingToggleId]
   );
 
+  const productSelectionColumns = useMemo(() => {
+    const selectionColumnHelper =
+      createDataTableColumnHelper<HttpTypes.AdminProduct>();
+
+    return [
+      selectionColumnHelper.select(),
+      selectionColumnHelper.accessor("title", {
+        header: "Product",
+        cell: ({ row }) => (
+          <Text size="small" leading="compact" weight="plus">
+            {row.original.title}
+          </Text>
+        ),
+      }),
+      selectionColumnHelper.accessor("id", {
+        header: "ID",
+        cell: ({ getValue }) => (
+          <Text size="small" leading="compact" className="text-ui-fg-subtle">
+            {getValue() || "-"}
+          </Text>
+        ),
+      }),
+    ];
+  }, []);
+
+  const productSelectionTable = useDataTable({
+    columns: productSelectionColumns,
+    data: productsSelectionData?.products || [],
+    getRowId: (row) => row.id,
+    rowCount: productsSelectionData?.count || 0,
+    isLoading: isProductsSelectionLoading,
+    rowSelection: {
+      state: productRowSelection,
+      onRowSelectionChange: (nextState) => {
+        const firstSelectedId = Object.keys(nextState).find(
+          (key) => nextState[key]
+        );
+
+        setProductRowSelection(firstSelectedId ? { [firstSelectedId]: true } : {});
+      },
+    },
+    search: {
+      state: productSelectionSearch,
+      onSearchChange: setProductSelectionSearch,
+    },
+    pagination: {
+      state: productSelectionPagination,
+      onPaginationChange: setProductSelectionPagination,
+    },
+  });
+
+  const variantSelectionColumns = useMemo(() => {
+    const selectionColumnHelper =
+      createDataTableColumnHelper<HttpTypes.AdminProductVariant>();
+
+    return [
+      selectionColumnHelper.select(),
+      selectionColumnHelper.accessor("title", {
+        header: "Variant",
+        cell: ({ row }) => (
+          <div className="flex flex-col">
+            <Text size="small" leading="compact" weight="plus">
+              {row.original.title}
+            </Text>
+            <Text size="small" leading="compact" className="text-ui-fg-subtle">
+              {row.original.sku || "-"}
+            </Text>
+          </div>
+        ),
+      }),
+    ];
+  }, []);
+
+  const variantSelectionTable = useDataTable({
+    columns: variantSelectionColumns,
+    data: variantsSelectionData?.variants || [],
+    getRowId: (row) => row.id,
+    rowCount: variantsSelectionData?.variants?.length || 0,
+    isLoading: isVariantsSelectionLoading,
+    rowSelection: {
+      state: variantRowSelection,
+      onRowSelectionChange: (nextState) => {
+        const firstSelectedId = Object.keys(nextState).find(
+          (key) => nextState[key]
+        );
+
+        setVariantRowSelection(firstSelectedId ? { [firstSelectedId]: true } : {});
+      },
+    },
+  });
+
   const table = useDataTable({
     columns,
     data: data?.plan_offers || [],
@@ -375,10 +556,153 @@ const PlansOffersPage = () => {
   const hasActiveFilters =
     Boolean(statusFilterValue) ||
     Boolean(scopeFilterValue) ||
-    Boolean(frequencyFilterValue);
+    Boolean(frequencyFilterValue) ||
+    Boolean(selectedProduct) ||
+    Boolean(selectedVariant) ||
+    typeof discountMinFilterValue === "number" ||
+    typeof discountMaxFilterValue === "number";
+
+  const selectedProductRowId = Object.keys(productRowSelection).find(
+    (key) => productRowSelection[key]
+  );
+  const selectedProductCandidate = useMemo(
+    () =>
+      productsSelectionData?.products?.find(
+        (product) => product.id === selectedProductRowId
+      ) || null,
+    [productsSelectionData?.products, selectedProductRowId]
+  );
+  const selectedVariantRowId = Object.keys(variantRowSelection).find(
+    (key) => variantRowSelection[key]
+  );
+  const selectedVariantCandidate = useMemo(
+    () =>
+      variantsSelectionData?.variants?.find(
+        (variant) => variant.id === selectedVariantRowId
+      ) || null,
+    [variantsSelectionData?.variants, selectedVariantRowId]
+  );
 
   return (
     <div className="flex flex-col gap-y-4">
+      <FocusModal open={productPickerOpen} onOpenChange={setProductPickerOpen}>
+        <FocusModal.Content>
+          <div className="flex h-full flex-col overflow-hidden">
+            <FocusModal.Header />
+            <FocusModal.Body className="flex items-start justify-center">
+              <div className="w-full max-w-4xl">
+                <div className="flex flex-col gap-y-4">
+                  <div className="flex flex-col gap-y-1">
+                    <Heading level="h2">Select product</Heading>
+                    <Text
+                      size="small"
+                      leading="compact"
+                      className="text-ui-fg-subtle"
+                    >
+                      Filter the table by a specific product using the standard
+                      Medusa selection pattern.
+                    </Text>
+                  </div>
+                  <DataTable instance={productSelectionTable}>
+                    <DataTable.Toolbar>
+                      <div className="flex gap-2">
+                        <DataTable.Search placeholder="Search products..." />
+                      </div>
+                    </DataTable.Toolbar>
+                    <DataTable.Table />
+                    <DataTable.Pagination />
+                  </DataTable>
+                </div>
+              </div>
+            </FocusModal.Body>
+            <FocusModal.Footer>
+              <div className="flex items-center justify-end gap-x-2">
+                <FocusModal.Close asChild>
+                  <Button size="small" variant="secondary">
+                    Cancel
+                  </Button>
+                </FocusModal.Close>
+                <Button
+                  size="small"
+                  disabled={!selectedProductCandidate}
+                  onClick={() => {
+                    if (!selectedProductCandidate) {
+                      return;
+                    }
+
+                    setFiltering((current) => ({
+                      ...removeFilter(removeFilter(current, "variant_id"), "variant_title"),
+                      product_id: selectedProductCandidate.id,
+                      product_title: selectedProductCandidate.title,
+                    }));
+                    setVariantRowSelection({});
+                    setProductPickerOpen(false);
+                  }}
+                >
+                  Apply
+                </Button>
+              </div>
+            </FocusModal.Footer>
+          </div>
+        </FocusModal.Content>
+      </FocusModal>
+
+      <FocusModal open={variantPickerOpen} onOpenChange={setVariantPickerOpen}>
+        <FocusModal.Content>
+          <div className="flex h-full flex-col overflow-hidden">
+            <FocusModal.Header />
+            <FocusModal.Body className="flex items-start justify-center">
+              <div className="w-full max-w-3xl">
+                <div className="flex flex-col gap-y-4">
+                  <div className="flex flex-col gap-y-1">
+                    <Heading level="h2">Select variant</Heading>
+                    <Text
+                      size="small"
+                      leading="compact"
+                      className="text-ui-fg-subtle"
+                    >
+                      {selectedProduct
+                        ? `Choose a variant from ${selectedProduct.title}.`
+                        : "Select a product first."}
+                    </Text>
+                  </div>
+                  <DataTable instance={variantSelectionTable}>
+                    <DataTable.Table />
+                  </DataTable>
+                </div>
+              </div>
+            </FocusModal.Body>
+            <FocusModal.Footer>
+              <div className="flex items-center justify-end gap-x-2">
+                <FocusModal.Close asChild>
+                  <Button size="small" variant="secondary">
+                    Cancel
+                  </Button>
+                </FocusModal.Close>
+                <Button
+                  size="small"
+                  disabled={!selectedVariantCandidate}
+                  onClick={() => {
+                    if (!selectedVariantCandidate) {
+                      return;
+                    }
+
+                    setFiltering((current) => ({
+                      ...current,
+                      variant_id: selectedVariantCandidate.id,
+                      variant_title: selectedVariantCandidate.title,
+                    }));
+                    setVariantPickerOpen(false);
+                  }}
+                >
+                  Apply
+                </Button>
+              </div>
+            </FocusModal.Footer>
+          </div>
+        </FocusModal.Content>
+      </FocusModal>
+
       <Container className="divide-y p-0">
         <div className="flex items-center justify-between px-6 py-4">
           <div className="flex flex-col">
@@ -438,6 +762,49 @@ const PlansOffersPage = () => {
                   value={formatFrequencyFilter(frequencyFilterValue)}
                   onRemove={() => {
                     setFiltering((current) => removeFilter(current, "frequency"));
+                  }}
+                />
+              ) : null}
+              {selectedProduct ? (
+                <FilterChip
+                  label="Product"
+                  value={selectedProduct.title}
+                  onRemove={() => {
+                    setFiltering((current) => {
+                      const next = removeFilter(
+                        removeFilter(
+                          removeFilter(removeFilter(current, "product_id"), "product_title"),
+                          "variant_id"
+                        ),
+                        "variant_title"
+                      );
+
+                      return next;
+                    });
+                    setVariantRowSelection({});
+                  }}
+                />
+              ) : null}
+              {selectedVariant ? (
+                <FilterChip
+                  label="Variant"
+                  value={selectedVariant.title}
+                  onRemove={() => {
+                    setFiltering((current) =>
+                      removeFilter(removeFilter(current, "variant_id"), "variant_title")
+                    );
+                  }}
+                />
+              ) : null}
+              {typeof discountMinFilterValue === "number" ||
+              typeof discountMaxFilterValue === "number" ? (
+                <FilterChip
+                  label="Discount"
+                  value={formatDiscountRange(discountMinFilterValue, discountMaxFilterValue)}
+                  onRemove={() => {
+                    setFiltering((current) =>
+                      removeFilter(removeFilter(current, "discount_min"), "discount_max")
+                    );
                   }}
                 />
               ) : null}
@@ -532,20 +899,91 @@ const PlansOffersPage = () => {
                       ))}
                     </DropdownMenu.SubMenuContent>
                   </DropdownMenu.SubMenu>
+                  <DropdownMenu.SubMenu>
+                    <DropdownMenu.SubMenuTrigger>
+                      Discount range
+                    </DropdownMenu.SubMenuTrigger>
+                    <DropdownMenu.SubMenuContent>
+                      {discountRangeFilterOptions.map((option) => {
+                        const checked =
+                          discountMinFilterValue === option.min &&
+                          discountMaxFilterValue === option.max;
+
+                        return (
+                          <DropdownMenu.CheckboxItem
+                            key={option.label}
+                            checked={checked}
+                            onSelect={(event) => {
+                              event.preventDefault();
+                            }}
+                            onCheckedChange={(isChecked) => {
+                              setFiltering((current) =>
+                                isChecked
+                                  ? {
+                                      ...current,
+                                      discount_min: option.min,
+                                      discount_max: option.max,
+                                    }
+                                  : removeFilter(
+                                      removeFilter(current, "discount_min"),
+                                      "discount_max"
+                                    )
+                              );
+                            }}
+                          >
+                            {option.label}
+                          </DropdownMenu.CheckboxItem>
+                        );
+                      })}
+                    </DropdownMenu.SubMenuContent>
+                  </DropdownMenu.SubMenu>
+                  <DropdownMenu.Separator />
+                  <DropdownMenu.Item
+                    onClick={() => {
+                      setProductRowSelection(
+                        selectedProduct ? { [selectedProduct.id]: true } : {}
+                      );
+                      setProductPickerOpen(true);
+                    }}
+                  >
+                    Product
+                  </DropdownMenu.Item>
+                  <DropdownMenu.Item
+                    disabled={!selectedProduct}
+                    onClick={() => {
+                      if (!selectedProduct) {
+                        return;
+                      }
+
+                      setVariantRowSelection(
+                        selectedVariant ? { [selectedVariant.id]: true } : {}
+                      );
+                      setVariantPickerOpen(true);
+                    }}
+                  >
+                    Variant
+                  </DropdownMenu.Item>
                 </DropdownMenu.Content>
               </DropdownMenu>
               {hasActiveFilters ? (
-                <Button
-                  size="small"
-                  variant="transparent"
+                <button
                   type="button"
+                  className="text-ui-fg-muted hover:text-ui-fg-subtle txt-compact-small-plus rounded-md px-2 py-1 transition-fg"
                   onClick={() => {
                     setFiltering({});
+                    setProductRowSelection({});
+                    setVariantRowSelection({});
                   }}
                 >
                   Clear all
-                </Button>
+                </button>
               ) : null}
+            </div>
+            <div className="flex items-center gap-x-2 self-end md:self-auto">
+              <div className="w-full md:w-auto">
+                <DataTable.Search placeholder="Search" />
+              </div>
+              <DataTable.SortingMenu />
             </div>
           </div>
           <DataTable.Table />
@@ -653,4 +1091,20 @@ function formatEffectiveSource(planOffer: PlanOfferAdminListItem) {
   }
 
   return "Variant";
+}
+
+function formatDiscountRange(min?: number, max?: number) {
+  if (typeof min === "number" && typeof max === "number") {
+    return `${min}-${max}`;
+  }
+
+  if (typeof min === "number") {
+    return `${min}+`;
+  }
+
+  if (typeof max === "number") {
+    return `Up to ${max}`;
+  }
+
+  return "-";
 }

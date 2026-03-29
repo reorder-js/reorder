@@ -18,6 +18,8 @@ export function normalizeAdminSubscriptionOffersListQuery(
     product_id: query.product_id,
     variant_id: query.variant_id,
     frequency: query.frequency,
+    discount_min: query.discount_min,
+    discount_max: query.discount_max,
   }
 
   if (query.order) {
