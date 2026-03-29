@@ -38,3 +38,11 @@ export {
   forceRenewalCycleWorkflow,
   default as forceRenewalCycleWorkflowDefault,
 } from "./force-renewal-cycle"
+export {
+  approveRenewalChangesWorkflow,
+  default as approveRenewalChangesWorkflowDefault,
+} from "./approve-renewal-changes"
+export {
+  rejectRenewalChangesWorkflow,
+  default as rejectRenewalChangesWorkflowDefault,
+} from "./reject-renewal-changes"

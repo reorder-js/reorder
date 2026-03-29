@@ -72,3 +72,19 @@ export const PostAdminForceRenewalSchema = z.object({
 export type PostAdminForceRenewalSchemaType = z.infer<
   typeof PostAdminForceRenewalSchema
 >
+
+export const PostAdminApproveRenewalChangesSchema = z.object({
+  reason: z.string().trim().min(1).max(500).optional(),
+})
+
+export type PostAdminApproveRenewalChangesSchemaType = z.infer<
+  typeof PostAdminApproveRenewalChangesSchema
+>
+
+export const PostAdminRejectRenewalChangesSchema = z.object({
+  reason: z.string().trim().min(1).max(500).optional(),
+})
+
+export type PostAdminRejectRenewalChangesSchemaType = z.infer<
+  typeof PostAdminRejectRenewalChangesSchema
+>

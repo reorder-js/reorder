@@ -6,7 +6,9 @@ import {
 import {
   GetAdminRenewalSchema,
   GetAdminRenewalsSchema,
+  PostAdminApproveRenewalChangesSchema,
   PostAdminForceRenewalSchema,
+  PostAdminRejectRenewalChangesSchema,
 } from "./validators"
 
 export const adminRenewalsMiddlewares: MiddlewareRoute[] = [
@@ -52,5 +54,15 @@ export const adminRenewalsMiddlewares: MiddlewareRoute[] = [
     matcher: "/admin/renewals/:id/force",
     method: "POST",
     middlewares: [validateAndTransformBody(PostAdminForceRenewalSchema)],
+  },
+  {
+    matcher: "/admin/renewals/:id/approve-changes",
+    method: "POST",
+    middlewares: [validateAndTransformBody(PostAdminApproveRenewalChangesSchema)],
+  },
+  {
+    matcher: "/admin/renewals/:id/reject-changes",
+    method: "POST",
+    middlewares: [validateAndTransformBody(PostAdminRejectRenewalChangesSchema)],
   },
 ]
