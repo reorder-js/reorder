@@ -30,3 +30,7 @@ export {
   togglePlanOfferWorkflow,
   default as togglePlanOfferWorkflowDefault,
 } from "./toggle-plan-offer"
+export {
+  processRenewalCycleWorkflow,
+  default as processRenewalCycleWorkflowDefault,
+} from "./process-renewal-cycle"

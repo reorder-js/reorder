@@ -43,6 +43,14 @@ export type SubscriptionShippingAddress = {
   phone: string | null
 }
 
+export type SubscriptionPaymentContext = {
+  payment_provider_id: string | null
+  source_payment_collection_id: string | null
+  source_payment_session_id: string | null
+  payment_method_reference: string | null
+  customer_payment_reference: string | null
+}
+
 export type SubscriptionPendingUpdateData = {
   variant_id: string
   variant_title: string

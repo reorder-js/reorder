@@ -10,6 +10,7 @@ const Subscription = model
     reference: model.text().unique(),
     status: model.enum(SubscriptionStatus).default(SubscriptionStatus.ACTIVE),
     customer_id: model.text(),
+    cart_id: model.text().nullable(),
     product_id: model.text(),
     variant_id: model.text(),
     frequency_interval: model.enum(SubscriptionFrequencyInterval),
@@ -27,6 +28,7 @@ const Subscription = model
     product_snapshot: model.json(),
     pricing_snapshot: model.json().nullable(),
     shipping_address: model.json(),
+    payment_context: model.json().nullable(),
     pending_update_data: model.json().nullable(),
     metadata: model.json().nullable(),
   })
@@ -43,6 +45,9 @@ const Subscription = model
     },
     {
       on: ["customer_id"],
+    },
+    {
+      on: ["cart_id"],
     },
     {
       on: ["product_id"],

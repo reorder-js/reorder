@@ -5,6 +5,7 @@ import { SUBSCRIPTION_MODULE } from "../../src/modules/subscription"
 import type SubscriptionModuleService from "../../src/modules/subscription/service"
 import {
   SubscriptionFrequencyInterval,
+  SubscriptionPaymentContext,
   SubscriptionStatus,
 } from "../../src/modules/subscription/types"
 
@@ -25,6 +26,7 @@ type SubscriptionSeedInput = {
   reference?: string
   status?: SubscriptionStatus
   customer_id?: string
+  cart_id?: string | null
   product_id?: string
   variant_id?: string
   frequency_interval?: SubscriptionFrequencyInterval
@@ -32,6 +34,7 @@ type SubscriptionSeedInput = {
   next_renewal_at?: Date | null
   skip_next_cycle?: boolean
   is_trial?: boolean
+  payment_context?: SubscriptionPaymentContext | null
 }
 
 export async function createAdminAuthHeaders(container: MedusaContainer) {
@@ -126,6 +129,8 @@ export async function createSubscriptionSeed(
   const subscriptionModule =
     container.resolve<SubscriptionModuleService>(SUBSCRIPTION_MODULE)
   const customerId = input.customer_id ?? `cus_${Date.now()}`
+  const cartId =
+    input.cart_id === undefined ? `cart_${Date.now()}` : input.cart_id
   const productId = input.product_id ?? `prod_${Date.now()}`
   const variantId = input.variant_id ?? `variant_${Date.now()}`
 
@@ -134,6 +139,7 @@ export async function createSubscriptionSeed(
     reference: input.reference ?? `SUB-${Date.now()}`,
     status: input.status ?? SubscriptionStatus.ACTIVE,
     customer_id: customerId,
+    cart_id: cartId,
     product_id: productId,
     variant_id: variantId,
     frequency_interval:
@@ -179,6 +185,16 @@ export async function createSubscriptionSeed(
       country_code: "PL",
       phone: "+48123123123",
     },
+    payment_context:
+      input.payment_context === undefined
+        ? {
+            payment_provider_id: "pp_stripe_stripe",
+            source_payment_collection_id: `paycol_${Date.now()}`,
+            source_payment_session_id: `payses_${Date.now()}`,
+            payment_method_reference: `pm_${Date.now()}`,
+            customer_payment_reference: `cuspay_${Date.now()}`,
+          }
+        : input.payment_context,
     pending_update_data: null,
     metadata: null,
   })

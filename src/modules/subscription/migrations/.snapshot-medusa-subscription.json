@@ -49,6 +49,15 @@
           "nullable": false,
           "mappedType": "text"
         },
+        "cart_id": {
+          "name": "cart_id",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "text"
+        },
         "product_id": {
           "name": "product_id",
           "type": "text",
@@ -216,6 +225,15 @@
           "nullable": false,
           "mappedType": "json"
         },
+        "payment_context": {
+          "name": "payment_context",
+          "type": "jsonb",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "json"
+        },
         "pending_update_data": {
           "name": "pending_update_data",
           "type": "jsonb",
@@ -314,6 +332,15 @@
           "primary": false,
           "unique": false,
           "expression": "CREATE INDEX IF NOT EXISTS \"IDX_subscription_customer_id\" ON \"subscription\" (\"customer_id\") WHERE deleted_at IS NULL"
+        },
+        {
+          "keyName": "IDX_subscription_cart_id",
+          "columnNames": [],
+          "composite": false,
+          "constraint": false,
+          "primary": false,
+          "unique": false,
+          "expression": "CREATE INDEX IF NOT EXISTS \"IDX_subscription_cart_id\" ON \"subscription\" (\"cart_id\") WHERE deleted_at IS NULL"
         },
         {
           "keyName": "IDX_subscription_product_id",
