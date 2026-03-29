@@ -37,27 +37,25 @@ export function validateRenewalApprovalTransition(
   targetStatus: RenewalApprovalStatus
 ) {
   if (!cycle.approval_required) {
-    throw renewalErrors.conflict(
-      `Renewal '${cycle.id}' doesn't require approval`
-    )
+    throw renewalErrors.approvalNotRequired(cycle.id)
   }
 
   if (cycle.status === RenewalCycleStatus.PROCESSING) {
-    throw renewalErrors.conflict(
+    throw renewalErrors.invalidTransition(
+      cycle.id,
       `Renewal '${cycle.id}' can't change approval state while processing`
     )
   }
 
   if (cycle.status === RenewalCycleStatus.SUCCEEDED) {
-    throw renewalErrors.conflict(
+    throw renewalErrors.invalidTransition(
+      cycle.id,
       `Renewal '${cycle.id}' can't change approval state after success`
     )
   }
 
   if (cycle.approval_status !== RenewalApprovalStatus.PENDING) {
-    throw renewalErrors.conflict(
-      `Renewal '${cycle.id}' approval decision has already been made`
-    )
+    throw renewalErrors.approvalAlreadyDecided(cycle.id)
   }
 
   if (targetStatus !== RenewalApprovalStatus.APPROVED && targetStatus !== RenewalApprovalStatus.REJECTED) {

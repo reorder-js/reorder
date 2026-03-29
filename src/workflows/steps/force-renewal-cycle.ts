@@ -29,22 +29,19 @@ export const forceRenewalCycleStep = createStep(
     }
 
     if (cycle.status === RenewalCycleStatus.PROCESSING) {
-      throw renewalErrors.conflict(
-        `Renewal '${cycle.id}' is already processing`
-      )
+      throw renewalErrors.alreadyProcessing(cycle.id)
     }
 
     if (cycle.status === RenewalCycleStatus.SUCCEEDED) {
-      throw renewalErrors.conflict(
-        `Renewal '${cycle.id}' has already succeeded`
-      )
+      throw renewalErrors.duplicateExecutionBlocked(cycle.id)
     }
 
     if (
       cycle.status !== RenewalCycleStatus.SCHEDULED &&
       cycle.status !== RenewalCycleStatus.FAILED
     ) {
-      throw renewalErrors.conflict(
+      throw renewalErrors.invalidTransition(
+        cycle.id,
         `Renewal '${cycle.id}' can only be force-run from 'scheduled' or 'failed' state`
       )
     }
@@ -53,7 +50,8 @@ export const forceRenewalCycleStep = createStep(
       cycle.approval_required &&
       cycle.approval_status !== RenewalApprovalStatus.APPROVED
     ) {
-      throw renewalErrors.conflict(
+      throw renewalErrors.invalidTransition(
+        cycle.id,
         `Renewal '${cycle.id}' requires approved changes before it can be force-run`
       )
     }

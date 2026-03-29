@@ -255,8 +255,9 @@ async function validateSubscriptionEligibility(
   }
 
   if (subscription.paused_at) {
-    throw renewalErrors.conflict(
-      `Subscription '${subscription.id}' is paused and can't be renewed`
+    throw renewalErrors.subscriptionNotEligible(
+      subscription.id,
+      "subscription is paused"
     )
   }
 
@@ -264,8 +265,9 @@ async function validateSubscriptionEligibility(
     subscription.cancel_effective_at &&
     subscription.cancel_effective_at <= cycle.scheduled_for
   ) {
-    throw renewalErrors.conflict(
-      `Subscription '${subscription.id}' is cancelled for renewal date '${cycle.scheduled_for}'`
+    throw renewalErrors.subscriptionNotEligible(
+      subscription.id,
+      `cancel is effective for renewal date '${cycle.scheduled_for.toISOString()}'`
     )
   }
 
@@ -274,8 +276,9 @@ async function validateSubscriptionEligibility(
     subscription.trial_ends_at &&
     cycle.scheduled_for < subscription.trial_ends_at
   ) {
-    throw renewalErrors.conflict(
-      `Subscription '${subscription.id}' is still in trial for renewal date '${cycle.scheduled_for}'`
+    throw renewalErrors.subscriptionNotEligible(
+      subscription.id,
+      `subscription is still in trial for renewal date '${cycle.scheduled_for.toISOString()}'`
     )
   }
 }
@@ -293,7 +296,8 @@ async function resolveAppliedPendingChanges(
 
   if (cycle.approval_required) {
     if (cycle.approval_status !== RenewalApprovalStatus.APPROVED) {
-      throw renewalErrors.conflict(
+      throw renewalErrors.invalidTransition(
+        cycle.id,
         `Renewal '${cycle.id}' requires approval before pending changes can be applied`
       )
     }
@@ -442,7 +446,8 @@ async function createRenewalOrder(
       !paymentContext?.payment_provider_id ||
       !paymentContext.payment_method_reference
     ) {
-      throw renewalErrors.invalidData(
+      throw renewalErrors.renewalOrderCreationFailed(
+        cycle.id,
         `Subscription '${subscription.id}' is missing renewal payment context`
       )
     }
@@ -458,7 +463,8 @@ async function createRenewalOrder(
     const paymentCollection = paymentCollections.result[0]
 
     if (!paymentCollection) {
-      throw renewalErrors.invalidData(
+      throw renewalErrors.renewalOrderCreationFailed(
+        cycle.id,
         `No payment collection was created for renewal order '${order.id}'`
       )
     }
@@ -528,15 +534,11 @@ export const processRenewalCycleStep = createStep(
     const cycle = await loadCycle(container, input.renewal_cycle_id)
 
     if (cycle.status === RenewalCycleStatus.PROCESSING) {
-      throw renewalErrors.conflict(
-        `Renewal '${cycle.id}' is already processing`
-      )
+      throw renewalErrors.alreadyProcessing(cycle.id)
     }
 
     if (cycle.status === RenewalCycleStatus.SUCCEEDED) {
-      throw renewalErrors.conflict(
-        `Renewal '${cycle.id}' has already succeeded`
-      )
+      throw renewalErrors.duplicateExecutionBlocked(cycle.id)
     }
 
     const subscription = await loadSubscription(container, cycle.subscription_id)
