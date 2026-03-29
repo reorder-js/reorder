@@ -6,6 +6,7 @@ import {
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { sdk } from "../../../lib/client";
 import {
+  RenewalCycleAdminDetailResponse,
   RenewalApprovalStatus,
   RenewalAttemptAdminStatus,
   RenewalCycleAdminListResponse,
@@ -21,6 +22,7 @@ type UseAdminRenewalsDisplayQueryInput = {
 
 export const adminRenewalsQueryKeys = {
   all: ["admin-renewals"] as const,
+  detail: (id: string) => [...adminRenewalsQueryKeys.all, "detail", id] as const,
   display: (params: {
     pageSize: number;
     offset: number;
@@ -118,6 +120,18 @@ export function useAdminRenewalsDisplayQuery(
         },
       }),
     placeholderData: keepPreviousData,
+  });
+}
+
+export function useAdminRenewalDetailQuery(
+  id?: string,
+  initialData?: RenewalCycleAdminDetailResponse
+) {
+  return useQuery<RenewalCycleAdminDetailResponse>({
+    queryKey: adminRenewalsQueryKeys.detail(id ?? ""),
+    queryFn: () => sdk.client.fetch(`/admin/renewals/${id}`),
+    enabled: Boolean(id),
+    initialData,
   });
 }
 

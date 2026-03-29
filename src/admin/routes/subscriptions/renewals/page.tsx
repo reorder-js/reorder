@@ -17,7 +17,7 @@ import {
   useDataTable,
 } from "@medusajs/ui";
 import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   RenewalAdminApprovalSummary,
   RenewalApprovalStatus,
@@ -176,6 +176,7 @@ const baseColumns = [
 ];
 
 const RenewalsPage = () => {
+  const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [filtering, setFiltering] = useState<DataTableFilteringState>(() => ({
     scheduled_from: toLocalDateTimeInputValue(addDays(new Date(), -30)),
@@ -229,6 +230,9 @@ const RenewalsPage = () => {
     getRowId: (row) => row.id,
     rowCount: data?.count || 0,
     isLoading,
+    onRowClick: (_event, row) => {
+      navigate(`/subscriptions/renewals/${row.id}`);
+    },
     sorting: {
       state: sorting,
       onSortingChange: setSorting,

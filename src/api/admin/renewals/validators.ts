@@ -82,7 +82,7 @@ export type PostAdminApproveRenewalChangesSchemaType = z.infer<
 >
 
 export const PostAdminRejectRenewalChangesSchema = z.object({
-  reason: z.string().trim().min(1).max(500).optional(),
+  reason: z.string().trim().min(1).max(500),
 })
 
 export type PostAdminRejectRenewalChangesSchemaType = z.infer<
