@@ -1,19 +1,19 @@
 # Reorder: Subscription Admin UI and API Spec
 
-Ten dokument domyka krok `2.1.1` z `documentation/implementation_plan.md` i definiuje spec danych dla sekcji `Subscriptions` w Admin w sposób bliższy oficjalnym wzorcom Medusa.
+This document completes step `2.1.1` from `documentation/implementation_plan.md` and defines the data specification for the `Subscriptions` area in Admin in a way that is closer to official Medusa patterns.
 
-Artefakty po tym kroku:
-- typy Admin DTO: `reorder/src/admin/types/subscription.ts`
-- ten dokument jako spec kolumn, akcji, filtrów i request shapes pod kolejne kroki
+Artifacts produced in this step:
+- Admin DTO types: `reorder/src/admin/types/subscription.ts`
+- this document as the specification for columns, actions, filters, and request shapes for later steps
 
-Uwaga:
-- Medusa nie wymaga osobnego artefaktu `contract`.
-- W praktyce framework używa kombinacji `types`, `Zod validators`, `WorkflowInput` i definicji UI route/DataTable.
-- Ten dokument jest specyfikacją projektową, a nie frameworkowym bytem Medusy.
+Note:
+- Medusa does not require a separate `contract` artifact
+- in practice, the framework uses a combination of `types`, `Zod validators`, `WorkflowInput`, and UI route/DataTable definitions
+- this document is a design specification, not a framework-level Medusa artifact
 
 ## 1. Admin DTO
 
-Typy UI zostały przeniesione do:
+The UI types were moved into:
 - `SubscriptionAdminStatus`
 - `SubscriptionFrequencyInterval`
 - `SubscriptionAdminListItem`
@@ -21,27 +21,27 @@ Typy UI zostały przeniesione do:
 - `SubscriptionAdminListResponse`
 - `SubscriptionAdminDetailResponse`
 
-Plik:
+File:
 - `reorder/src/admin/types/subscription.ts`
 
-## 2. Lista `Subscriptions`
+## 2. `Subscriptions` list
 
-Lista bazuje na `DataTable` i używa następujących kolumn:
+The list is based on `DataTable` and uses the following columns:
 
-| Kolumna | Domyślnie widoczna | Sortowalna | Uwagi |
+| Column | Visible by default | Sortable | Notes |
 |---|---:|---:|---|
-| `subscription` | tak | tak | `reference` + stabilny identyfikator |
-| `status` | tak | tak | badge statusu |
-| `customer` | tak | tak | imię/nazwisko + email |
-| `product` | tak | tak | produkt + wariant + opcjonalne SKU |
-| `frequency` | tak | tak | np. `Every 2 months` |
-| `next_renewal_at` | tak | tak | data kolejnego odnowienia |
-| `trial` | tak | tak | flaga + `trial_ends_at` |
-| `discount` | tak | tak | snapshot rabatu subskrypcyjnego |
-| `skip_next_cycle` | tak | tak | boolean |
-| `updated_at` | nie | tak | techniczna kolumna pomocnicza |
+| `subscription` | yes | yes | `reference` + stable identifier |
+| `status` | yes | yes | status badge |
+| `customer` | yes | yes | full name + email |
+| `product` | yes | yes | product + variant + optional SKU |
+| `frequency` | yes | yes | for example `Every 2 months` |
+| `next_renewal_at` | yes | yes | next renewal date |
+| `trial` | yes | yes | flag + `trial_ends_at` |
+| `discount` | yes | yes | subscription discount snapshot |
+| `skip_next_cycle` | yes | yes | boolean |
+| `updated_at` | no | yes | technical helper column |
 
-Minimalny rekord listy:
+Minimal list record:
 - `id`
 - `reference`
 - `status`
@@ -54,59 +54,59 @@ Minimalny rekord listy:
 - `skip_next_cycle`
 - `updated_at`
 
-## 3. Statusy
+## 3. Statuses
 
-Do MVP w Admin obowiązują statusy:
+The MVP Admin statuses are:
 - `active`
 - `paused`
 - `cancelled`
 - `past_due`
 
-Uwagi:
-- `cancelled` zostawiamy w brytyjskiej pisowni, bo taki status pojawia się już w planie i dokumentach produktu.
-- `expired` nie wchodzi do kontraktu tego kroku, bo nie jest jeszcze częścią zakresu `Subscriptions` MVP.
+Notes:
+- `cancelled` remains in British spelling because that status is already used in the plan and product documents
+- `expired` is not part of this step’s contract because it is not in the current `Subscriptions` MVP scope
 
-## 4. Akcje wiersza / detail view
+## 4. Row actions / detail view actions
 
-Zdefiniowane akcje:
+Defined actions:
 
-| Akcja | Dozwolone statusy | Confirm | Cel |
+| Action | Allowed statuses | Confirm | Purpose |
 |---|---|---:|---|
-| `pause` | `active`, `past_due` | tak | wstrzymanie przyszłych odnowień |
-| `resume` | `paused` | tak | wznowienie subskrypcji |
-| `cancel` | `active`, `paused`, `past_due` | tak | zakończenie subskrypcji |
-| `schedule_plan_change` | `active`, `paused`, `past_due` | nie | zaplanowanie zmiany wariantu/częstotliwości |
-| `update_shipping_address` | `active`, `paused`, `past_due` | nie | aktualizacja adresu dostawy |
+| `pause` | `active`, `past_due` | yes | stop future renewals |
+| `resume` | `paused` | yes | resume the subscription |
+| `cancel` | `active`, `paused`, `past_due` | yes | terminate the subscription |
+| `schedule_plan_change` | `active`, `paused`, `past_due` | no | schedule a variant/frequency change |
+| `update_shipping_address` | `active`, `paused`, `past_due` | no | update the shipping address |
 
-`cancelled` nie ma akcji mutacyjnych w MVP tego widoku.
+`cancelled` has no mutation actions in this MVP view.
 
-## 5. Pola edycji
+## 5. Edit fields
 
-### 4.1 Schedule plan change
+### 5.1 Schedule plan change
 
-Pola:
-- `plan_variant_id` - wymagane
-- `frequency_interval` - wymagane, enum: `week | month | year`
-- `frequency_value` - wymagane, liczba dodatnia
-- `pending_change_effective_at` - opcjonalne ISO datetime
+Fields:
+- `plan_variant_id` - required
+- `frequency_interval` - required, enum: `week | month | year`
+- `frequency_value` - required, positive number
+- `pending_change_effective_at` - optional ISO datetime
 
-### 4.2 Update shipping address
+### 5.2 Update shipping address
 
-Pola:
-- `first_name` - wymagane
-- `last_name` - wymagane
-- `company` - opcjonalne
-- `address_1` - wymagane
-- `address_2` - opcjonalne
-- `city` - wymagane
-- `postal_code` - wymagane
-- `province` - opcjonalne
-- `country_code` - wymagane
-- `phone` - opcjonalne
+Fields:
+- `first_name` - required
+- `last_name` - required
+- `company` - optional
+- `address_1` - required
+- `address_2` - optional
+- `city` - required
+- `postal_code` - required
+- `province` - optional
+- `country_code` - required
+- `phone` - optional
 
-## 6. Filtry i sortowanie
+## 6. Filters and sorting
 
-Filtry listy:
+List filters:
 - `q`
 - `status[]`
 - `customer_id`
@@ -117,7 +117,7 @@ Filtry listy:
 - `is_trial`
 - `skip_next_cycle`
 
-Sortowanie:
+Sorting:
 - `created_at`
 - `updated_at`
 - `status`
@@ -132,17 +132,17 @@ Sortowanie:
 - `discount_value`
 - `skip_next_cycle`
 
-Kontrakt query listy:
+List query contract:
 - `limit`
 - `offset`
 - `order`
 - `direction`
-- wszystkie filtry powyżej
+- all filters listed above
 
-## 7. Payloady mutacji
+## 7. Mutation payloads
 
-Poniższe payloady są specem dla kolejnych kroków.
-Ich implementacja powinna trafić do Zod validatorów w `src/api/admin/subscriptions/**/validators.ts` albo do plików middleware zgodnie z wzorcem Medusa.
+The payloads below are a specification for later steps.
+Their implementation should be added to Zod validators in `src/api/admin/subscriptions/**/validators.ts` or middleware files following Medusa patterns.
 
 ### `pause`
 ```json
@@ -196,7 +196,7 @@ Ich implementacja powinna trafić do Zod validatorów w `src/api/admin/subscript
 
 ## 8. Detail payload
 
-Detail subskrypcji rozszerza rekord listy o:
+Subscription detail extends the list record with:
 - `created_at`
 - `started_at`
 - `paused_at`
@@ -205,16 +205,16 @@ Detail subskrypcji rozszerza rekord listy o:
 - `shipping_address`
 - `pending_update_data`
 
-`pending_update_data` przechowuje preview zaplanowanej zmiany planu:
+`pending_update_data` stores a preview of the scheduled plan change:
 - `variant_id`
 - `variant_title`
 - `frequency_interval`
 - `frequency_value`
 - `effective_at`
 
-## 9. Konsekwencje dla następnych kroków
+## 9. Impact on later steps
 
-Ten kontrakt wymusza, żeby następny krok `2.1.2` zaprojektował co najmniej endpointy:
+This contract means the next step `2.1.2` must design at least these endpoints:
 - `GET /admin/subscriptions`
 - `GET /admin/subscriptions/:id`
 - `POST /admin/subscriptions/:id/pause`

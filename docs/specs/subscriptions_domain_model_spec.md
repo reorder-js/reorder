@@ -1,47 +1,47 @@
 # Reorder: Subscription Domain Model Spec
 
-Ten dokument domyka krok `2.1.3` z `documentation/implementation_plan.md`.
+This document completes step `2.1.3` from `documentation/implementation_plan.md`.
 
-Cel:
-- zaprojektować finalny model domenowy `Subscription`
-- ustalić, które dane należą do własnego modułu
-- ustalić, które dane trzymamy jako snapshot
-- ustalić, które dane łączymy przez module links
+Goal:
+- design the final `Subscription` domain model
+- determine which data belongs directly to the module
+- determine which data should be stored as snapshots
+- determine which data should be connected through module links
 
-Projekt jest oparty na wzorcach Medusa:
-- custom module jako właściciel domeny
-- cross-module relations przez `defineLink`
-- snapshoty tylko tam, gdzie potrzebny jest stabilny odczyt Admin i historii
+The design is based on Medusa patterns:
+- a custom module owns the domain
+- cross-module relations are handled through `defineLink`
+- snapshots are used only where Admin and history require a stable read model
 
-## 1. Założenia architektoniczne
+## 1. Architectural assumptions
 
-- `Subscription` jest własną encją domenową w custom module `subscription`.
-- Dane z innych modułów Medusy nie są modelowane jako bezpośrednie relacje w DML.
-- Powiązania z encjami commerce są realizowane przez module links.
-- Snapshoty przechowujemy tam, gdzie bieżący stan encji zewnętrznej nie powinien wpływać na historyczny lub operacyjny obraz subskrypcji.
-- Pola potrzebne do filtrowania i sortowania w Admin powinny być przechowywane jawnie jako pola modelu, a nie tylko w `metadata` lub JSON.
+- `Subscription` is its own domain entity in the custom `subscription` module.
+- Data from other Medusa modules is not modeled as direct DML relations.
+- Connections to commerce entities are implemented with module links.
+- Snapshots are stored where the current state of an external entity should not affect the historical or operational view of the subscription.
+- Fields needed for Admin filtering and sorting should be stored explicitly as model fields, not only inside `metadata` or JSON blobs.
 
-## 2. Statusy
+## 2. Statuses
 
-Na tym etapie domena `Subscription` obsługuje statusy:
+At this stage, the `Subscription` domain supports:
 
 - `active`
 - `paused`
 - `cancelled`
 - `past_due`
 
-Nie dodajemy teraz:
+We do not add yet:
 - `expired`
 - `failed`
 
-Powód:
-- nie są częścią aktualnego zakresu `Subscriptions`
-- `failed` lepiej pasuje do warstwy renewals/dunning
-- `expired` można dodać później, jeśli lifecycle będzie tego wymagał
+Why:
+- they are outside the current `Subscriptions` scope
+- `failed` fits better in the renewals/dunning layer
+- `expired` can be added later if the lifecycle requires it
 
-## 3. Pola własne modelu
+## 3. Direct model fields
 
-Poniższe pola należą bezpośrednio do modelu `subscription` i powinny być przechowywane jako zwykłe kolumny:
+The following fields belong directly to the `subscription` model and should be stored as regular columns:
 
 - `id`
 - `reference`
@@ -61,59 +61,59 @@ Poniższe pola należą bezpośrednio do modelu `subscription` i powinny być pr
 - `is_trial`
 - `trial_ends_at`
 
-## 4. Uzasadnienie pól własnych
+## 4. Why these direct fields exist
 
 ### `reference`
 
-Stabilny identyfikator do wyświetlania w Admin i obsługi operacyjnej.
+A stable identifier for Admin display and operational handling.
 
 ### `status`
 
-Pole potrzebne do:
-- filtrowania listy
-- walidacji przejść statusów
-- sterowania dostępnymi akcjami w Admin
+Required for:
+- list filtering
+- status transition validation
+- controlling available Admin actions
 
 ### `customer_id`, `product_id`, `variant_id`
 
-Trzymamy je jawnie w modelu mimo planowanych module links.
+These IDs are stored explicitly even though module links are also planned.
 
-Powód:
-- upraszcza filtrowanie
-- upraszcza indeksowanie
-- upraszcza list/detail queries
-- jest zgodne z praktyką Medusy dla modeli, które operacyjnie „należą do” innych encji
+Why:
+- simplifies filtering
+- simplifies indexing
+- simplifies list/detail queries
+- aligns with common Medusa practice for models that operationally “belong to” external entities
 
 ### `frequency_interval`, `frequency_value`
 
-To rdzeń cadence/frequency i pola potrzebne do:
-- listy Admin
-- sortowania
-- mutacji `schedule-plan-change`
-- późniejszych renewals
+These fields define the cadence/frequency core and are needed for:
+- the Admin list
+- sorting
+- the `schedule-plan-change` mutation
+- future renewals
 
 ### `started_at`, `next_renewal_at`, `last_renewal_at`
 
-To podstawowe pola lifecycle i harmonogramu.
+These are the core lifecycle and scheduling fields.
 
 ### `paused_at`, `cancelled_at`, `cancel_effective_at`
 
-Potrzebne do:
-- auditowalności
-- obsługi `pause`
-- obsługi `cancel`
-- odróżnienia anulowania natychmiastowego od anulowania na koniec cyklu
+Required for:
+- auditability
+- handling `pause`
+- handling `cancel`
+- distinguishing immediate cancellation from end-of-cycle cancellation
 
 ### `skip_next_cycle`, `is_trial`, `trial_ends_at`
 
-Potrzebne do:
-- listy Admin
-- filtrowania
-- logiki przyszłych renewals
+Required for:
+- the Admin list
+- filtering
+- future renewal logic
 
-## 5. Dane przechowywane jako snapshot JSON
+## 5. Data stored as JSON snapshots
 
-Poniższe dane powinny być trzymane jako pola JSON w modelu `subscription`:
+The following data should be stored as JSON fields in the `subscription` model:
 
 - `customer_snapshot`
 - `product_snapshot`
@@ -122,9 +122,9 @@ Poniższe dane powinny być trzymane jako pola JSON w modelu `subscription`:
 - `pending_update_data`
 - `metadata`
 
-## 6. Snapshot customer
+## 6. Customer snapshot
 
-Proponowany shape:
+Proposed shape:
 
 ```ts
 {
@@ -133,13 +133,13 @@ Proponowany shape:
 }
 ```
 
-Powód:
-- Admin list/detail powinien pozostać czytelny nawet jeśli dane klienta ulegną zmianie
-- historia subskrypcji nie powinna być całkowicie zależna od bieżącego stanu klienta
+Why:
+- the Admin list/detail should remain readable even if customer data changes later
+- subscription history should not fully depend on the current state of the customer record
 
-## 7. Snapshot product
+## 7. Product snapshot
 
-Proponowany shape:
+Proposed shape:
 
 ```ts
 {
@@ -151,14 +151,14 @@ Proponowany shape:
 }
 ```
 
-Powód:
-- list/detail w Admin mają pokazywać stabilny obraz subskrypcji
-- zmiana nazwy produktu lub wariantu nie powinna niszczyć czytelności historii
-- snapshot upraszcza rendering listy i detalu
+Why:
+- Admin list/detail should show a stable view of the subscription
+- changing a product or variant title should not break historical readability
+- the snapshot simplifies list and detail rendering
 
-## 8. Snapshot pricing
+## 8. Pricing snapshot
 
-Proponowany shape:
+Proposed shape:
 
 ```ts
 {
@@ -168,15 +168,15 @@ Proponowany shape:
 }
 ```
 
-Powód:
-- warunki oferty mogą się zmieniać w czasie
-- subskrypcja powinna zachować własny obraz rabatu/oferty
+Why:
+- offer terms may change over time
+- a subscription should preserve its own view of discount/offer data
 
 ## 9. Shipping address
 
-`shipping_address` przechowujemy jako JSON snapshot.
+`shipping_address` should be stored as a JSON snapshot.
 
-Proponowany shape:
+Proposed shape:
 
 ```ts
 {
@@ -193,16 +193,16 @@ Proponowany shape:
 }
 ```
 
-Powód:
-- subskrypcja ma własny operacyjny adres dostawy
-- nie chcemy zależeć od globalnych adresów klienta
-- przyszłe odnowienia powinny korzystać z adresu przypisanego do subskrypcji
+Why:
+- the subscription needs its own operational shipping address
+- it should not depend on the customer’s global addresses
+- future renewals should use the address assigned to the subscription
 
 ## 10. Pending update data
 
-`pending_update_data` przechowujemy jako JSON.
+`pending_update_data` should be stored as JSON.
 
-Proponowany shape:
+Proposed shape:
 
 ```ts
 {
@@ -217,46 +217,46 @@ Proponowany shape:
 }
 ```
 
-Powód:
-- to stan przejściowy pojedynczej subskrypcji
-- nie wymaga osobnej encji na tym etapie
-- jest łatwy do nadpisania, wyczyszczenia i wyświetlenia w Admin
+Why:
+- this is transitional state for a single subscription
+- it does not require a separate entity at this stage
+- it is easy to overwrite, clear, and render in Admin
 
 ## 11. Module links
 
-Cross-module relations realizujemy przez osobne pliki w `src/links/`.
+Cross-module relations should be implemented through dedicated files in `src/links/`.
 
-### Wymagane linki
+### Required links
 
 - `subscription <-> customer`
 - `subscription <-> product`
 - `subscription <-> variant`
 
-### Linki opcjonalne, ale zalecane na dalszy rozwój
+### Optional but recommended links for later growth
 
 - `subscription <-> order`
 - `subscription <-> cart`
 
-## 12. Dlaczego jednocześnie ID fields i links
+## 12. Why both ID fields and links exist
 
-Model przechowuje:
+The model stores:
 - `customer_id`
 - `product_id`
 - `variant_id`
 
-oraz równolegle definiuje module links.
+and also defines module links in parallel.
 
-Powód:
-- ID fields upraszczają filtrowanie i indeksy
-- links pozostają zgodne z architekturą Medusy i umożliwiają pobieranie danych cross-module
-- to praktyczny kompromis między czystością architektoniczną a kosztami query
+Why:
+- ID fields simplify filtering and indexes
+- links remain aligned with Medusa architecture and allow cross-module queries
+- this is a practical compromise between architectural purity and query cost
 
-## 13. Konsekwencje dla query
+## 13. Query implications
 
-### `query.graph()` będzie wystarczające dla:
+### `query.graph()` is enough for:
 
-- detail po `id`
-- listy filtrowanej po polach własnego modelu:
+- detail by `id`
+- list queries filtered by direct model fields:
   - `status`
   - `next_renewal_at`
   - `is_trial`
@@ -264,15 +264,15 @@ Powód:
   - `frequency_interval`
   - `frequency_value`
 
-### `query.index()` może być potrzebne dla:
+### `query.index()` may be needed for:
 
-- filtrowania po linked `customer`
-- filtrowania po linked `product`
-- filtrowania po linked `variant`
+- filtering by linked `customer`
+- filtering by linked `product`
+- filtering by linked `variant`
 
-Jednocześnie przechowywanie `customer_id`, `product_id`, `variant_id` jako plain fields zmniejsza potrzebę użycia `query.index()` dla części przypadków listy Admin.
+At the same time, storing `customer_id`, `product_id`, and `variant_id` as plain fields reduces the need for `query.index()` in part of the Admin list use cases.
 
-## 14. Model docelowy
+## 14. Target model
 
 ### Plain fields
 
@@ -317,16 +317,15 @@ subscription-order
 subscription-cart
 ```
 
-## 15. Konsekwencje dla następnych kroków
+## 15. Impact on later steps
 
-Ten model przygotowuje grunt pod:
+This model prepares the ground for:
 
 1. `2.1.4`
-   - implementację modułu `subscription`
+   - implementation of the `subscription` module
 2. `2.1.5`
    - module links
 3. `2.1.6`
-   - migracje i indeksy
+   - migrations and indexes
 4. `2.1.7`
-   - workflowy mutacyjne
-
+   - mutation workflows

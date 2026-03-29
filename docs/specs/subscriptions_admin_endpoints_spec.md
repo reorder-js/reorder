@@ -1,37 +1,37 @@
 # Reorder: Subscription Admin Endpoints Spec
 
-Ten dokument domyka krok `2.1.2` z `documentation/implementation_plan.md`.
+This document completes step `2.1.2` from `documentation/implementation_plan.md`.
 
-Cel:
-- zaprojektować backend endpoints pod widok `Subscriptions` w Admin
-- trzymać się możliwie blisko oficjalnych wzorców Medusa
+Goal:
+- design the backend endpoints for the `Subscriptions` Admin view
+- stay as close as possible to official Medusa patterns
 
-Wzorce referencyjne Medusa:
+Reference Medusa patterns:
 - `GET /admin/subscriptions`
 - `GET /admin/subscriptions/:id`
 - `validateAndTransformQuery(...)`
 - `AuthenticatedMedusaRequest`
 - `query.graph(...)`
-- mutacje jako osobne `POST` route'y wywołujące workflowy
+- mutations as dedicated `POST` routes that execute workflows
 
-## 1. Zasady projektowe
+## 1. Design rules
 
-- Wszystkie endpointy są pod prefiksem `/admin`, więc są automatycznie chronione jako admin-only przez Medusę.
-- Route handlers używają `AuthenticatedMedusaRequest`.
-- Read endpoints używają `query.graph()` lub `query.index()` jeśli filtrowanie wymaga przejścia przez linkowane moduły.
-- Mutacyjne endpointy są tylko cienką warstwą HTTP:
-  - walidacja requestu,
-  - wywołanie workflow,
-  - zwrot znormalizowanej odpowiedzi.
-- Logika biznesowa nie siedzi w route.
+- All endpoints are under the `/admin` prefix, so they are automatically admin-only in Medusa.
+- Route handlers use `AuthenticatedMedusaRequest`.
+- Read endpoints use `query.graph()` or `query.index()` if filtering requires traversing linked modules.
+- Mutation endpoints are a thin HTTP layer only:
+  - request validation
+  - workflow execution
+  - return of a normalized response
+- Business logic does not live in the route.
 
-## 2. Endpointy
+## 2. Endpoints
 
 ### 2.1 List subscriptions
 
 - Method: `GET`
 - Path: `/admin/subscriptions`
-- Cel: źródło danych dla `DataTable` na stronie `Subscriptions`
+- Purpose: data source for the `DataTable` on the `Subscriptions` page
 
 #### Query params
 
@@ -59,21 +59,21 @@ Wzorce referencyjne Medusa:
 }
 ```
 
-#### Uwagi implementacyjne
+#### Implementation notes
 
 - Middleware:
   - `validateAndTransformQuery(...)`
 - Read model:
-  - payload zgodny z `SubscriptionAdminListResponse`
+  - payload aligned with `SubscriptionAdminListResponse`
 - Query:
-  - prefer `query.graph()` jeśli wszystkie filtry są możliwe w obrębie tego modelu
-  - przełącz na `query.index()` jeśli filtrowanie po `customer`, `product` albo `variant` będzie wymagało linkowanych modułów
+  - prefer `query.graph()` if all filters are possible within this model
+  - switch to `query.index()` if filtering by `customer`, `product`, or `variant` requires linked modules
 
 ### 2.2 Get subscription details
 
 - Method: `GET`
 - Path: `/admin/subscriptions/:id`
-- Cel: detail view subskrypcji
+- Purpose: subscription detail view
 
 #### Path params
 
@@ -87,20 +87,20 @@ Wzorce referencyjne Medusa:
 }
 ```
 
-#### Uwagi implementacyjne
+#### Implementation notes
 
 - Read model:
-  - payload zgodny z `SubscriptionAdminDetailResponse`
+  - payload aligned with `SubscriptionAdminDetailResponse`
 - Query:
   - `query.graph(...)`
-- Błąd:
-  - `404` jeśli subskrypcja nie istnieje
+- Error:
+  - `404` if the subscription does not exist
 
 ### 2.3 Pause subscription
 
 - Method: `POST`
 - Path: `/admin/subscriptions/:id/pause`
-- Cel: zatrzymanie przyszłych odnowień
+- Purpose: stop future renewals
 
 #### Body
 
@@ -119,7 +119,7 @@ Wzorce referencyjne Medusa:
 }
 ```
 
-#### Uwagi implementacyjne
+#### Implementation notes
 
 - Middleware:
   - `validateAndTransformBody(...)`
@@ -130,7 +130,7 @@ Wzorce referencyjne Medusa:
 
 - Method: `POST`
 - Path: `/admin/subscriptions/:id/resume`
-- Cel: wznowienie pauzowanej subskrypcji
+- Purpose: resume a paused subscription
 
 #### Body
 
@@ -149,7 +149,7 @@ Wzorce referencyjne Medusa:
 }
 ```
 
-#### Uwagi implementacyjne
+#### Implementation notes
 
 - Middleware:
   - `validateAndTransformBody(...)`
@@ -160,7 +160,7 @@ Wzorce referencyjne Medusa:
 
 - Method: `POST`
 - Path: `/admin/subscriptions/:id/cancel`
-- Cel: anulowanie subskrypcji
+- Purpose: cancel the subscription
 
 #### Body
 
@@ -179,7 +179,7 @@ Wzorce referencyjne Medusa:
 }
 ```
 
-#### Uwagi implementacyjne
+#### Implementation notes
 
 - Middleware:
   - `validateAndTransformBody(...)`
@@ -190,7 +190,7 @@ Wzorce referencyjne Medusa:
 
 - Method: `POST`
 - Path: `/admin/subscriptions/:id/schedule-plan-change`
-- Cel: zapisanie `pending_update_data` na kolejny cykl
+- Purpose: store `pending_update_data` for a future cycle
 
 #### Body
 
@@ -212,7 +212,7 @@ Wzorce referencyjne Medusa:
 }
 ```
 
-#### Uwagi implementacyjne
+#### Implementation notes
 
 - Middleware:
   - `validateAndTransformBody(...)`
@@ -223,7 +223,7 @@ Wzorce referencyjne Medusa:
 
 - Method: `POST`
 - Path: `/admin/subscriptions/:id/update-shipping-address`
-- Cel: aktualizacja adresu dostawy dla przyszłych realizacji
+- Purpose: update the shipping address for future fulfillments
 
 #### Body
 
@@ -250,16 +250,16 @@ Wzorce referencyjne Medusa:
 }
 ```
 
-#### Uwagi implementacyjne
+#### Implementation notes
 
 - Middleware:
   - `validateAndTransformBody(...)`
 - Workflow:
   - `updateSubscriptionShippingAddressWorkflow`
 
-## 3. Proponowana struktura plików
+## 3. Proposed file structure
 
-Docelowa struktura zgodna z Medusa:
+Target structure aligned with Medusa:
 
 ```text
 reorder/src/api/admin/subscriptions/route.ts
@@ -274,13 +274,13 @@ reorder/src/api/admin/subscriptions/middlewares.ts
 reorder/src/api/middlewares.ts
 ```
 
-Uwagi:
-- jeśli walidatory zrobią się duże, można je rozbić per route
-- middleware może zostać wspólny dla całego namespace `subscriptions`
+Notes:
+- if validators become large, they can be split per route
+- middleware can remain shared for the whole `subscriptions` namespace
 
-## 4. Błędy domenowe i HTTP
+## 4. Domain and HTTP errors
 
-Minimalny zestaw przewidziany na kolejne kroki:
+Minimum set expected in later steps:
 
 - `404 Not Found`
   - subscription not found
@@ -289,15 +289,15 @@ Minimalny zestaw przewidziany na kolejne kroki:
 - `409 Conflict`
   - invalid status transition
   - pending update conflict
-  - unsupported action for current lifecycle state
+  - unsupported action for the current lifecycle state
 - `422 Unprocessable Entity`
   - invalid shipping address
   - variant not eligible for subscription
   - invalid frequency configuration
 
-## 5. Mapowanie route -> odpowiedzialność
+## 5. Route -> responsibility mapping
 
-| Route | Typ | Warstwa logiki |
+| Route | Type | Logic layer |
 |---|---|---|
 | `GET /admin/subscriptions` | read | query/read model |
 | `GET /admin/subscriptions/:id` | read | query/read model |
@@ -307,14 +307,13 @@ Minimalny zestaw przewidziany na kolejne kroki:
 | `POST /admin/subscriptions/:id/schedule-plan-change` | mutation | workflow |
 | `POST /admin/subscriptions/:id/update-shipping-address` | mutation | workflow |
 
-## 6. Konsekwencje dla następnych kroków
+## 6. Impact on later steps
 
-Kolejne kroki powinny teraz wykonać:
+The next steps should now deliver:
 
 1. `2.1.3`
-   - workflowy mutacyjne dla 5 endpointów `POST`
+   - mutation workflows for the five `POST` endpoints
 2. `2.1.4`
-   - Zod validators i middlewares
+   - Zod validators and middlewares
 3. `2.1.5`
-   - query pod list/details zgodne z tym specem
-
+   - list/detail queries aligned with this specification
