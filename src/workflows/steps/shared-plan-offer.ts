@@ -101,7 +101,7 @@ const planOfferFields = [
 
 function assertPositiveInteger(value: number, field: string) {
   if (!Number.isInteger(value) || value <= 0) {
-    throw planOfferErrors.invalidData(
+    throw planOfferErrors.invalidFrequencyMix(
       `'${field}' must be a positive integer`
     )
   }
@@ -110,18 +110,14 @@ function assertPositiveInteger(value: number, field: string) {
 function validateTarget(input: UpsertPlanOfferInput) {
   if (normalizeScope(input.scope) === PlanOfferScope.PRODUCT) {
     if (input.variant_id) {
-      throw planOfferErrors.invalidData(
-        "Product-scoped offers can't specify 'variant_id'"
-      )
+      throw planOfferErrors.productScopeDisallowsVariantId()
     }
 
     return
   }
 
   if (!input.variant_id) {
-    throw planOfferErrors.invalidData(
-      "Variant-scoped offers require 'variant_id'"
-    )
+    throw planOfferErrors.variantScopeRequiresVariantId()
   }
 }
 
@@ -187,9 +183,7 @@ function normalizeAllowedFrequencies(
   allowedFrequencies: UpsertPlanOfferInput["allowed_frequencies"]
 ): PlanOfferAllowedFrequency[] {
   if (!allowedFrequencies.length) {
-    throw planOfferErrors.invalidData(
-      "'allowed_frequencies' must contain at least one frequency"
-    )
+    throw planOfferErrors.allowedFrequenciesRequired()
   }
 
   const seen = new Set<string>()
@@ -203,8 +197,9 @@ function normalizeAllowedFrequencies(
     const key = `${frequency.interval}:${frequency.value}`
 
     if (seen.has(key)) {
-      throw planOfferErrors.invalidData(
-        `Duplicate frequency '${key}' is not allowed`
+      throw planOfferErrors.duplicateFrequency(
+        String(frequency.interval),
+        frequency.value
       )
     }
 
@@ -239,14 +234,16 @@ function normalizeDiscounts(
     const frequencyKey = `${discount.interval}:${discount.frequency_value}`
 
     if (!allowedFrequencyKeys.has(frequencyKey)) {
-      throw planOfferErrors.invalidData(
-        `Discount frequency '${frequencyKey}' is not allowed`
+      throw planOfferErrors.discountFrequencyNotAllowed(
+        String(discount.interval),
+        discount.frequency_value
       )
     }
 
     if (seen.has(frequencyKey)) {
-      throw planOfferErrors.invalidData(
-        `Duplicate discount for frequency '${frequencyKey}' is not allowed`
+      throw planOfferErrors.duplicateDiscountForFrequency(
+        String(discount.interval),
+        discount.frequency_value
       )
     }
 
@@ -254,12 +251,12 @@ function normalizeDiscounts(
 
     if (normalizeDiscountType(discount.type) === PlanOfferDiscountType.PERCENTAGE) {
       if (discount.value <= 0 || discount.value > 100) {
-        throw planOfferErrors.invalidData(
+        throw planOfferErrors.discountOutOfRange(
           "Percentage discounts must be greater than 0 and at most 100"
         )
       }
     } else if (discount.value <= 0) {
-      throw planOfferErrors.invalidData(
+      throw planOfferErrors.discountOutOfRange(
         "Fixed discounts must be greater than 0"
       )
     }
@@ -286,13 +283,13 @@ function normalizeRules(
 
   if (!rules.trial_enabled) {
     if (rules.trial_days !== null && rules.trial_days !== undefined) {
-      throw planOfferErrors.invalidData(
+      throw planOfferErrors.invalidTrialConfiguration(
         "'rules.trial_days' must be null when trial is disabled"
       )
     }
   } else {
     if (rules.trial_days === null || rules.trial_days === undefined) {
-      throw planOfferErrors.invalidData(
+      throw planOfferErrors.invalidTrialConfiguration(
         "'rules.trial_days' is required when trial is enabled"
       )
     }
@@ -324,17 +321,16 @@ export async function assertPlanOfferTargetExists(
   const product = (data as ProductRecord[])[0]
 
   if (!product) {
-    throw planOfferErrors.invalidData(
-      `Product '${input.product_id}' was not found`
-    )
+    throw planOfferErrors.productNotFound(input.product_id)
   }
 
   if (normalizeScope(input.scope) === PlanOfferScope.VARIANT) {
     const variantId = input.variant_id!
 
     if (!product.variants?.some((variant) => variant.id === variantId)) {
-      throw planOfferErrors.invalidData(
-        `Variant '${variantId}' does not belong to product '${input.product_id}'`
+      throw planOfferErrors.variantDoesNotBelongToProduct(
+        variantId,
+        input.product_id
       )
     }
   }
@@ -360,18 +356,25 @@ export async function findPlanOfferByTarget(
     entity: "plan_offer",
     fields: [...planOfferFields],
     filters,
-    pagination: {
-      take: 1,
-    },
   })
 
-  const record = (data as Array<Omit<PlanOfferRecord, "scope"> & {
+  const records = data as Array<Omit<PlanOfferRecord, "scope"> & {
     scope: "product" | "variant"
-  }>)[0]
+  }>
 
-  if (!record) {
+  if (!records.length) {
     return null
   }
+
+  if (records.length > 1) {
+    throw planOfferErrors.conflictingOverrideConfiguration(
+      normalizeScope(input.scope) === PlanOfferScope.PRODUCT
+        ? `Multiple plan offers were found for product '${input.product_id}'`
+        : `Multiple plan offers were found for variant '${input.variant_id}'`
+    )
+  }
+
+  const record = records[0]
 
   return {
     ...record,
