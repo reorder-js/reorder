@@ -264,6 +264,18 @@ const DunningDetailPage = () => {
         return
       }
 
+      const confirmed = await prompt({
+        title: "Override retry schedule?",
+        description:
+          "You are about to replace the current retry schedule for this dunning case.",
+        confirmText: "Save schedule",
+        cancelText: "Cancel",
+      })
+
+      if (!confirmed) {
+        return
+      }
+
       await retryScheduleMutation.mutateAsync({
         reason: normalizedReason,
         intervals: normalizedIntervals,
@@ -653,6 +665,11 @@ const DunningDetailPage = () => {
           <Drawer.Body className="flex flex-1 flex-col gap-y-4 p-4">
             {formError ? <Alert variant="error">{formError}</Alert> : null}
             {actionDrawerMode === "retry_schedule" ? (
+              <Alert variant="warning">
+                Overriding the retry schedule updates future retry timing for this case.
+              </Alert>
+            ) : null}
+            {actionDrawerMode === "retry_schedule" ? (
               <>
                 <div className="flex flex-col gap-y-2">
                   <Label htmlFor="retry-intervals">Retry intervals (minutes)</Label>
@@ -714,7 +731,10 @@ const DunningDetailPage = () => {
                   void handleSubmitDrawer()
                 }}
               >
-                {getDrawerSubmitLabel(actionDrawerMode)}
+                {getDrawerSubmitLabel(
+                  actionDrawerMode,
+                  isActionPending
+                )}
               </Button>
             </div>
           </Drawer.Footer>
@@ -802,14 +822,17 @@ function getDrawerTitle(mode: ActionDrawerMode) {
   }
 }
 
-function getDrawerSubmitLabel(mode: ActionDrawerMode) {
+function getDrawerSubmitLabel(
+  mode: ActionDrawerMode,
+  pending = false
+) {
   switch (mode) {
     case "mark_recovered":
-      return "Mark recovered"
+      return pending ? "Marking recovered..." : "Mark recovered"
     case "mark_unrecovered":
-      return "Mark unrecovered"
+      return pending ? "Marking unrecovered..." : "Mark unrecovered"
     case "retry_schedule":
-      return "Save schedule"
+      return pending ? "Saving schedule..." : "Save schedule"
   }
 }
 
