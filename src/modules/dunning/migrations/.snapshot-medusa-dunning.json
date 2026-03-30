@@ -1,0 +1,537 @@
+{
+  "namespaces": [
+    "public"
+  ],
+  "name": "public",
+  "tables": [
+    {
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
+        },
+        "subscription_id": {
+          "name": "subscription_id",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
+        },
+        "renewal_cycle_id": {
+          "name": "renewal_cycle_id",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
+        },
+        "renewal_order_id": {
+          "name": "renewal_order_id",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "text"
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "'open'",
+          "enumItems": [
+            "open",
+            "retry_scheduled",
+            "retrying",
+            "awaiting_manual_resolution",
+            "recovered",
+            "unrecovered"
+          ],
+          "mappedType": "enum"
+        },
+        "attempt_count": {
+          "name": "attempt_count",
+          "type": "integer",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "0",
+          "mappedType": "integer"
+        },
+        "max_attempts": {
+          "name": "max_attempts",
+          "type": "integer",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "integer"
+        },
+        "retry_schedule": {
+          "name": "retry_schedule",
+          "type": "jsonb",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "json"
+        },
+        "next_retry_at": {
+          "name": "next_retry_at",
+          "type": "timestamptz",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "length": 6,
+          "mappedType": "datetime"
+        },
+        "last_payment_error_code": {
+          "name": "last_payment_error_code",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "text"
+        },
+        "last_payment_error_message": {
+          "name": "last_payment_error_message",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "text"
+        },
+        "last_attempt_at": {
+          "name": "last_attempt_at",
+          "type": "timestamptz",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "length": 6,
+          "mappedType": "datetime"
+        },
+        "recovered_at": {
+          "name": "recovered_at",
+          "type": "timestamptz",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "length": 6,
+          "mappedType": "datetime"
+        },
+        "closed_at": {
+          "name": "closed_at",
+          "type": "timestamptz",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "length": 6,
+          "mappedType": "datetime"
+        },
+        "recovery_reason": {
+          "name": "recovery_reason",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "text"
+        },
+        "metadata": {
+          "name": "metadata",
+          "type": "jsonb",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "json"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamptz",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "length": 6,
+          "default": "now()",
+          "mappedType": "datetime"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamptz",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "length": 6,
+          "default": "now()",
+          "mappedType": "datetime"
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "type": "timestamptz",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "length": 6,
+          "mappedType": "datetime"
+        }
+      },
+      "name": "dunning_case",
+      "schema": "public",
+      "indexes": [
+        {
+          "keyName": "IDX_dunning_case_deleted_at",
+          "columnNames": [],
+          "composite": false,
+          "constraint": false,
+          "primary": false,
+          "unique": false,
+          "expression": "CREATE INDEX IF NOT EXISTS \"IDX_dunning_case_deleted_at\" ON \"dunning_case\" (\"deleted_at\") WHERE deleted_at IS NULL"
+        },
+        {
+          "keyName": "IDX_dunning_case_subscription_id",
+          "columnNames": [],
+          "composite": false,
+          "constraint": false,
+          "primary": false,
+          "unique": false,
+          "expression": "CREATE INDEX IF NOT EXISTS \"IDX_dunning_case_subscription_id\" ON \"dunning_case\" (\"subscription_id\") WHERE deleted_at IS NULL"
+        },
+        {
+          "keyName": "IDX_dunning_case_renewal_cycle_id",
+          "columnNames": [],
+          "composite": false,
+          "constraint": false,
+          "primary": false,
+          "unique": false,
+          "expression": "CREATE INDEX IF NOT EXISTS \"IDX_dunning_case_renewal_cycle_id\" ON \"dunning_case\" (\"renewal_cycle_id\") WHERE deleted_at IS NULL"
+        },
+        {
+          "keyName": "IDX_dunning_case_renewal_order_id",
+          "columnNames": [],
+          "composite": false,
+          "constraint": false,
+          "primary": false,
+          "unique": false,
+          "expression": "CREATE INDEX IF NOT EXISTS \"IDX_dunning_case_renewal_order_id\" ON \"dunning_case\" (\"renewal_order_id\") WHERE deleted_at IS NULL"
+        },
+        {
+          "keyName": "IDX_dunning_case_status",
+          "columnNames": [],
+          "composite": false,
+          "constraint": false,
+          "primary": false,
+          "unique": false,
+          "expression": "CREATE INDEX IF NOT EXISTS \"IDX_dunning_case_status\" ON \"dunning_case\" (\"status\") WHERE deleted_at IS NULL"
+        },
+        {
+          "keyName": "IDX_dunning_case_next_retry_at",
+          "columnNames": [],
+          "composite": false,
+          "constraint": false,
+          "primary": false,
+          "unique": false,
+          "expression": "CREATE INDEX IF NOT EXISTS \"IDX_dunning_case_next_retry_at\" ON \"dunning_case\" (\"next_retry_at\") WHERE deleted_at IS NULL"
+        },
+        {
+          "keyName": "IDX_dunning_case_last_attempt_at",
+          "columnNames": [],
+          "composite": false,
+          "constraint": false,
+          "primary": false,
+          "unique": false,
+          "expression": "CREATE INDEX IF NOT EXISTS \"IDX_dunning_case_last_attempt_at\" ON \"dunning_case\" (\"last_attempt_at\") WHERE deleted_at IS NULL"
+        },
+        {
+          "keyName": "IDX_dunning_case_recovered_at",
+          "columnNames": [],
+          "composite": false,
+          "constraint": false,
+          "primary": false,
+          "unique": false,
+          "expression": "CREATE INDEX IF NOT EXISTS \"IDX_dunning_case_recovered_at\" ON \"dunning_case\" (\"recovered_at\") WHERE deleted_at IS NULL"
+        },
+        {
+          "keyName": "IDX_dunning_case_closed_at",
+          "columnNames": [],
+          "composite": false,
+          "constraint": false,
+          "primary": false,
+          "unique": false,
+          "expression": "CREATE INDEX IF NOT EXISTS \"IDX_dunning_case_closed_at\" ON \"dunning_case\" (\"closed_at\") WHERE deleted_at IS NULL"
+        },
+        {
+          "keyName": "IDX_dunning_case_status_next_retry_at",
+          "columnNames": [],
+          "composite": false,
+          "constraint": false,
+          "primary": false,
+          "unique": false,
+          "expression": "CREATE INDEX IF NOT EXISTS \"IDX_dunning_case_status_next_retry_at\" ON \"dunning_case\" (\"status\", \"next_retry_at\") WHERE deleted_at IS NULL"
+        },
+        {
+          "keyName": "dunning_case_pkey",
+          "columnNames": [
+            "id"
+          ],
+          "composite": false,
+          "constraint": true,
+          "primary": true,
+          "unique": true
+        }
+      ],
+      "checks": [],
+      "foreignKeys": {},
+      "nativeEnums": {}
+    },
+    {
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
+        },
+        "dunning_case_id": {
+          "name": "dunning_case_id",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
+        },
+        "attempt_no": {
+          "name": "attempt_no",
+          "type": "integer",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "integer"
+        },
+        "started_at": {
+          "name": "started_at",
+          "type": "timestamptz",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "length": 6,
+          "mappedType": "datetime"
+        },
+        "finished_at": {
+          "name": "finished_at",
+          "type": "timestamptz",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "length": 6,
+          "mappedType": "datetime"
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "'processing'",
+          "enumItems": [
+            "processing",
+            "succeeded",
+            "failed"
+          ],
+          "mappedType": "enum"
+        },
+        "error_code": {
+          "name": "error_code",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "text"
+        },
+        "error_message": {
+          "name": "error_message",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "text"
+        },
+        "payment_reference": {
+          "name": "payment_reference",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "text"
+        },
+        "metadata": {
+          "name": "metadata",
+          "type": "jsonb",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "json"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamptz",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "length": 6,
+          "default": "now()",
+          "mappedType": "datetime"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamptz",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "length": 6,
+          "default": "now()",
+          "mappedType": "datetime"
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "type": "timestamptz",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "length": 6,
+          "mappedType": "datetime"
+        }
+      },
+      "name": "dunning_attempt",
+      "schema": "public",
+      "indexes": [
+        {
+          "keyName": "IDX_dunning_attempt_dunning_case_id",
+          "columnNames": [],
+          "composite": false,
+          "constraint": false,
+          "primary": false,
+          "unique": false,
+          "expression": "CREATE INDEX IF NOT EXISTS \"IDX_dunning_attempt_dunning_case_id\" ON \"dunning_attempt\" (\"dunning_case_id\") WHERE deleted_at IS NULL"
+        },
+        {
+          "keyName": "IDX_dunning_attempt_deleted_at",
+          "columnNames": [],
+          "composite": false,
+          "constraint": false,
+          "primary": false,
+          "unique": false,
+          "expression": "CREATE INDEX IF NOT EXISTS \"IDX_dunning_attempt_deleted_at\" ON \"dunning_attempt\" (\"deleted_at\") WHERE deleted_at IS NULL"
+        },
+        {
+          "keyName": "IDX_dunning_attempt_attempt_no",
+          "columnNames": [],
+          "composite": false,
+          "constraint": false,
+          "primary": false,
+          "unique": false,
+          "expression": "CREATE INDEX IF NOT EXISTS \"IDX_dunning_attempt_attempt_no\" ON \"dunning_attempt\" (\"attempt_no\") WHERE deleted_at IS NULL"
+        },
+        {
+          "keyName": "IDX_dunning_attempt_status",
+          "columnNames": [],
+          "composite": false,
+          "constraint": false,
+          "primary": false,
+          "unique": false,
+          "expression": "CREATE INDEX IF NOT EXISTS \"IDX_dunning_attempt_status\" ON \"dunning_attempt\" (\"status\") WHERE deleted_at IS NULL"
+        },
+        {
+          "keyName": "IDX_dunning_attempt_started_at",
+          "columnNames": [],
+          "composite": false,
+          "constraint": false,
+          "primary": false,
+          "unique": false,
+          "expression": "CREATE INDEX IF NOT EXISTS \"IDX_dunning_attempt_started_at\" ON \"dunning_attempt\" (\"started_at\") WHERE deleted_at IS NULL"
+        },
+        {
+          "keyName": "IDX_dunning_attempt_finished_at",
+          "columnNames": [],
+          "composite": false,
+          "constraint": false,
+          "primary": false,
+          "unique": false,
+          "expression": "CREATE INDEX IF NOT EXISTS \"IDX_dunning_attempt_finished_at\" ON \"dunning_attempt\" (\"finished_at\") WHERE deleted_at IS NULL"
+        },
+        {
+          "keyName": "IDX_dunning_attempt_dunning_case_id_attempt_no_unique",
+          "columnNames": [],
+          "composite": false,
+          "constraint": false,
+          "primary": false,
+          "unique": false,
+          "expression": "CREATE UNIQUE INDEX IF NOT EXISTS \"IDX_dunning_attempt_dunning_case_id_attempt_no_unique\" ON \"dunning_attempt\" (\"dunning_case_id\", \"attempt_no\") WHERE deleted_at IS NULL"
+        },
+        {
+          "keyName": "dunning_attempt_pkey",
+          "columnNames": [
+            "id"
+          ],
+          "composite": false,
+          "constraint": true,
+          "primary": true,
+          "unique": true
+        }
+      ],
+      "checks": [],
+      "foreignKeys": {
+        "dunning_attempt_dunning_case_id_foreign": {
+          "constraintName": "dunning_attempt_dunning_case_id_foreign",
+          "columnNames": [
+            "dunning_case_id"
+          ],
+          "localTableName": "public.dunning_attempt",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "referencedTableName": "public.dunning_case",
+          "updateRule": "cascade"
+        }
+      },
+      "nativeEnums": {}
+    }
+  ],
+  "nativeEnums": {}
+}
