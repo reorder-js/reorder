@@ -22,7 +22,12 @@ export const POST = async (
       },
     })
   } catch (error) {
-    throw mapRenewalAdminRouteError(error)
+    const mapped = mapRenewalAdminRouteError(error)
+
+    return res.status(mapped.status).json({
+      type: mapped.type,
+      message: mapped.message,
+    })
   }
 
   const response = await getAdminRenewalDetailResponse(
@@ -30,5 +35,5 @@ export const POST = async (
     req.params.id
   )
 
-  res.status(200).json(response)
+  return res.status(200).json(response)
 }

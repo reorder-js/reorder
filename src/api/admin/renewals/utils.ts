@@ -56,20 +56,21 @@ export async function getAdminRenewalsListResponse(
   )
 }
 
-export function mapRenewalAdminRouteError(error: unknown): MedusaError {
+export function mapRenewalAdminRouteError(error: unknown) {
   const message = getRenewalErrorMessage(error)
   const normalized = message.toLowerCase()
 
   if (normalized.includes("was not found")) {
-    return new MedusaError(MedusaError.Types.NOT_FOUND, message)
+    return {
+      status: 404,
+      type: MedusaError.Types.NOT_FOUND,
+      message,
+    }
   }
 
-  if (
-    normalized.includes("unsupported approval transition") ||
-    normalized.includes("reason is required")
-  ) {
-    return new MedusaError(MedusaError.Types.INVALID_DATA, message)
+  return {
+    status: 409,
+    type: MedusaError.Types.CONFLICT,
+    message,
   }
-
-  return new MedusaError(MedusaError.Types.INVALID_DATA, message)
 }
