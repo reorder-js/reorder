@@ -34,6 +34,10 @@ export const GetAdminDunningCasesSchema = createFindParams({
   subscription_id: z.string().optional(),
   renewal_cycle_id: z.string().optional(),
   renewal_order_id: z.string().optional(),
+  payment_provider_id: z.string().trim().min(1).optional(),
+  last_payment_error_code: z.string().trim().min(1).optional(),
+  attempt_count_min: z.coerce.number().int().min(0).optional(),
+  attempt_count_max: z.coerce.number().int().min(0).optional(),
   next_retry_from: optionalIsoDateTime,
   next_retry_to: optionalIsoDateTime,
   last_attempt_status: z.preprocess((value) => {
@@ -43,6 +47,18 @@ export const GetAdminDunningCasesSchema = createFindParams({
 
     return value
   }, z.array(dunningAttemptStatusSchema).optional()),
+}).superRefine((value, ctx) => {
+  if (
+    typeof value.attempt_count_min === "number" &&
+    typeof value.attempt_count_max === "number" &&
+    value.attempt_count_min > value.attempt_count_max
+  ) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["attempt_count_max"],
+      message: "attempt_count_max must be greater than or equal to attempt_count_min",
+    })
+  }
 })
 
 export type GetAdminDunningCasesSchemaType = z.infer<

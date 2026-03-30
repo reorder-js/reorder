@@ -61,6 +61,9 @@ type SubscriptionRecord = {
     variant_title?: string
     sku?: string | null
   } | null
+  payment_context: {
+    payment_provider_id?: string | null
+  } | null
 }
 
 type RenewalCycleRecord = {
@@ -86,6 +89,10 @@ export type ListAdminDunningCasesInput = {
   subscription_id?: string
   renewal_cycle_id?: string
   renewal_order_id?: string
+  payment_provider_id?: string
+  last_payment_error_code?: string
+  attempt_count_min?: number
+  attempt_count_max?: number
   next_retry_from?: string
   next_retry_to?: string
   last_attempt_status?: string[]
@@ -210,6 +217,8 @@ function mapListItem(
       variant_title:
         subscription?.product_snapshot?.variant_title ?? "Unknown variant",
       sku: subscription?.product_snapshot?.sku ?? null,
+      payment_provider_id:
+        subscription?.payment_context?.payment_provider_id ?? null,
     },
     renewal: renewal
       ? {
@@ -326,6 +335,7 @@ async function getSubscriptionMap(
       "status",
       "customer_snapshot",
       "product_snapshot",
+      "payment_context",
     ],
     filters: {
       id: subscriptionIds,
@@ -429,12 +439,57 @@ function matchesSearch(item: DunningCaseAdminListItem, search: string) {
     item.subscription.customer_name,
     item.subscription.product_title,
     item.subscription.variant_title,
+    item.subscription.payment_provider_id ?? "",
     item.order?.display_id?.toString() ?? "",
     item.last_payment_error_code ?? "",
   ]
     .join(" ")
     .toLowerCase()
     .includes(value)
+}
+
+function matchesPaymentProvider(
+  item: DunningCaseAdminListItem,
+  paymentProviderId?: string
+) {
+  if (!paymentProviderId?.trim()) {
+    return true
+  }
+
+  return (
+    item.subscription.payment_provider_id?.toLowerCase() ===
+    paymentProviderId.trim().toLowerCase()
+  )
+}
+
+function matchesLastPaymentErrorCode(
+  item: DunningCaseAdminListItem,
+  lastPaymentErrorCode?: string
+) {
+  if (!lastPaymentErrorCode?.trim()) {
+    return true
+  }
+
+  return (
+    item.last_payment_error_code?.toLowerCase() ===
+    lastPaymentErrorCode.trim().toLowerCase()
+  )
+}
+
+function matchesAttemptCount(
+  item: DunningCaseAdminListItem,
+  min?: number,
+  max?: number
+) {
+  if (typeof min === "number" && item.attempt_count < min) {
+    return false
+  }
+
+  if (typeof max === "number" && item.attempt_count > max) {
+    return false
+  }
+
+  return true
 }
 
 function matchesLastAttemptStatus(
@@ -520,7 +575,13 @@ export async function listAdminDunningCases(
   const isInMemorySort =
     typeof order === "string" && inMemorySortableFields.has(order)
   const requiresInMemoryProcessing =
-    Boolean(input.q) || Boolean(input.last_attempt_status?.length) || isInMemorySort
+    Boolean(input.q) ||
+    Boolean(input.last_attempt_status?.length) ||
+    Boolean(input.payment_provider_id) ||
+    Boolean(input.last_payment_error_code) ||
+    typeof input.attempt_count_min === "number" ||
+    typeof input.attempt_count_max === "number" ||
+    isInMemorySort
 
   if (!requiresInMemoryProcessing) {
     const {
@@ -572,6 +633,31 @@ export async function listAdminDunningCases(
 
   if (input.q) {
     items = items.filter((item) => matchesSearch(item, input.q!))
+  }
+
+  if (input.payment_provider_id) {
+    items = items.filter((item) =>
+      matchesPaymentProvider(item, input.payment_provider_id)
+    )
+  }
+
+  if (input.last_payment_error_code) {
+    items = items.filter((item) =>
+      matchesLastPaymentErrorCode(item, input.last_payment_error_code)
+    )
+  }
+
+  if (
+    typeof input.attempt_count_min === "number" ||
+    typeof input.attempt_count_max === "number"
+  ) {
+    items = items.filter((item) =>
+      matchesAttemptCount(
+        item,
+        input.attempt_count_min,
+        input.attempt_count_max
+      )
+    )
   }
 
   if (input.last_attempt_status?.length) {
@@ -629,6 +715,7 @@ export async function getAdminDunningDetail(
           "status",
           "customer_snapshot",
           "product_snapshot",
+          "payment_context",
         ],
         filters: {
           id: [dunningCase.subscription_id],
@@ -685,6 +772,8 @@ export async function getAdminDunningDetail(
       variant_title:
         subscription.product_snapshot?.variant_title ?? "Unknown variant",
       sku: subscription.product_snapshot?.sku ?? null,
+      payment_provider_id:
+        subscription.payment_context?.payment_provider_id ?? null,
     },
     renewal: renewal
       ? {

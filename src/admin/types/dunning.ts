@@ -21,6 +21,7 @@ export type DunningAdminSubscriptionSummary = {
   product_title: string
   variant_title: string
   sku: string | null
+  payment_provider_id: string | null
 }
 
 export type DunningAdminRenewalSummary = {
