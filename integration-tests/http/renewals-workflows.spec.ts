@@ -6,9 +6,14 @@ import {
 } from "../../src/modules/renewal/utils/admin-query"
 import {
   approveRenewalChangesWorkflow,
+  cancelSubscriptionWorkflow,
+  ensureNextRenewalCycleWorkflow,
   forceRenewalCycleWorkflow,
+  pauseSubscriptionWorkflow,
   processRenewalCycleWorkflow,
   rejectRenewalChangesWorkflow,
+  resumeSubscriptionWorkflow,
+  scheduleSubscriptionPlanChangeWorkflow,
 } from "../../src/workflows"
 import { createPlanOfferSeed } from "../helpers/plan-offer-fixtures"
 import {
@@ -23,8 +28,11 @@ import type SubscriptionModuleService from "../../src/modules/subscription/servi
 import {
   createRenewalAttemptSeed,
   createRenewalCycleSeed,
+  createProductWithVariant,
   createSubscriptionSeed,
 } from "../helpers/renewal-fixtures"
+import { SubscriptionFrequencyInterval } from "../../src/modules/subscription/types"
+import { PlanOfferFrequencyInterval, PlanOfferScope } from "../../src/modules/plan-offer/types"
 
 medusaIntegrationTestRunner({
   medusaConfigFile: path.resolve(process.cwd(), "integration-tests"),
@@ -187,6 +195,226 @@ medusaIntegrationTestRunner({
         expect(updatedSubscription.last_renewal_at).toBeTruthy()
         expect(attempts).toHaveLength(1)
         expect(attempts[0].status).toEqual(RenewalAttemptStatus.SUCCEEDED)
+
+        const upcomingCycles = await renewalModule.listRenewalCycles({
+          subscription_id: subscription.id,
+        } as any)
+
+        expect(upcomingCycles).toHaveLength(2)
+
+        const nextCycle = upcomingCycles.find((record) => record.id !== cycle.id)
+
+        expect(nextCycle).toBeDefined()
+        expect(nextCycle?.status).toEqual(RenewalCycleStatus.SCHEDULED)
+        expect(new Date(nextCycle!.scheduled_for).toISOString()).toEqual(
+          updatedSubscription.next_renewal_at!.toISOString()
+        )
+      })
+
+      it("ensures a single upcoming renewal cycle idempotently", async () => {
+        const container = getContainer()
+        const renewalModule =
+          container.resolve<RenewalModuleService>(RENEWAL_MODULE)
+
+        const subscription = await createSubscriptionSeed(container, {
+          reference: "SUB-REN-ENSURE-001",
+          next_renewal_at: new Date("2026-04-10T10:00:00.000Z"),
+        })
+
+        await ensureNextRenewalCycleWorkflow(container).run({
+          input: {
+            subscription_id: subscription.id,
+          },
+        })
+
+        await ensureNextRenewalCycleWorkflow(container).run({
+          input: {
+            subscription_id: subscription.id,
+          },
+        })
+
+        const cycles = await renewalModule.listRenewalCycles({
+          subscription_id: subscription.id,
+        } as any)
+
+        expect(cycles).toHaveLength(1)
+        expect(cycles[0]).toMatchObject({
+          subscription_id: subscription.id,
+          status: RenewalCycleStatus.SCHEDULED,
+          approval_required: false,
+          approval_status: null,
+        })
+        expect(new Date(cycles[0].scheduled_for).toISOString()).toEqual(
+          "2026-04-10T10:00:00.000Z"
+        )
+      })
+
+      it("updates the upcoming cycle approval state after scheduling a plan change", async () => {
+        const container = getContainer()
+        const renewalModule =
+          container.resolve<RenewalModuleService>(RENEWAL_MODULE)
+        const { product, variant } = await createProductWithVariant(container)
+
+        await createPlanOfferSeed(container, {
+          name: "Plan Change Offer",
+          scope: PlanOfferScope.VARIANT,
+          product_id: product.id,
+          variant_id: variant.id,
+          allowed_frequencies: [
+            {
+              interval: PlanOfferFrequencyInterval.MONTH,
+              value: 1,
+            },
+            {
+              interval: PlanOfferFrequencyInterval.MONTH,
+              value: 2,
+            },
+          ],
+        })
+
+        const subscription = await createSubscriptionSeed(container, {
+          reference: "SUB-REN-ENSURE-PLAN-001",
+          product_id: product.id,
+          variant_id: variant.id,
+          next_renewal_at: new Date("2026-04-12T10:00:00.000Z"),
+        })
+
+        await ensureNextRenewalCycleWorkflow(container).run({
+          input: {
+            subscription_id: subscription.id,
+          },
+        })
+
+        await scheduleSubscriptionPlanChangeWorkflow(container).run({
+          input: {
+            id: subscription.id,
+            variant_id: variant.id,
+            frequency_interval: SubscriptionFrequencyInterval.MONTH,
+            frequency_value: 2,
+            effective_at: "2026-04-01T10:00:00.000Z",
+            requested_by: "user_test",
+          },
+        })
+
+        const cycles = await renewalModule.listRenewalCycles({
+          subscription_id: subscription.id,
+        } as any)
+
+        expect(cycles).toHaveLength(1)
+        expect(cycles[0]).toMatchObject({
+          approval_required: true,
+          approval_status: RenewalApprovalStatus.PENDING,
+          approval_decided_at: null,
+          approval_decided_by: null,
+          approval_reason: null,
+        })
+      })
+
+      it("recreates an upcoming cycle after resume when none exists", async () => {
+        const container = getContainer()
+        const renewalModule =
+          container.resolve<RenewalModuleService>(RENEWAL_MODULE)
+
+        const subscription = await createSubscriptionSeed(container, {
+          reference: "SUB-REN-RESUME-001",
+          status: "paused" as any,
+          next_renewal_at: new Date("2026-04-20T10:00:00.000Z"),
+        })
+
+        await resumeSubscriptionWorkflow(container).run({
+          input: {
+            id: subscription.id,
+            preserve_billing_anchor: true,
+          },
+        })
+
+        const cycles = await renewalModule.listRenewalCycles({
+          subscription_id: subscription.id,
+        } as any)
+
+        expect(cycles).toHaveLength(1)
+        expect(cycles[0].status).toEqual(RenewalCycleStatus.SCHEDULED)
+        expect(new Date(cycles[0].scheduled_for).toISOString()).toEqual(
+          "2026-04-20T10:00:00.000Z"
+        )
+      })
+
+      it("removes only scheduled upcoming cycles after pause", async () => {
+        const container = getContainer()
+        const renewalModule =
+          container.resolve<RenewalModuleService>(RENEWAL_MODULE)
+
+        const subscription = await createSubscriptionSeed(container, {
+          reference: "SUB-REN-PAUSE-001",
+          next_renewal_at: new Date("2026-04-21T10:00:00.000Z"),
+        })
+
+        const scheduledCycle = await createRenewalCycleSeed(container, {
+          subscription_id: subscription.id,
+          scheduled_for: new Date("2026-04-21T10:00:00.000Z"),
+          status: RenewalCycleStatus.SCHEDULED,
+        })
+
+        await createRenewalCycleSeed(container, {
+          subscription_id: subscription.id,
+          scheduled_for: new Date("2026-03-21T10:00:00.000Z"),
+          status: RenewalCycleStatus.FAILED,
+        })
+
+        await pauseSubscriptionWorkflow(container).run({
+          input: {
+            id: subscription.id,
+            reason: "pause reconcile test",
+          },
+        })
+
+        const cycles = await renewalModule.listRenewalCycles({
+          subscription_id: subscription.id,
+        } as any)
+
+        expect(cycles.some((cycle) => cycle.id === scheduledCycle.id)).toBe(false)
+        expect(cycles).toHaveLength(1)
+        expect(cycles[0].status).toEqual(RenewalCycleStatus.FAILED)
+      })
+
+      it("removes only scheduled upcoming cycles after cancel", async () => {
+        const container = getContainer()
+        const renewalModule =
+          container.resolve<RenewalModuleService>(RENEWAL_MODULE)
+
+        const subscription = await createSubscriptionSeed(container, {
+          reference: "SUB-REN-CANCEL-001",
+          next_renewal_at: new Date("2026-04-22T10:00:00.000Z"),
+        })
+
+        const scheduledCycle = await createRenewalCycleSeed(container, {
+          subscription_id: subscription.id,
+          scheduled_for: new Date("2026-04-22T10:00:00.000Z"),
+          status: RenewalCycleStatus.SCHEDULED,
+        })
+
+        await createRenewalCycleSeed(container, {
+          subscription_id: subscription.id,
+          scheduled_for: new Date("2026-03-22T10:00:00.000Z"),
+          status: RenewalCycleStatus.PROCESSING,
+          attempt_count: 1,
+        })
+
+        await cancelSubscriptionWorkflow(container).run({
+          input: {
+            id: subscription.id,
+            reason: "cancel reconcile test",
+            effective_at: "immediately",
+          },
+        })
+
+        const cycles = await renewalModule.listRenewalCycles({
+          subscription_id: subscription.id,
+        } as any)
+
+        expect(cycles.some((cycle) => cycle.id === scheduledCycle.id)).toBe(false)
+        expect(cycles).toHaveLength(1)
+        expect(cycles[0].status).toEqual(RenewalCycleStatus.PROCESSING)
       })
 
       it("marks a renewal as failed when order creation prerequisites are missing", async () => {

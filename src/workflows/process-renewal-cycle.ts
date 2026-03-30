@@ -4,6 +4,7 @@ import {
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
 import { acquireLockStep, releaseLockStep } from "@medusajs/medusa/core-flows"
+import { ensureNextRenewalCycleStep } from "./steps/ensure-next-renewal-cycle"
 import {
   ProcessRenewalCycleStepInput,
   processRenewalCycleStep,
@@ -23,6 +24,13 @@ export const processRenewalCycleWorkflow = createWorkflow(
     })
 
     const result = processRenewalCycleStep(input)
+    const ensureInput = transform({ result }, function ({ result }) {
+      return {
+        subscription_id: result.subscription_id,
+      }
+    })
+
+    ensureNextRenewalCycleStep(ensureInput)
 
     releaseLockStep({
       key: lockKey,

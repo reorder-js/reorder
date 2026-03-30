@@ -35,6 +35,10 @@ export {
   default as processRenewalCycleWorkflowDefault,
 } from "./process-renewal-cycle"
 export {
+  ensureNextRenewalCycleWorkflow,
+  default as ensureNextRenewalCycleWorkflowDefault,
+} from "./ensure-next-renewal-cycle"
+export {
   forceRenewalCycleWorkflow,
   default as forceRenewalCycleWorkflowDefault,
 } from "./force-renewal-cycle"

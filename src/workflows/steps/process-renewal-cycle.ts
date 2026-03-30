@@ -721,6 +721,7 @@ export const processRenewalCycleStep = createStep(
 
       return new StepResponse({
         renewal_cycle: updatedCycle,
+        subscription_id: subscription.id,
         attempt_id: attempt.id,
         generated_order_id: generatedOrderId,
       })
