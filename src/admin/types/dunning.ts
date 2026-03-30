@@ -77,6 +77,27 @@ export type DunningCaseAdminDetail = {
   updated_at: string
 }
 
+export type DunningCaseAdminListItem = {
+  id: string
+  status: DunningCaseAdminStatus
+  subscription: DunningAdminSubscriptionSummary
+  renewal: DunningAdminRenewalSummary | null
+  order: DunningAdminOrderSummary | null
+  attempt_count: number
+  max_attempts: number
+  next_retry_at: string | null
+  last_attempt_at: string | null
+  last_payment_error_code: string | null
+  updated_at: string
+}
+
+export type DunningCaseAdminListResponse = {
+  dunning_cases: DunningCaseAdminListItem[]
+  count: number
+  limit: number
+  offset: number
+}
+
 export type DunningCaseAdminDetailResponse = {
   dunning_case: DunningCaseAdminDetail
 }
