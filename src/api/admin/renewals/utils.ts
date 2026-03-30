@@ -1,3 +1,4 @@
+import { MedusaError } from "@medusajs/framework/utils"
 import type { MedusaContainer } from "@medusajs/framework/types"
 import type { GetAdminRenewalsSchemaType } from "./validators"
 import {
@@ -5,6 +6,7 @@ import {
   listAdminRenewals,
   type ListAdminRenewalsInput,
 } from "../../../modules/renewal/utils/admin-query"
+import { getRenewalErrorMessage } from "../../../modules/renewal/utils/observability"
 
 export function normalizeAdminRenewalsListQuery(
   query: GetAdminRenewalsSchemaType
@@ -52,4 +54,22 @@ export async function getAdminRenewalsListResponse(
     container,
     normalizeAdminRenewalsListQuery(query)
   )
+}
+
+export function mapRenewalAdminRouteError(error: unknown): MedusaError {
+  const message = getRenewalErrorMessage(error)
+  const normalized = message.toLowerCase()
+
+  if (normalized.includes("was not found")) {
+    return new MedusaError(MedusaError.Types.NOT_FOUND, message)
+  }
+
+  if (
+    normalized.includes("unsupported approval transition") ||
+    normalized.includes("reason is required")
+  ) {
+    return new MedusaError(MedusaError.Types.INVALID_DATA, message)
+  }
+
+  return new MedusaError(MedusaError.Types.INVALID_DATA, message)
 }

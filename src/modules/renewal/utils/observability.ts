@@ -45,8 +45,7 @@ export function createRenewalCorrelationId(prefix: string) {
 }
 
 export function classifyRenewalFailure(error: unknown): RenewalFailureKind {
-  const message =
-    error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase()
+  const message = getRenewalErrorMessage(error).toLowerCase()
 
   if (message.includes("already processing")) {
     return "already_processing"
@@ -93,11 +92,53 @@ export function isAlertableRenewalFailure(kind: RenewalFailureKind) {
 }
 
 export function getRenewalErrorMessage(error: unknown) {
-  if (error instanceof Error) {
-    return error.message
+  const direct = getNestedMessage(error)
+
+  if (direct) {
+    return direct
   }
 
   return "Renewal processing failed"
+}
+
+function getNestedMessage(value: unknown): string | null {
+  if (!value) {
+    return null
+  }
+
+  if (typeof value === "string") {
+    return value
+  }
+
+  if (value instanceof Error) {
+    const causeMessage = getNestedMessage((value as Error & { cause?: unknown }).cause)
+    return value.message || causeMessage || null
+  }
+
+  if (typeof value === "object") {
+    const record = value as Record<string, unknown>
+
+    const candidates = [
+      record.message,
+      record.error,
+      record.details,
+      record.cause,
+      (record.response as Record<string, unknown> | undefined)?.data,
+      (record.response as Record<string, unknown> | undefined)?.message,
+      (record.data as Record<string, unknown> | undefined)?.message,
+      (record.body as Record<string, unknown> | undefined)?.message,
+    ]
+
+    for (const candidate of candidates) {
+      const nested = getNestedMessage(candidate)
+
+      if (nested) {
+        return nested
+      }
+    }
+  }
+
+  return null
 }
 
 export function logRenewalEvent(

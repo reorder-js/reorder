@@ -3,7 +3,10 @@ import type {
   MedusaResponse,
 } from "@medusajs/framework/http"
 import type { PostAdminForceRenewalSchemaType } from "../../validators"
-import { getAdminRenewalDetailResponse } from "../../utils"
+import {
+  getAdminRenewalDetailResponse,
+  mapRenewalAdminRouteError,
+} from "../../utils"
 import { forceRenewalCycleWorkflow } from "../../../../../workflows"
 import { createRenewalCorrelationId } from "../../../../../modules/renewal/utils/observability"
 
@@ -13,14 +16,18 @@ export const POST = async (
 ) => {
   const correlationId = createRenewalCorrelationId("renewal-admin-force")
 
-  await forceRenewalCycleWorkflow(req.scope).run({
-    input: {
-      renewal_cycle_id: req.params.id,
-      triggered_by: req.auth_context.actor_id,
-      reason: req.validatedBody.reason,
-      correlation_id: correlationId,
-    },
-  })
+  try {
+    await forceRenewalCycleWorkflow(req.scope).run({
+      input: {
+        renewal_cycle_id: req.params.id,
+        triggered_by: req.auth_context.actor_id,
+        reason: req.validatedBody.reason,
+        correlation_id: correlationId,
+      },
+    })
+  } catch (error) {
+    throw mapRenewalAdminRouteError(error)
+  }
 
   const response = await getAdminRenewalDetailResponse(
     req.scope,

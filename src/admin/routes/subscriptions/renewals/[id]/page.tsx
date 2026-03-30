@@ -74,11 +74,7 @@ const RenewalDetailPage = () => {
       toast.success("Renewal forced");
     },
     onError: (mutationError) => {
-      toast.error(
-        mutationError instanceof Error
-          ? mutationError.message
-          : "Failed to force renewal"
-      );
+      toast.error(getAdminErrorMessage(mutationError, "Failed to force renewal"));
     },
   });
 
@@ -99,16 +95,13 @@ const RenewalDetailPage = () => {
       setDecisionError(null);
     },
     onError: (mutationError) => {
-      setDecisionError(
-        mutationError instanceof Error
-          ? mutationError.message
-          : "Failed to approve changes"
+      const message = getAdminErrorMessage(
+        mutationError,
+        "Failed to approve changes"
       );
-      toast.error(
-        mutationError instanceof Error
-          ? mutationError.message
-          : "Failed to approve changes"
-      );
+
+      setDecisionError(message);
+      toast.error(message);
     },
   });
 
@@ -129,16 +122,13 @@ const RenewalDetailPage = () => {
       setDecisionError(null);
     },
     onError: (mutationError) => {
-      setDecisionError(
-        mutationError instanceof Error
-          ? mutationError.message
-          : "Failed to reject changes"
+      const message = getAdminErrorMessage(
+        mutationError,
+        "Failed to reject changes"
       );
-      toast.error(
-        mutationError instanceof Error
-          ? mutationError.message
-          : "Failed to reject changes"
-      );
+
+      setDecisionError(message);
+      toast.error(message);
     },
   });
 
@@ -785,4 +775,42 @@ function getApprovalStatusColor(approval: RenewalAdminApprovalSummary) {
     case RenewalApprovalStatus.REJECTED:
       return "red";
   }
+}
+
+function getAdminErrorMessage(error: unknown, fallback: string) {
+  return getNestedErrorMessage(error) ?? fallback;
+}
+
+function getNestedErrorMessage(value: unknown): string | null {
+  if (!value) {
+    return null;
+  }
+
+  if (typeof value === "string") {
+    return value;
+  }
+
+  if (value instanceof Error) {
+    return (
+      getNestedErrorMessage((value as Error & { cause?: unknown }).cause) ??
+      value.message
+    );
+  }
+
+  if (typeof value !== "object") {
+    return null;
+  }
+
+  const record = value as Record<string, unknown>;
+
+  return (
+    getNestedErrorMessage(record.message) ??
+    getNestedErrorMessage(record.error) ??
+    getNestedErrorMessage(record.details) ??
+    getNestedErrorMessage(record.response) ??
+    getNestedErrorMessage(record.data) ??
+    getNestedErrorMessage(record.body) ??
+    getNestedErrorMessage(record.cause) ??
+    null
+  );
 }
