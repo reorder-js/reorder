@@ -3,9 +3,14 @@ import {
   DataTablePaginationState,
   DataTableSortingState,
 } from "@medusajs/ui"
-import { keepPreviousData, useQuery } from "@tanstack/react-query"
+import {
+  keepPreviousData,
+  QueryClient,
+  useQuery,
+} from "@tanstack/react-query"
 import { sdk } from "../../../lib/client"
 import {
+  DunningCaseAdminDetailResponse,
   DunningCaseAdminListResponse,
   DunningCaseAdminStatus,
 } from "../../../types/dunning"
@@ -19,6 +24,7 @@ type UseAdminDunningDisplayQueryInput = {
 
 export const adminDunningQueryKeys = {
   all: ["admin-dunning"] as const,
+  detail: (id: string) => [...adminDunningQueryKeys.all, "detail", id] as const,
   display: (params: {
     pageSize: number
     offset: number
@@ -125,6 +131,34 @@ export function useAdminDunningDisplayQuery(
       }),
     placeholderData: keepPreviousData,
   })
+}
+
+export function useAdminDunningDetailQuery(
+  id?: string,
+  initialData?: DunningCaseAdminDetailResponse
+) {
+  return useQuery<DunningCaseAdminDetailResponse>({
+    queryKey: adminDunningQueryKeys.detail(id ?? ""),
+    queryFn: () => sdk.client.fetch(`/admin/dunning/${id}`),
+    enabled: Boolean(id),
+    initialData,
+  })
+}
+
+export async function invalidateAdminDunningQueries(
+  queryClient: QueryClient,
+  id?: string
+) {
+  await Promise.all([
+    queryClient.invalidateQueries({
+      queryKey: adminDunningQueryKeys.all,
+    }),
+    id
+      ? queryClient.invalidateQueries({
+          queryKey: adminDunningQueryKeys.detail(id),
+        })
+      : Promise.resolve(),
+  ])
 }
 
 function toIsoDateTime(value: string) {

@@ -17,7 +17,7 @@ import {
   useDataTable,
 } from "@medusajs/ui"
 import { useMemo, useState } from "react"
-import { Link } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
 import {
   DunningCaseAdminListItem,
   DunningCaseAdminStatus,
@@ -165,6 +165,7 @@ const baseColumns = [
 ]
 
 const DunningPage = () => {
+  const navigate = useNavigate()
   const [search, setSearch] = useState("")
   const [filtering, setFiltering] = useState<DataTableFilteringState>({})
   const [sorting, setSorting] = useState<DataTableSortingState | null>({
@@ -229,6 +230,9 @@ const DunningPage = () => {
     getRowId: (row) => row.id,
     rowCount: data?.count || 0,
     isLoading,
+    onRowClick: (_event, row) => {
+      navigate(`/subscriptions/dunning/${row.id}`)
+    },
     sorting: {
       state: sorting,
       onSortingChange: setSorting,
