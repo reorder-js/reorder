@@ -15,6 +15,13 @@ import {
   RenewalCycleStatus,
 } from "../../modules/renewal/types"
 import { renewalErrors } from "../../modules/renewal/utils/errors"
+import {
+  classifyRenewalFailure,
+  createRenewalCorrelationId,
+  getRenewalErrorMessage,
+  isAlertableRenewalFailure,
+  logRenewalEvent,
+} from "../../modules/renewal/utils/observability"
 import { resolveProductSubscriptionConfig } from "../../modules/plan-offer/utils/effective-config"
 import { SUBSCRIPTION_MODULE } from "../../modules/subscription"
 import SubscriptionModuleService from "../../modules/subscription/service"
@@ -88,6 +95,7 @@ export type ProcessRenewalCycleStepInput = {
   trigger_type: "scheduler" | "manual"
   triggered_by?: string | null
   reason?: string | null
+  correlation_id?: string | null
 }
 
 type RenewalCycleRecord = {
@@ -127,14 +135,6 @@ function addCadence(
 
   next.setUTCFullYear(next.getUTCFullYear() + value)
   return next
-}
-
-function getErrorMessage(error: unknown) {
-  if (error instanceof Error) {
-    return error.message
-  }
-
-  return "Renewal processing failed"
 }
 
 function isPendingUpdateApplicable(
@@ -527,9 +527,14 @@ export const processRenewalCycleStep = createStep(
     input: ProcessRenewalCycleStepInput,
     { container }
   ) {
+    const logger = container.resolve("logger")
     const renewalModule = container.resolve<RenewalModuleService>(RENEWAL_MODULE)
     const subscriptionModule =
       container.resolve<SubscriptionModuleService>(SUBSCRIPTION_MODULE)
+    const operationStartedAt = Date.now()
+    const correlationId =
+      input.correlation_id ??
+      createRenewalCorrelationId(`renewal-${input.trigger_type}`)
 
     const cycle = await loadCycle(container, input.renewal_cycle_id)
 
@@ -542,13 +547,51 @@ export const processRenewalCycleStep = createStep(
     }
 
     const subscription = await loadSubscription(container, cycle.subscription_id)
-    await validateSubscriptionEligibility(container, cycle, subscription)
 
-    const appliedPendingChanges = await resolveAppliedPendingChanges(
-      container,
-      cycle,
-      subscription
-    )
+    logRenewalEvent(logger, "info", {
+      event: "renewal.execution",
+      outcome: "started",
+      correlation_id: correlationId,
+      renewal_cycle_id: cycle.id,
+      subscription_id: subscription.id,
+      trigger_type: input.trigger_type,
+      triggered_by: input.triggered_by ?? null,
+      metadata: {
+        scheduled_for: cycle.scheduled_for.toISOString(),
+        approval_required: cycle.approval_required,
+        approval_status: cycle.approval_status,
+      },
+    })
+
+    let appliedPendingChanges: RenewalAppliedPendingUpdateData | null = null
+
+    try {
+      await validateSubscriptionEligibility(container, cycle, subscription)
+
+      appliedPendingChanges = await resolveAppliedPendingChanges(
+        container,
+        cycle,
+        subscription
+      )
+    } catch (error) {
+      const failureKind = classifyRenewalFailure(error)
+
+      logRenewalEvent(logger, "warn", {
+        event: "renewal.execution",
+        outcome: "blocked",
+        correlation_id: correlationId,
+        renewal_cycle_id: cycle.id,
+        subscription_id: subscription.id,
+        trigger_type: input.trigger_type,
+        triggered_by: input.triggered_by ?? null,
+        duration_ms: Date.now() - operationStartedAt,
+        failure_kind: failureKind,
+        alertable: isAlertableRenewalFailure(failureKind),
+        message: getRenewalErrorMessage(error),
+      })
+
+      throw error
+    }
 
     const attemptNo = cycle.attempt_count + 1
     const startedAt = new Date()
@@ -580,6 +623,7 @@ export const processRenewalCycleStep = createStep(
         last_trigger_type: input.trigger_type,
         last_triggered_by: input.triggered_by ?? null,
         last_trigger_reason: input.reason ?? null,
+        last_correlation_id: correlationId,
       },
     })
 
@@ -657,6 +701,24 @@ export const processRenewalCycleStep = createStep(
         error_message: null,
       })
 
+      logRenewalEvent(logger, "info", {
+        event: "renewal.execution",
+        outcome: "succeeded",
+        correlation_id: correlationId,
+        renewal_cycle_id: cycle.id,
+        subscription_id: subscription.id,
+        trigger_type: input.trigger_type,
+        triggered_by: input.triggered_by ?? null,
+        attempt_no: attemptNo,
+        duration_ms: Date.now() - operationStartedAt,
+        success_count: 1,
+        failure_count: 0,
+        metadata: {
+          generated_order_id: generatedOrderId,
+          applied_pending_changes: Boolean(appliedPendingChanges),
+        },
+      })
+
       return new StepResponse({
         renewal_cycle: updatedCycle,
         attempt_id: attempt.id,
@@ -664,7 +726,8 @@ export const processRenewalCycleStep = createStep(
       })
     } catch (error) {
       const finishedAt = new Date()
-      const message = getErrorMessage(error)
+      const message = getRenewalErrorMessage(error)
+      const failureKind = classifyRenewalFailure(error)
 
       await renewalModule.updateRenewalAttempts({
         id: attempt.id,
@@ -679,6 +742,23 @@ export const processRenewalCycleStep = createStep(
         status: RenewalCycleStatus.FAILED,
         processed_at: finishedAt,
         last_error: message,
+      })
+
+      logRenewalEvent(logger, "error", {
+        event: "renewal.execution",
+        outcome: "failed",
+        correlation_id: correlationId,
+        renewal_cycle_id: cycle.id,
+        subscription_id: subscription.id,
+        trigger_type: input.trigger_type,
+        triggered_by: input.triggered_by ?? null,
+        attempt_no: attemptNo,
+        duration_ms: Date.now() - operationStartedAt,
+        success_count: 0,
+        failure_count: 1,
+        failure_kind: failureKind,
+        alertable: isAlertableRenewalFailure(failureKind),
+        message,
       })
 
       throw error
