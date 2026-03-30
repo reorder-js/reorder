@@ -94,6 +94,7 @@ type PaymentRetryOutcome =
 export type RunDunningRetryStepInput = {
   dunning_case_id: string
   now?: string | Date | null
+  ignore_schedule?: boolean
   triggered_by?: string | null
   reason?: string | null
 }
@@ -103,6 +104,39 @@ type RunDunningRetryStepOutput = {
   dunning_attempt_id: string
   outcome: "recovered" | "retry_scheduled" | "unrecovered"
   subscription_status: SubscriptionStatus
+}
+
+function appendRetryAuditMetadata(
+  metadata: Record<string, unknown> | null,
+  input: RunDunningRetryStepInput,
+  at: string
+) {
+  const nextMetadata: Record<string, unknown> = {
+    ...(metadata ?? {}),
+    last_retry_triggered_by: input.triggered_by ?? null,
+    last_retry_reason: input.reason ?? null,
+  }
+
+  if (!input.ignore_schedule) {
+    return nextMetadata
+  }
+
+  const existing = Array.isArray(metadata?.manual_actions)
+    ? [...(metadata?.manual_actions as Record<string, unknown>[])]
+    : []
+
+  existing.push({
+    action: "retry_now",
+    who: input.triggered_by ?? null,
+    when: at,
+    reason: input.reason ?? null,
+  })
+
+  return {
+    ...nextMetadata,
+    manual_actions: existing,
+    last_manual_action: existing[existing.length - 1],
+  }
 }
 
 function normalizeNow(now?: string | Date | null) {
@@ -168,7 +202,11 @@ async function loadOrderTotal(
   return Number(order.total ?? 0)
 }
 
-function validateRetryableCase(dunningCase: DunningCaseRecord, now: Date) {
+function validateRetryableCase(
+  dunningCase: DunningCaseRecord,
+  now: Date,
+  ignoreSchedule?: boolean
+) {
   if (
     dunningCase.status === DunningCaseStatus.RECOVERED ||
     dunningCase.status === DunningCaseStatus.UNRECOVERED
@@ -196,13 +234,13 @@ function validateRetryableCase(dunningCase: DunningCaseRecord, now: Date) {
     )
   }
 
-  if (!dunningCase.next_retry_at) {
+  if (!ignoreSchedule && !dunningCase.next_retry_at) {
     throw dunningErrors.conflict(
       `DunningCase '${dunningCase.id}' doesn't have a scheduled retry`
     )
   }
 
-  if (dunningCase.next_retry_at > now) {
+  if (!ignoreSchedule && dunningCase.next_retry_at && dunningCase.next_retry_at > now) {
     throw dunningErrors.conflict(
       `DunningCase '${dunningCase.id}' is not due for retry yet`
     )
@@ -400,7 +438,7 @@ export const runDunningRetryStep = createStep(
     const now = normalizeNow(input.now)
 
     const dunningCase = await loadDunningCase(container, input.dunning_case_id)
-    validateRetryableCase(dunningCase, now)
+    validateRetryableCase(dunningCase, now, input.ignore_schedule)
 
     const subscription = await loadSubscription(
       container,
@@ -427,11 +465,11 @@ export const runDunningRetryStep = createStep(
       attempt_count: attemptNo,
       next_retry_at: null,
       last_attempt_at: startedAt,
-      metadata: {
-        ...(dunningCase.metadata ?? {}),
-        last_retry_triggered_by: input.triggered_by ?? null,
-        last_retry_reason: input.reason ?? null,
-      },
+      metadata: appendRetryAuditMetadata(
+        dunningCase.metadata,
+        input,
+        startedAt.toISOString()
+      ),
     } as any)
 
     const attempt = (await dunningModule.createDunningAttempts({
