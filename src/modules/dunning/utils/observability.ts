@@ -63,7 +63,15 @@ export function classifyDunningFailure(error: unknown): DunningFailureKind {
     return "already_retrying"
   }
 
+  if (message.includes("retry is already processing")) {
+    return "already_retrying"
+  }
+
   if (message.includes("not due for retry yet")) {
+    return "not_due"
+  }
+
+  if (message.includes("retry is not due")) {
     return "not_due"
   }
 
@@ -71,7 +79,19 @@ export function classifyDunningFailure(error: unknown): DunningFailureKind {
     return "closed_case"
   }
 
+  if (message.includes("already recovered")) {
+    return "closed_case"
+  }
+
+  if (message.includes("already unrecovered")) {
+    return "closed_case"
+  }
+
   if (message.includes("already exhausted retry attempts")) {
+    return "retry_exhausted"
+  }
+
+  if (message.includes("max attempts exceeded")) {
     return "retry_exhausted"
   }
 

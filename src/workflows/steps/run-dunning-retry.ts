@@ -207,19 +207,16 @@ function validateRetryableCase(
   now: Date,
   ignoreSchedule?: boolean
 ) {
-  if (
-    dunningCase.status === DunningCaseStatus.RECOVERED ||
-    dunningCase.status === DunningCaseStatus.UNRECOVERED
-  ) {
-    throw dunningErrors.conflict(
-      `DunningCase '${dunningCase.id}' is already closed`
-    )
+  if (dunningCase.status === DunningCaseStatus.RECOVERED) {
+    throw dunningErrors.alreadyRecovered(dunningCase.id)
+  }
+
+  if (dunningCase.status === DunningCaseStatus.UNRECOVERED) {
+    throw dunningErrors.alreadyUnrecovered(dunningCase.id)
   }
 
   if (dunningCase.status === DunningCaseStatus.RETRYING) {
-    throw dunningErrors.conflict(
-      `DunningCase '${dunningCase.id}' is already retrying`
-    )
+    throw dunningErrors.retryAlreadyProcessing(dunningCase.id)
   }
 
   if (!dunningCase.renewal_order_id) {
@@ -235,21 +232,15 @@ function validateRetryableCase(
   }
 
   if (!ignoreSchedule && !dunningCase.next_retry_at) {
-    throw dunningErrors.conflict(
-      `DunningCase '${dunningCase.id}' doesn't have a scheduled retry`
-    )
+    throw dunningErrors.retryNotDue(dunningCase.id)
   }
 
   if (!ignoreSchedule && dunningCase.next_retry_at && dunningCase.next_retry_at > now) {
-    throw dunningErrors.conflict(
-      `DunningCase '${dunningCase.id}' is not due for retry yet`
-    )
+    throw dunningErrors.retryNotDue(dunningCase.id)
   }
 
   if (dunningCase.attempt_count >= dunningCase.max_attempts) {
-    throw dunningErrors.conflict(
-      `DunningCase '${dunningCase.id}' already exhausted retry attempts`
-    )
+    throw dunningErrors.maxAttemptsExceeded(dunningCase.id)
   }
 }
 

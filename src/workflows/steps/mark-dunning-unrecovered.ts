@@ -54,18 +54,18 @@ export const markDunningUnrecoveredStep = createStep(
       input.dunning_case_id
     )) as DunningCaseRecord
 
-    if (
-      dunningCase.status === DunningCaseStatus.RECOVERED ||
-      dunningCase.status === DunningCaseStatus.UNRECOVERED
-    ) {
-      throw dunningErrors.conflict(
-        `DunningCase '${dunningCase.id}' can't be marked unrecovered from status '${dunningCase.status}'`
-      )
+    if (dunningCase.status === DunningCaseStatus.RECOVERED) {
+      throw dunningErrors.alreadyRecovered(dunningCase.id)
+    }
+
+    if (dunningCase.status === DunningCaseStatus.UNRECOVERED) {
+      throw dunningErrors.alreadyUnrecovered(dunningCase.id)
     }
 
     if (dunningCase.status === DunningCaseStatus.RETRYING) {
-      throw dunningErrors.conflict(
-        `DunningCase '${dunningCase.id}' can't be marked unrecovered while retry is in flight`
+      throw dunningErrors.retryInFlightTransitionBlocked(
+        dunningCase.id,
+        "be marked unrecovered"
       )
     }
 

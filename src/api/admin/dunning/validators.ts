@@ -83,6 +83,14 @@ export const PostAdminDunningRetryScheduleSchema = z.object({
   reason: z.string().trim().min(1).max(500).optional(),
   intervals: z.array(z.number().int().positive()).min(1).max(12),
   max_attempts: z.number().int().positive().max(12),
+}).superRefine((value, ctx) => {
+  if (value.intervals.length !== value.max_attempts) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["max_attempts"],
+      message: "max_attempts must equal the number of retry intervals",
+    })
+  }
 })
 
 export type PostAdminDunningRetryScheduleSchemaType = z.infer<

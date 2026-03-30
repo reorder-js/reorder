@@ -68,18 +68,18 @@ export const updateDunningRetryScheduleStep = createStep(
       input.dunning_case_id
     )) as DunningCaseRecord
 
-    if (
-      dunningCase.status === DunningCaseStatus.RECOVERED ||
-      dunningCase.status === DunningCaseStatus.UNRECOVERED
-    ) {
-      throw dunningErrors.conflict(
-        `DunningCase '${dunningCase.id}' can't update retry schedule from status '${dunningCase.status}'`
-      )
+    if (dunningCase.status === DunningCaseStatus.RECOVERED) {
+      throw dunningErrors.alreadyRecovered(dunningCase.id)
+    }
+
+    if (dunningCase.status === DunningCaseStatus.UNRECOVERED) {
+      throw dunningErrors.alreadyUnrecovered(dunningCase.id)
     }
 
     if (dunningCase.status === DunningCaseStatus.RETRYING) {
-      throw dunningErrors.conflict(
-        `DunningCase '${dunningCase.id}' can't update retry schedule while retry is in flight`
+      throw dunningErrors.retryInFlightTransitionBlocked(
+        dunningCase.id,
+        "update retry schedule"
       )
     }
 
@@ -128,9 +128,7 @@ export const updateDunningRetryScheduleStep = createStep(
       nextStatus === DunningCaseStatus.RETRY_SCHEDULED &&
       !nextRetryAt
     ) {
-      throw dunningErrors.conflict(
-        `DunningCase '${dunningCase.id}' retry schedule override didn't produce a valid next_retry_at`
-      )
+      throw dunningErrors.invalidRetryScheduleOverride(dunningCase.id)
     }
 
     const updated = await dunningModule.updateDunningCases({

@@ -246,8 +246,9 @@ export const startDunningStep = createStep(
     )
 
     if (activeCaseForSubscription) {
-      throw dunningErrors.conflict(
-        `Subscription '${subscription.id}' already has an active dunning case '${activeCaseForSubscription.id}'`
+      throw dunningErrors.duplicateActiveCaseBlocked(
+        subscription.id,
+        activeCaseForSubscription.id
       )
     }
 
