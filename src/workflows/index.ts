@@ -50,3 +50,7 @@ export {
   rejectRenewalChangesWorkflow,
   default as rejectRenewalChangesWorkflowDefault,
 } from "./reject-renewal-changes"
+export {
+  startDunningWorkflow,
+  default as startDunningWorkflowDefault,
+} from "./start-dunning"
