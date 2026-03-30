@@ -11,15 +11,24 @@ Goal:
 - define the boundary between subscription state and renewal-cycle state
 
 This specification builds on:
-- `reorder/docs/specs/subscriptions_domain_model_spec.md`
-- `reorder/docs/specs/plan_offers_effective_config_semantics_spec.md`
-- `reorder/docs/specs/renewals_domain_model_spec.md`
+- `reorder/docs/specs/subscriptions/domain-model.md`
+- `reorder/docs/specs/plan-offers/effective-config-semantics.md`
+- `reorder/docs/specs/renewals/domain-model.md`
 
 The direction follows Medusa patterns:
 - one module should have a clear source of truth for its operational state
 - workflows should consume explicit domain data, not implicit UI assumptions
 - snapshots should be used where historical execution must remain stable
 - computed cross-module state should be re-resolved when business validation requires current policy
+
+Implementation status:
+- the `Renewals` area is now implemented
+- treat this document as design-time context and source-of-truth rationale
+- the current runtime source of truth lives in:
+  - `reorder/docs/architecture/renewals.md`
+  - `reorder/docs/api/admin-renewals.md`
+  - `reorder/docs/admin/renewals.md`
+  - `reorder/docs/testing/renewals.md`
 
 ## 1. Core semantics
 

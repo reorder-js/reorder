@@ -9,10 +9,10 @@ Goal:
 - keep the read layer aligned with Medusa module-isolation patterns
 
 This specification builds on:
-- `reorder/docs/specs/plan_offers_admin_spec.md`
-- `reorder/docs/specs/plan_offers_domain_model_spec.md`
-- `reorder/docs/specs/plan_offers_data_model_override_spec.md`
-- `reorder/docs/specs/plan_offers_effective_config_semantics_spec.md`
+- `reorder/docs/specs/plan-offers/admin-spec.md`
+- `reorder/docs/specs/plan-offers/domain-model.md`
+- `reorder/docs/specs/plan-offers/data-model-override.md`
+- `reorder/docs/specs/plan-offers/effective-config-semantics.md`
 
 ## 1. Required module links
 

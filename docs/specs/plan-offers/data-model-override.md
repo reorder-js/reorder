@@ -9,8 +9,8 @@ Goal:
 - define the effective-config resolution rules with explicit `variant > product` priority
 
 This specification builds on:
-- `reorder/docs/specs/plan_offers_admin_spec.md`
-- `reorder/docs/specs/plan_offers_domain_model_spec.md`
+- `reorder/docs/specs/plan-offers/admin-spec.md`
+- `reorder/docs/specs/plan-offers/domain-model.md`
 
 ## 1. Design decision summary
 

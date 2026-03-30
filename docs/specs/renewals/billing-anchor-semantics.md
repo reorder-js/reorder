@@ -12,10 +12,10 @@ Goal:
 - define how to avoid generating duplicate renewals for the same billing period
 
 This specification builds on:
-- `reorder/docs/specs/subscriptions_domain_model_spec.md`
-- `reorder/docs/specs/renewals_source_of_truth_semantics_spec.md`
-- `reorder/docs/specs/renewals_data_model_spec.md`
-- `reorder/docs/specs/renewals_state_machine_spec.md`
+- `reorder/docs/specs/subscriptions/domain-model.md`
+- `reorder/docs/specs/renewals/source-of-truth-semantics.md`
+- `reorder/docs/specs/renewals/data-model.md`
+- `reorder/docs/specs/renewals/state-machine.md`
 
 The direction follows Medusa patterns:
 - recurring scheduling should use explicit persisted date fields

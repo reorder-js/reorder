@@ -373,4 +373,4 @@ It does not yet own:
 - [Plans & Offers Admin UI](../admin/plan-offers.md)
 - [Plans & Offers Testing](../testing/plan-offers.md)
 - [Roadmap](../roadmap/implementation-plan.md)
-- [Plans & Offers Specs](../specs/plan_offers_admin_spec.md)
+- [Plans & Offers Specs](../specs/plan-offers/admin-spec.md)

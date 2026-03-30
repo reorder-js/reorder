@@ -11,15 +11,24 @@ Goal:
 - define when a cycle is considered closed after success or failure
 
 This specification builds on:
-- `reorder/docs/specs/renewals_domain_model_spec.md`
-- `reorder/docs/specs/renewals_source_of_truth_semantics_spec.md`
-- `reorder/docs/specs/renewals_data_model_spec.md`
+- `reorder/docs/specs/renewals/domain-model.md`
+- `reorder/docs/specs/renewals/source-of-truth-semantics.md`
+- `reorder/docs/specs/renewals/data-model.md`
 
 The direction follows Medusa patterns:
 - workflow-engine retry state is not the same as domain state
 - approval should be modeled separately from execution status
 - scheduled jobs and manual actions should reuse the same core workflow
 - operational state should stay explicit and queryable
+
+Implementation status:
+- the `Renewals` area is now implemented
+- treat this document as design-time context and state-model rationale
+- the current runtime source of truth lives in:
+  - `reorder/docs/architecture/renewals.md`
+  - `reorder/docs/api/admin-renewals.md`
+  - `reorder/docs/admin/renewals.md`
+  - `reorder/docs/testing/renewals.md`
 
 ## 1. State model overview
 
@@ -60,6 +69,11 @@ The cycle may still be blocked by:
 - ineligibility of the subscription
 - force-renewal rules
 - idempotency or locking guards
+
+Current implementation note:
+- preflight validation failures that happen before an attempt is created keep the cycle in `scheduled`
+- examples include approval gating, subscription ineligibility, and current offer-policy revalidation failures
+- only failures that happen after execution has entered the processing attempt path transition the cycle to `failed`
 
 #### `processing`
 

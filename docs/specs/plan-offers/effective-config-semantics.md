@@ -10,9 +10,9 @@ Goal:
 - define how Admin reads and future subscription workflows should use the resolved config
 
 This specification builds on:
-- `reorder/docs/specs/plan_offers_admin_spec.md`
-- `reorder/docs/specs/plan_offers_domain_model_spec.md`
-- `reorder/docs/specs/plan_offers_data_model_override_spec.md`
+- `reorder/docs/specs/plan-offers/admin-spec.md`
+- `reorder/docs/specs/plan-offers/domain-model.md`
+- `reorder/docs/specs/plan-offers/data-model-override.md`
 
 ## 1. Core semantics
 

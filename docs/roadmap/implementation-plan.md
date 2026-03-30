@@ -8,7 +8,7 @@ This document describes product direction, not a promise of delivery dates.
 
 ## Current Status
 
-The first two major areas of the plugin, `Subscriptions` and `Plans & Offers`, are complete and tested.
+The first three major areas of the plugin, `Subscriptions`, `Plans & Offers`, and `Renewals`, are complete and tested.
 
 Implemented today:
 - subscription domain model and storage
@@ -25,6 +25,13 @@ Implemented today:
 - effective config resolution with `variant > product` semantics
 - backend integration tests and admin flow integration coverage for `Plans & Offers`
 - smoke-level integration between `Plans & Offers` and `Subscriptions`
+- renewal cycle domain model and storage
+- admin API routes for renewal queue, detail, force, approve, and reject flows
+- Admin UI for renewals queue and detail flows
+- approval, rejection, and force execution actions in Admin
+- backend integration tests and admin flow integration coverage for `Renewals`
+- smoke-level integration between `Renewals`, `Subscriptions`, and `Plans & Offers`
+- production hardening for renewal scheduler and manual execution flows
 
 Planned next:
 - `Renewals`
@@ -68,18 +75,22 @@ This area provides the commercial configuration layer used by subscriptions and 
 
 ### 3. Renewals
 
-Status: `Planned`
+Status: `Completed`
 
-This area will cover recurring order generation and renewal operations.
+This area covers recurring renewal execution and renewal operations in Admin.
 
-Planned scope:
+Implemented scope:
 - renewal cycle tracking
 - scheduled and manual renewal execution
 - approval flow for pending subscription changes before renewal
-- admin queue and detail views for renewal operations
-- integration tests for success, failure, retry, and approval scenarios
+- Admin queue and detail views for renewal operations
+- approve, reject, and force actions in Admin
+- backend integration tests for success, failure, retry, approval, idempotency, and route behavior
+- admin flow integration coverage
+- smoke-level integration with `Subscriptions` and `Plans & Offers`
+- production hardening through workflow locking, correlation IDs, structured logging, and scheduler summary metrics
 
-This area will provide the operational execution layer for active subscriptions.
+This area provides the operational execution layer for active subscriptions.
 
 ### 4. Dunning
 

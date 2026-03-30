@@ -10,9 +10,9 @@ Goal:
 - decide where approval metadata belongs
 
 This specification builds on:
-- `reorder/docs/specs/renewals_admin_spec.md`
-- `reorder/docs/specs/renewals_domain_model_spec.md`
-- `reorder/docs/specs/renewals_source_of_truth_semantics_spec.md`
+- `reorder/docs/specs/renewals/admin-spec.md`
+- `reorder/docs/specs/renewals/domain-model.md`
+- `reorder/docs/specs/renewals/source-of-truth-semantics.md`
 
 The design follows Medusa patterns:
 - custom modules own their own data models

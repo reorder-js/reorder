@@ -10,12 +10,12 @@ Goal:
 - provide a stable blueprint for later Admin API endpoints
 
 This specification builds on:
-- `reorder/docs/specs/renewals_admin_spec.md`
-- `reorder/docs/specs/renewals_domain_model_spec.md`
-- `reorder/docs/specs/renewals_data_model_spec.md`
-- `reorder/docs/specs/renewals_module_links_spec.md`
-- `reorder/docs/specs/renewals_state_machine_spec.md`
-- `reorder/docs/specs/renewals_billing_anchor_semantics_spec.md`
+- `reorder/docs/specs/renewals/admin-spec.md`
+- `reorder/docs/specs/renewals/domain-model.md`
+- `reorder/docs/specs/renewals/data-model.md`
+- `reorder/docs/specs/renewals/module-links.md`
+- `reorder/docs/specs/renewals/state-machine.md`
+- `reorder/docs/specs/renewals/billing-anchor-semantics.md`
 
 The direction follows Medusa patterns:
 - Admin read logic should live in dedicated query helpers, not in route handlers
@@ -23,6 +23,15 @@ The direction follows Medusa patterns:
 - the custom module remains the read-model root
 - database-backed sorting should be preferred for explicit scalar fields
 - in-memory sort should be reserved for enriched display-only fields
+
+Implementation status:
+- the `Renewals` area is now implemented
+- treat this document as design-time context and read-model rationale
+- the current runtime source of truth lives in:
+  - `reorder/docs/architecture/renewals.md`
+  - `reorder/docs/api/admin-renewals.md`
+  - `reorder/docs/admin/renewals.md`
+  - `reorder/docs/testing/renewals.md`
 
 ## 1. Read-model root
 

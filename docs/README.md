@@ -5,9 +5,9 @@
 At the moment, the following areas are implemented and tested:
 - `Subscriptions`
 - `Plans & Offers`
+- `Renewals`
 
 The remaining areas from the implementation plan are still in progress:
-- `Renewals`
 - `Dunning`
 
 ## Current Status
@@ -24,6 +24,13 @@ Completed:
 - `Plans & Offers` backend integration tests
 - `Plans & Offers` admin flow integration coverage
 - smoke-level integration between `Plans & Offers` and `Subscriptions`
+- `Renewals` domain model
+- `Renewals` admin API routes
+- `Renewals` Admin UI: queue, detail, approval, reject, and force flows
+- `Renewals` backend integration tests
+- `Renewals` admin flow integration coverage
+- smoke-level integration between `Renewals`, `Subscriptions`, and `Plans & Offers`
+- `Renewals` operational hardening for scheduler and manual execution flows
 
 In progress:
 - next implementation stages from the roadmap
@@ -55,6 +62,11 @@ Runtime source-of-truth documents currently exist for:
   - `api/admin-plan-offers.md`
   - `admin/plan-offers.md`
   - `testing/plan-offers.md`
+- `Renewals`
+  - `architecture/renewals.md`
+  - `api/admin-renewals.md`
+  - `admin/renewals.md`
+  - `testing/renewals.md`
 
 ## Recommended Reading Order
 
@@ -67,7 +79,7 @@ For a new developer joining the project:
 
 ## Implemented Areas
 
-The currently implemented areas are `Subscriptions` and `Plans & Offers`.
+The currently implemented areas are `Subscriptions`, `Plans & Offers`, and `Renewals`.
 
 ### Subscriptions
 
@@ -88,6 +100,19 @@ This area includes:
 - Admin management page with create, edit, filter, sort, and toggle flows
 - effective config resolution with `variant > product` semantics
 - integration with `Subscriptions` plan-change validation
+
+### Renewals
+
+This area includes:
+- renewal cycle queue in Admin
+- renewal cycle detail page
+- approve and reject flows for pending changes
+- force renewal flow
+- scheduler-backed and manual renewal execution
+- attempt history and linked subscription/order summaries
+- integration with `Subscriptions` eligibility and pending changes
+- integration with `Plans & Offers` policy validation at execution time
+- operational hardening through workflow locking, correlation IDs, structured logs, and scheduler summary metrics
 
 ## Notes
 

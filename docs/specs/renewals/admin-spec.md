@@ -16,6 +16,15 @@ Note:
 - this is a design specification for later steps, not the final module implementation
 - backend, workflows, and the Admin UI route will be implemented in later `2.3` steps
 
+Implementation status:
+- the `Renewals` area is now implemented
+- treat this document as design-time context and historical specification input
+- the current runtime source of truth lives in:
+  - `reorder/docs/architecture/renewals.md`
+  - `reorder/docs/api/admin-renewals.md`
+  - `reorder/docs/admin/renewals.md`
+  - `reorder/docs/testing/renewals.md`
+
 ## 1. Design assumptions
 
 `Renewals` is an operational Admin view used to monitor and control renewal execution for subscriptions.

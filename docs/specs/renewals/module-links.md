@@ -10,10 +10,10 @@ Goal:
 - keep the read layer aligned with Medusa module-isolation patterns
 
 This specification builds on:
-- `reorder/docs/specs/renewals_admin_spec.md`
-- `reorder/docs/specs/renewals_domain_model_spec.md`
-- `reorder/docs/specs/renewals_data_model_spec.md`
-- `reorder/docs/specs/renewals_source_of_truth_semantics_spec.md`
+- `reorder/docs/specs/renewals/admin-spec.md`
+- `reorder/docs/specs/renewals/domain-model.md`
+- `reorder/docs/specs/renewals/data-model.md`
+- `reorder/docs/specs/renewals/source-of-truth-semantics.md`
 
 ## 1. Required module links
 
