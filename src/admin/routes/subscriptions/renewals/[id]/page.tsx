@@ -55,6 +55,7 @@ const RenewalDetailPage = () => {
   const [decisionDrawerOpen, setDecisionDrawerOpen] = useState(false);
   const [decisionMode, setDecisionMode] = useState<DecisionDrawerMode>("approve");
   const [decisionReason, setDecisionReason] = useState("");
+  const [decisionError, setDecisionError] = useState<string | null>(null);
 
   const { data, isLoading, isError, error } = useAdminRenewalDetailQuery(id);
   const renewal = data?.renewal;
@@ -95,8 +96,14 @@ const RenewalDetailPage = () => {
       toast.success("Pending changes approved");
       setDecisionDrawerOpen(false);
       setDecisionReason("");
+      setDecisionError(null);
     },
     onError: (mutationError) => {
+      setDecisionError(
+        mutationError instanceof Error
+          ? mutationError.message
+          : "Failed to approve changes"
+      );
       toast.error(
         mutationError instanceof Error
           ? mutationError.message
@@ -119,8 +126,14 @@ const RenewalDetailPage = () => {
       toast.success("Pending changes rejected");
       setDecisionDrawerOpen(false);
       setDecisionReason("");
+      setDecisionError(null);
     },
     onError: (mutationError) => {
+      setDecisionError(
+        mutationError instanceof Error
+          ? mutationError.message
+          : "Failed to reject changes"
+      );
       toast.error(
         mutationError instanceof Error
           ? mutationError.message
@@ -150,8 +163,6 @@ const RenewalDetailPage = () => {
   }, [renewal]);
 
   const handleForceRenewal = async () => {
-    const confirmReason = { value: "" };
-
     const confirmed = await prompt({
       title: "Force renewal?",
       description:
@@ -165,13 +176,14 @@ const RenewalDetailPage = () => {
     }
 
     await forceMutation.mutateAsync({
-      reason: normalizeOptionalString(confirmReason.value),
+      reason: undefined,
     });
   };
 
   const openDecisionDrawer = (mode: DecisionDrawerMode) => {
     setDecisionMode(mode);
     setDecisionReason("");
+    setDecisionError(null);
     setDecisionDrawerOpen(true);
   };
 
@@ -179,7 +191,27 @@ const RenewalDetailPage = () => {
     const normalizedReason = normalizeOptionalString(decisionReason);
 
     if (decisionMode === "reject" && !normalizedReason) {
+      setDecisionError("Reason is required");
       toast.error("Reason is required");
+      return;
+    }
+
+    setDecisionError(null);
+
+    const confirmed = await prompt({
+      title:
+        decisionMode === "approve"
+          ? "Approve changes?"
+          : "Reject changes?",
+      description:
+        decisionMode === "approve"
+          ? "You are about to approve the pending changes for this renewal cycle."
+          : "You are about to reject the pending changes for this renewal cycle.",
+      confirmText: decisionMode === "approve" ? "Approve" : "Reject",
+      cancelText: "Cancel",
+    });
+
+    if (!confirmed) {
       return;
     }
 
@@ -525,6 +557,7 @@ const RenewalDetailPage = () => {
             </Drawer.Title>
           </Drawer.Header>
           <Drawer.Body className="flex flex-1 flex-col gap-y-4 p-4">
+            {decisionError ? <Alert variant="error">{decisionError}</Alert> : null}
             <div className="flex flex-col gap-y-2">
               <Label htmlFor="decision-reason">
                 {decisionMode === "approve" ? "Reason" : "Reason *"}
@@ -544,7 +577,12 @@ const RenewalDetailPage = () => {
           <Drawer.Footer>
             <div className="flex items-center justify-end gap-x-2">
               <Drawer.Close asChild>
-                <Button size="small" variant="secondary" type="button">
+                <Button
+                  size="small"
+                  variant="secondary"
+                  type="button"
+                  disabled={approveMutation.isPending || rejectMutation.isPending}
+                >
                   Cancel
                 </Button>
               </Drawer.Close>
@@ -556,6 +594,7 @@ const RenewalDetailPage = () => {
                     ? approveMutation.isPending
                     : rejectMutation.isPending
                 }
+                disabled={approveMutation.isPending || rejectMutation.isPending}
                 onClick={() => {
                   void handleSubmitDecision();
                 }}
