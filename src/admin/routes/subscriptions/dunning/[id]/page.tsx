@@ -23,12 +23,13 @@ import {
   XCircle,
 } from "@medusajs/icons"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { ReactNode, useMemo, useState } from "react"
+import { ReactNode, useEffect, useMemo, useState } from "react"
 import { Link, UIMatch, useParams } from "react-router-dom"
 import { sdk } from "../../../../lib/client"
 import {
   invalidateAdminDunningQueries,
   useAdminDunningDetailQuery,
+  useAdminDunningRetryScheduleFormQuery,
 } from "../data-loading"
 import {
   DunningAttemptAdminStatus,
@@ -62,6 +63,11 @@ const DunningDetailPage = () => {
 
   const { data, isLoading, isError, error } = useAdminDunningDetailQuery(id)
   const dunningCase = data?.dunning_case
+  const { data: retryScheduleFormData } = useAdminDunningRetryScheduleFormQuery(
+    id,
+    actionDrawerOpen && actionDrawerMode === "retry_schedule",
+    data
+  )
 
   const retryNowMutation = useMutation({
     mutationFn: async (body: RetryNowDunningAdminRequest) =>
@@ -178,21 +184,27 @@ const DunningDetailPage = () => {
     markUnrecoveredMutation.isPending ||
     retryScheduleMutation.isPending
 
+  useEffect(() => {
+    if (!actionDrawerOpen || actionDrawerMode !== "retry_schedule") {
+      return
+    }
+
+    const retrySchedule = retryScheduleFormData?.dunning_case.retry_schedule
+    const retryScheduleMaxAttempts =
+      retryScheduleFormData?.dunning_case.max_attempts
+
+    setIntervals(retrySchedule?.intervals.join(", ") ?? "1440, 4320, 10080")
+    setMaxAttempts(
+      retryScheduleMaxAttempts?.toString() ??
+        retrySchedule?.intervals.length.toString() ??
+        "3"
+    )
+  }, [actionDrawerOpen, actionDrawerMode, retryScheduleFormData])
+
   const openDrawer = (mode: ActionDrawerMode) => {
     setActionDrawerMode(mode)
     setReason("")
     setFormError(null)
-
-    if (mode === "retry_schedule") {
-      setIntervals(
-        dunningCase?.retry_schedule?.intervals.join(", ") ?? "1440, 4320, 10080"
-      )
-      setMaxAttempts(
-        dunningCase?.max_attempts?.toString() ??
-          dunningCase?.retry_schedule?.intervals.length.toString() ??
-          "3"
-      )
-    }
 
     setActionDrawerOpen(true)
   }

@@ -25,6 +25,8 @@ type UseAdminDunningDisplayQueryInput = {
 export const adminDunningQueryKeys = {
   all: ["admin-dunning"] as const,
   detail: (id: string) => [...adminDunningQueryKeys.all, "detail", id] as const,
+  retryScheduleForm: (id: string) =>
+    [...adminDunningQueryKeys.all, "retry-schedule-form", id] as const,
   display: (params: {
     pageSize: number
     offset: number
@@ -145,6 +147,19 @@ export function useAdminDunningDetailQuery(
   })
 }
 
+export function useAdminDunningRetryScheduleFormQuery(
+  id?: string,
+  enabled = false,
+  initialData?: DunningCaseAdminDetailResponse
+) {
+  return useQuery<DunningCaseAdminDetailResponse>({
+    queryKey: adminDunningQueryKeys.retryScheduleForm(id ?? ""),
+    queryFn: () => sdk.client.fetch(`/admin/dunning/${id}`),
+    enabled: enabled && Boolean(id),
+    initialData,
+  })
+}
+
 export async function invalidateAdminDunningQueries(
   queryClient: QueryClient,
   id?: string
@@ -156,6 +171,11 @@ export async function invalidateAdminDunningQueries(
     id
       ? queryClient.invalidateQueries({
           queryKey: adminDunningQueryKeys.detail(id),
+        })
+      : Promise.resolve(),
+    id
+      ? queryClient.invalidateQueries({
+          queryKey: adminDunningQueryKeys.retryScheduleForm(id),
         })
       : Promise.resolve(),
   ])
