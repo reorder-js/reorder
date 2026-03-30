@@ -3,7 +3,11 @@ import {
   DataTablePaginationState,
   DataTableSortingState,
 } from "@medusajs/ui";
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  QueryClient,
+  useQuery,
+} from "@tanstack/react-query";
 import { sdk } from "../../../lib/client";
 import {
   RenewalCycleAdminDetailResponse,
@@ -133,6 +137,22 @@ export function useAdminRenewalDetailQuery(
     enabled: Boolean(id),
     initialData,
   });
+}
+
+export async function invalidateAdminRenewalsQueries(
+  queryClient: QueryClient,
+  id?: string
+) {
+  await Promise.all([
+    queryClient.invalidateQueries({
+      queryKey: adminRenewalsQueryKeys.all,
+    }),
+    id
+      ? queryClient.invalidateQueries({
+          queryKey: adminRenewalsQueryKeys.detail(id),
+        })
+      : Promise.resolve(),
+  ]);
 }
 
 function toIsoDateTime(value: string) {

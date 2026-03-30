@@ -21,12 +21,12 @@ import {
   TriangleRightMini,
   XCircle,
 } from "@medusajs/icons";
-import { QueryClient, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ReactNode, useMemo, useState } from "react";
 import { Link, UIMatch, useParams } from "react-router-dom";
 import { sdk } from "../../../../lib/client";
 import {
-  adminRenewalsQueryKeys,
+  invalidateAdminRenewalsQueries,
   useAdminRenewalDetailQuery,
 } from "../data-loading";
 import {
@@ -69,7 +69,7 @@ const RenewalDetailPage = () => {
         }
       ),
     onSuccess: async () => {
-      await invalidateRenewalQueries(queryClient, id);
+      await invalidateAdminRenewalsQueries(queryClient, id);
       toast.success("Renewal forced");
     },
     onError: (mutationError) => {
@@ -91,7 +91,7 @@ const RenewalDetailPage = () => {
         }
       ),
     onSuccess: async () => {
-      await invalidateRenewalQueries(queryClient, id);
+      await invalidateAdminRenewalsQueries(queryClient, id);
       toast.success("Pending changes approved");
       setDecisionDrawerOpen(false);
       setDecisionReason("");
@@ -115,7 +115,7 @@ const RenewalDetailPage = () => {
         }
       ),
     onSuccess: async () => {
-      await invalidateRenewalQueries(queryClient, id);
+      await invalidateAdminRenewalsQueries(queryClient, id);
       toast.success("Pending changes rejected");
       setDecisionDrawerOpen(false);
       setDecisionReason("");
@@ -576,22 +576,6 @@ export const handle = {
   breadcrumb: ({ params, data }: UIMatch<RenewalCycleAdminDetailResponse>) =>
     params?.id || data?.renewal?.id || "Renewal",
 };
-
-async function invalidateRenewalQueries(
-  queryClient: QueryClient,
-  id?: string
-) {
-  await Promise.all([
-    queryClient.invalidateQueries({
-      queryKey: adminRenewalsQueryKeys.all,
-    }),
-    id
-      ? queryClient.invalidateQueries({
-          queryKey: adminRenewalsQueryKeys.detail(id),
-        })
-      : Promise.resolve(),
-  ]);
-}
 
 const DetailBlock = ({
   title,
