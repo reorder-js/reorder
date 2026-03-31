@@ -70,6 +70,14 @@ type DunningAttemptRecord = {
   metadata: Record<string, unknown> | null
 }
 
+type RetryTransitionSnapshot = {
+  status: DunningCaseStatus
+  attempt_count: number
+  next_retry_at: Date | null
+  last_attempt_at: Date | null
+  metadata: Record<string, unknown> | null
+}
+
 type OrderRecord = {
   id: string
   total?: number | string | null
@@ -191,6 +199,22 @@ async function loadSubscription(
   } catch {
     throw subscriptionErrors.notFound("Subscription", id)
   }
+}
+
+async function getNextAttemptNo(
+  container: MedusaContainer,
+  dunningCase: DunningCaseRecord
+) {
+  const dunningModule = container.resolve<DunningModuleService>(DUNNING_MODULE)
+  const attempts = (await dunningModule.listDunningAttempts({
+    dunning_case_id: dunningCase.id,
+  } as any)) as DunningAttemptRecord[]
+
+  const highestAttemptNo = attempts.reduce((max, attempt) => {
+    return Math.max(max, attempt.attempt_no ?? 0)
+  }, 0)
+
+  return Math.max(dunningCase.attempt_count, highestAttemptNo) + 1
 }
 
 async function loadOrderTotal(
@@ -447,7 +471,15 @@ export const runDunningRetryStep = createStep(
       createDunningCorrelationId(`dunning-retry-${input.ignore_schedule ? "manual" : "scheduled"}`)
 
     const dunningCase = await loadDunningCase(container, input.dunning_case_id)
-    const attemptNo = dunningCase.attempt_count + 1
+    const attemptNo = await getNextAttemptNo(container, dunningCase)
+    const transitionSnapshot: RetryTransitionSnapshot = {
+      status: dunningCase.status,
+      attempt_count: dunningCase.attempt_count,
+      next_retry_at: dunningCase.next_retry_at,
+      last_attempt_at: dunningCase.last_attempt_at,
+      metadata: dunningCase.metadata ?? null,
+    }
+    let transitionedToRetrying = false
 
     logDunningEvent(logger, "info", {
       event: "dunning.retry",
@@ -497,6 +529,7 @@ export const runDunningRetryStep = createStep(
           startedAt.toISOString()
         ),
       } as any)
+      transitionedToRetrying = true
 
       const attempt = (await dunningModule.createDunningAttempts({
         dunning_case_id: dunningCase.id,
@@ -763,6 +796,17 @@ export const runDunningRetryStep = createStep(
           ignore_schedule: Boolean(input.ignore_schedule),
         },
       })
+
+      if (transitionedToRetrying) {
+        await dunningModule.updateDunningCases({
+          id: dunningCase.id,
+          status: transitionSnapshot.status,
+          attempt_count: transitionSnapshot.attempt_count,
+          next_retry_at: transitionSnapshot.next_retry_at,
+          last_attempt_at: transitionSnapshot.last_attempt_at,
+          metadata: transitionSnapshot.metadata,
+        } as any)
+      }
 
       throw error
     }
