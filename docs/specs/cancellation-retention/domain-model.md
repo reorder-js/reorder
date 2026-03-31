@@ -1,11 +1,12 @@
 # Reorder: Cancellation & Retention Domain Model Spec
 
-This document covers steps `2.5.3`, `2.5.4`, and `2.5.5` from `documentation/implementation_plan.md`.
+This document covers steps `2.5.3`, `2.5.4`, `2.5.5`, and `2.5.6` from `documentation/implementation_plan.md`.
 
 Goal:
 - define the domain contract for `CancellationCase`
 - define the domain contract for `RetentionOfferEvent`
 - define the taxonomy and semantics of `reason_category`
+- define the semantics of retention actions
 - decide which data belongs to regular model fields
 - decide which data should remain outside the aggregate and move to future history records
 - provide a stable foundation for workflows, Admin reads, and later retention-offer history
@@ -413,7 +414,170 @@ Important note:
 - actual offer history and applied actions should live later in `RetentionOfferEvent`
 - `recommended_action` is not a replacement for that history
 
-## 16. `final_outcome`
+## 16. Retention action semantics
+
+Retention actions should be understood on two separate semantic levels:
+
+- recommendation state on `CancellationCase`
+- concrete offer or action snapshot on `RetentionOfferEvent`
+
+### Recommendation state
+
+`CancellationCase.recommended_action` answers:
+- what action the process recommends next
+
+It does not mean:
+- an offer was already constructed
+- the customer accepted anything
+- the action was already applied to the subscription
+
+### Concrete offer or action snapshot
+
+`RetentionOfferEvent` answers:
+- what concrete offer or save action was proposed
+- what payload it contained
+- what decision was made on it
+- whether and when it was applied
+
+This means:
+- recommendation is aggregate-level guidance
+- the event is the persisted business action snapshot
+
+This split is preferred because it matches the same pattern already established in the plugin:
+- aggregate root stores current process state
+- child history record stores concrete execution or decision history
+
+## 17. `pause_offer`
+
+### Semantics
+
+`pause_offer` means:
+- propose pausing the subscription instead of canceling it
+- keep the customer relationship alive while temporarily stopping the active recurring lifecycle
+
+It is a retention action, not just a direct lifecycle toggle from `Subscriptions`.
+
+Business meaning:
+- the customer is not ready to continue now
+- but the goal is to prevent full churn rather than finalize cancellation
+
+### Recommendation level
+
+As a recommendation:
+- `recommended_action = pause_offer` means the process currently considers pause the best next save option
+
+### Concrete offer level
+
+As a concrete event:
+- the offer should be represented by one `RetentionOfferEvent`
+- the payload should contain pause-specific parameters such as:
+  - number of pause cycles, or
+  - resume date,
+  - optional note
+
+### Constraints
+
+Recommended constraints:
+- do not propose `pause_offer` for a `cancelled` subscription
+- do not treat an already `paused` subscription as a normal new pause-retention offer target
+- applying `pause_offer` must later materialize through a workflow into subscription lifecycle state
+- `pause_offer` should not mutate global commercial policy such as `PlanOffer`
+
+## 18. `discount_offer`
+
+### Semantics
+
+`discount_offer` means:
+- propose a temporary pricing concession to keep the customer subscribed
+
+Business meaning:
+- the customer may continue if the cost becomes more acceptable
+- this is a case-scoped retention measure, not a change to the global subscription offer catalog
+
+### Recommendation level
+
+As a recommendation:
+- `recommended_action = discount_offer` means the process currently considers a pricing concession the best next save option
+
+### Concrete offer level
+
+As a concrete event:
+- the offer should be represented by one `RetentionOfferEvent`
+- the payload should contain discount-specific parameters such as:
+  - discount type
+  - discount value
+  - duration in cycles
+  - optional note
+
+### Constraints
+
+Recommended constraints:
+- the discount should be temporary and explicitly scoped
+- the discount should not overwrite or mutate global `Plans & Offers`
+- the discount should be validated against later policy guards such as maximum allowed retention discount
+- the event payload should be explicit rather than inferred later from case recommendation state
+
+## 19. `bonus_offer`
+
+### Semantics
+
+`bonus_offer` means:
+- propose a non-price or non-pause benefit to keep the customer subscribed
+
+Business meaning:
+- the customer may continue if given an extra value proposition
+- this can include benefits such as a free cycle, credit, gift, or similar case-scoped bonus
+
+### Recommendation level
+
+As a recommendation:
+- `recommended_action = bonus_offer` means the process currently considers an extra benefit the best next save option
+
+### Concrete offer level
+
+As a concrete event:
+- the offer should be represented by one `RetentionOfferEvent`
+- the payload should contain bonus-specific parameters such as:
+  - bonus type
+  - value or descriptive label
+  - optional duration
+  - optional note
+
+### Constraints
+
+Recommended constraints:
+- the bonus must be explicitly described in the payload
+- the bonus should remain case-scoped and auditable
+- the bonus should not mutate the global subscription policy source of truth
+- the event should preserve the exact benefit proposed at the time of the offer
+
+## 20. Shared constraints for retention actions
+
+The following rules should apply to all retention actions:
+
+- a recommendation on `CancellationCase` is never enough by itself to count as a concrete offer
+- every concrete save action should be stored as a separate `RetentionOfferEvent`
+- acceptance and application are separate concepts
+- `applied_at` should only mean a real business effect was materialized
+- retention actions must not silently overwrite `DunningCase` or `RenewalCycle` ownership
+- lifecycle impact must later be materialized through workflow-backed changes to `Subscription`
+
+## 21. Boundary with other domains
+
+Retention actions must remain scoped to `Cancellation & Retention`.
+
+They must not replace ownership of:
+- `Subscriptions` for final lifecycle state
+- `Plans & Offers` for global offer policy
+- `Renewals` for cycle execution
+- `Dunning` for payment recovery
+
+This means:
+- retention actions are case-scoped save actions
+- they are not the new source of truth for recurring commercial policy
+- they are not the owner of renewal or dunning lifecycle state
+
+## 22. `final_outcome`
 
 `final_outcome` is the terminal business summary of the case.
 
@@ -438,7 +602,7 @@ Why:
 - current process state and final business result should not be collapsed into one field
 - this matches the general pattern of keeping aggregate state and final summary distinct
 
-## 17. `finalized_at` and `finalized_by`
+## 23. `finalized_at` and `finalized_by`
 
 These are case-level finalization audit fields.
 
@@ -449,7 +613,7 @@ Why:
 - Admin detail and later filtering may need them directly
 - they should not be buried inside metadata if they are part of the core process contract
 
-## 18. `cancellation_effective_at`
+## 24. `cancellation_effective_at`
 
 `cancellation_effective_at` is the process-level effective time chosen for final cancellation outcome.
 
@@ -465,7 +629,7 @@ Important note:
 - it does not replace `Subscription.cancel_effective_at`
 - later workflows may materialize this value into the subscription’s lifecycle state when final cancellation is applied
 
-## 19. `metadata`
+## 25. `metadata`
 
 `metadata` remains a standard JSON field.
 
@@ -474,7 +638,7 @@ Why:
 - it can store supplementary audit or technical context
 - it should not store fields needed for primary filtering, sorting, or state transitions
 
-## 20. `RetentionOfferEvent` domain contract
+## 26. `RetentionOfferEvent` domain contract
 
 Minimal domain contract:
 
@@ -525,7 +689,7 @@ type RetentionOfferEvent = {
 }
 ```
 
-## 21. Regular `RetentionOfferEvent` fields
+## 27. Regular `RetentionOfferEvent` fields
 
 The following fields should be regular model columns:
 
@@ -543,7 +707,7 @@ Why:
 - they are needed for Admin detail rendering and later filtering
 - they express explicit event state rather than flexible configuration
 
-## 22. Why `cancellation_case_id` should be a scalar field
+## 28. Why `cancellation_case_id` should be a scalar field
 
 The model should store:
 
@@ -557,7 +721,7 @@ Why:
 - it preserves the same practical pattern already used by `RenewalAttempt` and `DunningAttempt`
 - later same-module relations can still be defined without losing efficient source-record access
 
-## 23. `offer_type`
+## 29. `offer_type`
 
 `offer_type` identifies what kind of save action this event represents.
 
@@ -577,7 +741,7 @@ Important note:
 - `direct_cancel` should not be part of `RetentionOfferEvent`
 - direct cancellation is a case-level process path, not a retention offer
 
-## 24. `offer_payload`
+## 30. `offer_payload`
 
 `offer_payload` is the structured snapshot of the concrete offer proposed in this event.
 
@@ -592,7 +756,7 @@ Important note:
 - this payload is a snapshot of the proposed offer at the time of the event
 - it should not be reconstructed later from current recommendation state or current business rules
 
-## 25. `decision_status`
+## 31. `decision_status`
 
 `decision_status` is the event-level decision state for one concrete offer proposal.
 
@@ -614,7 +778,7 @@ Important note:
 - `decision_status` is not the same as `CancellationCase.status`
 - it describes one offer event, not the whole cancellation journey
 
-## 26. `decision_reason`
+## 32. `decision_reason`
 
 `decision_reason` stores the reason behind the outcome of this concrete event.
 
@@ -629,7 +793,7 @@ Important note:
 - `CancellationCase.reason` explains why the subscription entered cancellation handling
 - `decision_reason` explains why a specific offer event ended the way it did
 
-## 27. `decided_at`, `decided_by`, and `applied_at`
+## 33. `decided_at`, `decided_by`, and `applied_at`
 
 These are event-level audit and materialization fields.
 
@@ -657,7 +821,7 @@ Represents:
 
 This is intentionally separate from `decided_at`.
 
-## 28. `metadata`
+## 34. `metadata`
 
 `metadata` remains a standard JSON field.
 
@@ -666,7 +830,7 @@ Why:
 - it can store supplementary technical or audit context
 - it should not store fields needed for primary filtering, sorting, or event-state transitions
 
-## 29. What should stay outside `RetentionOfferEvent`
+## 35. What should stay outside `RetentionOfferEvent`
 
 The following data should not be stored as core mutable fields on `RetentionOfferEvent`:
 
@@ -680,7 +844,7 @@ Why:
 - these belong to other aggregates
 - duplicating them would weaken source-of-truth boundaries already defined in `2.5.2`
 
-## 30. What should stay outside `CancellationCase`
+## 36. What should stay outside `CancellationCase`
 
 The following data should not be stored as core mutable fields on `CancellationCase`:
 
@@ -694,7 +858,7 @@ Why:
 - these belong to other aggregates or to the future `RetentionOfferEvent`
 - duplicating them would weaken source-of-truth boundaries already defined in `2.5.2`
 
-## 31. Query implications
+## 37. Query implications
 
 ### Direct fields should support:
 
