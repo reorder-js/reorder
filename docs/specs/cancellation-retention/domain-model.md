@@ -1,10 +1,11 @@
 # Reorder: Cancellation & Retention Domain Model Spec
 
-This document covers steps `2.5.3` and `2.5.4` from `documentation/implementation_plan.md`.
+This document covers steps `2.5.3`, `2.5.4`, and `2.5.5` from `documentation/implementation_plan.md`.
 
 Goal:
 - define the domain contract for `CancellationCase`
 - define the domain contract for `RetentionOfferEvent`
+- define the taxonomy and semantics of `reason_category`
 - decide which data belongs to regular model fields
 - decide which data should remain outside the aggregate and move to future history records
 - provide a stable foundation for workflows, Admin reads, and later retention-offer history
@@ -256,7 +257,129 @@ Recommended initial values:
 
 The taxonomy may evolve in a later dedicated step, but the domain contract should already treat this as a first-class structured field.
 
-## 10. `notes`
+## 10. `reason_category` taxonomy decision
+
+For MVP, `reason_category` should be a fixed preset or enum on `CancellationCase`, not an Admin-managed dictionary.
+
+### Final decision
+
+Recommended approach:
+- keep `reason_category` as a stable preset on the aggregate
+- keep `reason` as a free-text supporting field
+- do not introduce a separate reason-settings module in MVP
+
+Why this is preferred:
+- workflow branching needs stable and predictable values
+- Admin filters and reporting need a small, queryable taxonomy
+- adding an Admin-managed dictionary would introduce a separate settings domain and CRUD surface without being required for the MVP cancellation flow
+- this keeps the model aligned with the current plugin style, where primary operational fields are explicit and stable
+
+### Why not an Admin-managed dictionary in MVP
+
+An Admin-managed reason dictionary would make sense only if the product explicitly needs:
+- a configurable settings area
+- tenant-specific reason catalogs
+- localization or labeling rules independent from process logic
+- frequent reason-catalog changes by operators
+
+That is closer to Medusa’s managed reason concepts such as refund or return reasons.
+
+For the current plugin scope:
+- `Cancellation & Retention` is still defining its core process contract
+- the smaller and more stable choice is a preset taxonomy
+
+## 11. Operational versus reporting categories
+
+The MVP should use one shared taxonomy, but categories can still have different practical roles.
+
+### Operationally significant categories
+
+These categories may influence workflow recommendation or operator guidance:
+
+- `price`
+- `product_fit`
+- `delivery`
+- `billing`
+- `temporary_pause`
+
+Why:
+- they naturally map to different save strategies such as pause, discount, or direct cancellation
+- they can later support recommendation heuristics in `smart-cancellation`
+
+### Primarily reporting-oriented categories
+
+These categories are still valid aggregate values, but are less likely to require special branching logic:
+
+- `switched_competitor`
+- `other`
+
+Why:
+- they are important for churn analytics
+- they may not need dedicated recommendation rules in MVP
+
+### Important modeling rule
+
+This does not require two different fields.
+
+Recommended rule:
+- one field: `reason_category`
+- one shared preset taxonomy
+- different workflow and reporting semantics are applied by business rules, not by splitting the model
+
+## 12. Relationship between `reason` and `reason_category`
+
+`reason_category` and `reason` should have separate responsibilities.
+
+### `reason_category`
+
+`reason_category` answers:
+- what class of churn this case belongs to
+
+It is the field that should drive:
+- Admin filters
+- grouped reporting
+- KPI aggregation
+- workflow branching and recommendation heuristics later
+
+### `reason`
+
+`reason` answers:
+- what the operator or customer actually said in this specific case
+
+It is the field that should support:
+- qualitative context
+- auditability
+- detail-page readability
+- export-level commentary
+
+`reason` should not be treated as the primary structured reporting source.
+
+## 13. Reporting rule for free-text `reason`
+
+Reporting should be based primarily on `reason_category`, not on parsing `reason`.
+
+### Final decision
+
+Recommended rule:
+- operators select `reason_category`
+- operators may optionally or conditionally provide `reason`
+- reporting aggregates on `reason_category`
+- free-text `reason` remains supporting qualitative context
+
+Why this is preferred:
+- parsing text into categories later is fragile
+- analytics become unstable when they depend on wording
+- Medusa-style operational design favors explicit structured fields for filtering and reporting
+
+### Fallback rule
+
+If the text explanation does not map cleanly to the preset taxonomy:
+- use `reason_category = other`
+- preserve the nuance in `reason`
+
+This keeps the aggregate stable while still allowing rich case notes.
+
+## 14. `notes`
 
 `notes` stores free-form operator context for the case.
 
@@ -267,7 +390,7 @@ Why:
 - it may need direct display in detail views
 - it should not be hidden inside metadata if operators are expected to review it
 
-## 11. `recommended_action`
+## 15. `recommended_action`
 
 `recommended_action` is the current recommendation state for the case.
 
@@ -290,7 +413,7 @@ Important note:
 - actual offer history and applied actions should live later in `RetentionOfferEvent`
 - `recommended_action` is not a replacement for that history
 
-## 12. `final_outcome`
+## 16. `final_outcome`
 
 `final_outcome` is the terminal business summary of the case.
 
@@ -315,7 +438,7 @@ Why:
 - current process state and final business result should not be collapsed into one field
 - this matches the general pattern of keeping aggregate state and final summary distinct
 
-## 13. `finalized_at` and `finalized_by`
+## 17. `finalized_at` and `finalized_by`
 
 These are case-level finalization audit fields.
 
@@ -326,7 +449,7 @@ Why:
 - Admin detail and later filtering may need them directly
 - they should not be buried inside metadata if they are part of the core process contract
 
-## 14. `cancellation_effective_at`
+## 18. `cancellation_effective_at`
 
 `cancellation_effective_at` is the process-level effective time chosen for final cancellation outcome.
 
@@ -342,7 +465,7 @@ Important note:
 - it does not replace `Subscription.cancel_effective_at`
 - later workflows may materialize this value into the subscription’s lifecycle state when final cancellation is applied
 
-## 15. `metadata`
+## 19. `metadata`
 
 `metadata` remains a standard JSON field.
 
@@ -351,7 +474,7 @@ Why:
 - it can store supplementary audit or technical context
 - it should not store fields needed for primary filtering, sorting, or state transitions
 
-## 16. `RetentionOfferEvent` domain contract
+## 20. `RetentionOfferEvent` domain contract
 
 Minimal domain contract:
 
@@ -402,7 +525,7 @@ type RetentionOfferEvent = {
 }
 ```
 
-## 17. Regular `RetentionOfferEvent` fields
+## 21. Regular `RetentionOfferEvent` fields
 
 The following fields should be regular model columns:
 
@@ -420,7 +543,7 @@ Why:
 - they are needed for Admin detail rendering and later filtering
 - they express explicit event state rather than flexible configuration
 
-## 18. Why `cancellation_case_id` should be a scalar field
+## 22. Why `cancellation_case_id` should be a scalar field
 
 The model should store:
 
@@ -434,7 +557,7 @@ Why:
 - it preserves the same practical pattern already used by `RenewalAttempt` and `DunningAttempt`
 - later same-module relations can still be defined without losing efficient source-record access
 
-## 19. `offer_type`
+## 23. `offer_type`
 
 `offer_type` identifies what kind of save action this event represents.
 
@@ -454,7 +577,7 @@ Important note:
 - `direct_cancel` should not be part of `RetentionOfferEvent`
 - direct cancellation is a case-level process path, not a retention offer
 
-## 20. `offer_payload`
+## 24. `offer_payload`
 
 `offer_payload` is the structured snapshot of the concrete offer proposed in this event.
 
@@ -469,7 +592,7 @@ Important note:
 - this payload is a snapshot of the proposed offer at the time of the event
 - it should not be reconstructed later from current recommendation state or current business rules
 
-## 21. `decision_status`
+## 25. `decision_status`
 
 `decision_status` is the event-level decision state for one concrete offer proposal.
 
@@ -491,7 +614,7 @@ Important note:
 - `decision_status` is not the same as `CancellationCase.status`
 - it describes one offer event, not the whole cancellation journey
 
-## 22. `decision_reason`
+## 26. `decision_reason`
 
 `decision_reason` stores the reason behind the outcome of this concrete event.
 
@@ -506,7 +629,7 @@ Important note:
 - `CancellationCase.reason` explains why the subscription entered cancellation handling
 - `decision_reason` explains why a specific offer event ended the way it did
 
-## 23. `decided_at`, `decided_by`, and `applied_at`
+## 27. `decided_at`, `decided_by`, and `applied_at`
 
 These are event-level audit and materialization fields.
 
@@ -534,7 +657,7 @@ Represents:
 
 This is intentionally separate from `decided_at`.
 
-## 24. `metadata`
+## 28. `metadata`
 
 `metadata` remains a standard JSON field.
 
@@ -543,7 +666,7 @@ Why:
 - it can store supplementary technical or audit context
 - it should not store fields needed for primary filtering, sorting, or event-state transitions
 
-## 25. What should stay outside `RetentionOfferEvent`
+## 29. What should stay outside `RetentionOfferEvent`
 
 The following data should not be stored as core mutable fields on `RetentionOfferEvent`:
 
@@ -557,7 +680,7 @@ Why:
 - these belong to other aggregates
 - duplicating them would weaken source-of-truth boundaries already defined in `2.5.2`
 
-## 26. What should stay outside `CancellationCase`
+## 30. What should stay outside `CancellationCase`
 
 The following data should not be stored as core mutable fields on `CancellationCase`:
 
@@ -571,7 +694,7 @@ Why:
 - these belong to other aggregates or to the future `RetentionOfferEvent`
 - duplicating them would weaken source-of-truth boundaries already defined in `2.5.2`
 
-## 27. Query implications
+## 31. Query implications
 
 ### Direct fields should support:
 
