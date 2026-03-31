@@ -122,6 +122,8 @@ Status: `Planned`
 This area will focus on churn handling and retention workflows.
 
 Planned scope:
+- domain-first definition of cancellation case semantics and retention decisions
+- source-of-truth boundaries with `Subscriptions`, `Renewals`, and `Dunning`
 - structured cancellation reasons
 - retention offer flows before final cancellation
 - admin tools for pause, discount, or other save actions
