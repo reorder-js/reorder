@@ -20,9 +20,9 @@ The direction follows Medusa patterns:
 - Admin-facing operational areas should use explicit status and failure classification rather than parsing UI assumptions
 
 Implementation status:
-- `Dunning` is not implemented yet
-- this document is a design-time specification for the trigger boundary
-- runtime source-of-truth docs for `Dunning` will be added after implementation
+- `Dunning` is implemented
+- this document remains a design-time and decision-history specification for the trigger boundary
+- runtime source-of-truth lives in `docs/architecture/dunning.md`, `docs/api/admin-dunning.md`, `docs/admin/dunning.md`, and `docs/testing/dunning.md`
 
 ## 1. Trigger definition
 

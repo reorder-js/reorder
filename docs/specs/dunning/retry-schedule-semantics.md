@@ -22,9 +22,9 @@ The direction follows Medusa patterns:
 - admin overrides should be explicit domain actions, not hidden side effects
 
 Implementation status:
-- `Dunning` is not implemented yet
-- this document is a design-time specification for retry schedule semantics
-- runtime source-of-truth docs for `Dunning` will be added after implementation
+- `Dunning` is implemented
+- this document remains a design-time and decision-history specification for retry schedule semantics
+- runtime source-of-truth lives in `docs/architecture/dunning.md`, `docs/api/admin-dunning.md`, `docs/admin/dunning.md`, and `docs/testing/dunning.md`
 
 ## 1. Core semantics
 

@@ -17,14 +17,14 @@ This specification builds on:
 The design follows Medusa patterns:
 - custom modules own their own data models
 - relations inside the same module should use data-model relationships
-- relations to other modules should use scalar IDs plus module links
+- relations to other modules may use scalar IDs plus query-based enrichment in the current runtime, with module links remaining a planned refinement
 - fields used for queue processing, filtering, sorting, and operational decisions should be stored explicitly
 - JSON is appropriate for policy snapshots and flexible metadata, not for primary state-machine fields
 
 Implementation status:
-- `Dunning` is not implemented yet
-- this document is a design-time specification for the persistence model
-- runtime source-of-truth docs for `Dunning` will be added after implementation
+- `Dunning` is implemented
+- this document remains a design-time and decision-history specification for the persistence model
+- runtime source-of-truth lives in `docs/architecture/dunning.md`, `docs/api/admin-dunning.md`, `docs/admin/dunning.md`, and `docs/testing/dunning.md`
 
 ## 1. Design decision summary
 

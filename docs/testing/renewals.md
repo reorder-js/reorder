@@ -164,6 +164,7 @@ Covered behavior:
 - renewal respects subscription operational state
 - renewal applies approved pending changes back to the subscription state
 - renewal does not bypass active `Plans & Offers` policy
+- qualifying renewal payment failure starts `Dunning`
 
 This is intentionally a smoke-level integration check, not a full browser or system test.
 
@@ -171,6 +172,7 @@ This smoke-check is the main protection for the renewal boundary with:
 - subscription eligibility rules
 - approved pending change materialization
 - current offer-policy revalidation at execution time
+- dunning startup after payment-qualified renewal failure
 
 ## 6. Commands
 

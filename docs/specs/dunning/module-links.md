@@ -21,11 +21,16 @@ The direction follows Medusa patterns:
 - optional payment links should be deferred until a concrete read or retry need is proven
 
 Implementation status:
-- `Dunning` is not implemented yet
-- this document is a design-time specification for cross-module link strategy
-- runtime source-of-truth docs for `Dunning` will be added after implementation
+- `Dunning` is implemented
+- this document remains a design-time and decision-history specification for cross-module link strategy
+- runtime source-of-truth lives in `docs/architecture/dunning.md`, `docs/api/admin-dunning.md`, `docs/admin/dunning.md`, and `docs/testing/dunning.md`
 
 ## 1. Required module links
+
+Runtime note:
+- the current implementation does not yet use dedicated dunning module links
+- Admin reads currently rely on scalar IDs on `DunningCase` plus query-based enrichment
+- this document remains the planned link strategy rather than the current runtime mechanism
 
 `Dunning` needs three module links in MVP:
 

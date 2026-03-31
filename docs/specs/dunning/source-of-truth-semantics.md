@@ -22,9 +22,9 @@ The direction follows Medusa patterns:
 - read models may enrich across modules, but the aggregate root must remain explicit
 
 Implementation status:
-- `Dunning` is not implemented yet
-- this document is a design-time specification for aggregate boundaries and ownership
-- runtime source-of-truth docs for `Dunning` will be added after implementation
+- `Dunning` is implemented
+- this document remains a design-time and decision-history specification for aggregate boundaries and ownership
+- runtime source-of-truth lives in `docs/architecture/dunning.md`, `docs/api/admin-dunning.md`, `docs/admin/dunning.md`, and `docs/testing/dunning.md`
 
 ## 1. Core semantics
 

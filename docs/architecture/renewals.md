@@ -15,6 +15,7 @@ The current implementation supports:
 - approval and rejection of pending subscription changes before renewal
 - Admin queue and detail views for renewal operations
 - integration with `Subscriptions` and `Plans & Offers`
+- integration with `Dunning` for payment-qualified renewal failures
 - operational hardening through workflow locking, correlation IDs, structured logs, and scheduler summary metrics
 
 ## Architectural Overview
@@ -212,6 +213,7 @@ It is responsible for:
 - creating the renewal attempt
 - updating cycle status
 - creating the renewal order when applicable
+- starting `Dunning` when payment-qualified renewal failures happen after order creation
 - updating subscription cadence and snapshots
 - recording success or failure
 

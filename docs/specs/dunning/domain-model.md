@@ -21,9 +21,9 @@ The design follows Medusa patterns:
 - JSON is appropriate for retry policy snapshots and flexible diagnostics, not for primary state-machine fields
 
 Implementation status:
-- `Dunning` is not implemented yet
-- this document is a design-time specification for the domain contract
-- runtime source-of-truth docs for `Dunning` will be added after implementation
+- `Dunning` is implemented
+- this document remains a design-time and decision-history specification for the domain contract
+- runtime source-of-truth lives in `docs/architecture/dunning.md`, `docs/api/admin-dunning.md`, `docs/admin/dunning.md`, and `docs/testing/dunning.md`
 
 ## 1. Architectural assumptions
 

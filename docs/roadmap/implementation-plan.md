@@ -8,7 +8,7 @@ This document describes product direction, not a promise of delivery dates.
 
 ## Current Status
 
-The first three major areas of the plugin, `Subscriptions`, `Plans & Offers`, and `Renewals`, are complete and tested.
+The first four major areas of the plugin, `Subscriptions`, `Plans & Offers`, `Renewals`, and `Dunning`, are complete and tested.
 
 Implemented today:
 - subscription domain model and storage
@@ -32,10 +32,15 @@ Implemented today:
 - backend integration tests and admin flow integration coverage for `Renewals`
 - smoke-level integration between `Renewals`, `Subscriptions`, and `Plans & Offers`
 - production hardening for renewal scheduler and manual execution flows
+- dunning case domain model and storage
+- admin API routes for dunning list, detail, retry-now, mark recovered, mark unrecovered, and retry schedule override
+- Admin UI for dunning queue and detail flows nested under `Subscriptions`
+- scheduler-backed and manual dunning retry execution
+- backend integration tests and admin flow integration coverage for `Dunning`
+- smoke-level integration between `Dunning`, `Renewals`, and `Subscriptions`
+- production hardening for dunning scheduler and manual retry flows
 
 Planned next:
-- `Renewals`
-- `Dunning`
 - `Cancellation & Retention`
 
 ## Product Areas
@@ -94,18 +99,21 @@ This area provides the operational execution layer for active subscriptions.
 
 ### 4. Dunning
 
-Status: `Planned`
+Status: `Completed`
 
-This area will manage failed renewal payments and retry flows.
+This area manages failed renewal payments and retry flows.
 
-Planned scope:
+Implemented scope:
 - dunning case tracking
 - retry scheduling and retry execution
 - manual recovery actions in Admin
-- admin views for case monitoring and handling
-- operational visibility around payment recovery
+- admin queue and detail views nested under `Subscriptions`
+- retry-now, mark recovered, mark unrecovered, and retry schedule override actions
+- backend integration tests for workflow, route, and admin flow behavior
+- smoke-level integration with `Renewals` and `Subscriptions`
+- production hardening through locks, correlation IDs, structured logging, and scheduler summary metrics
 
-This area will reduce churn caused by payment failures and improve recovery workflows.
+This area reduces churn caused by payment failures and provides a dedicated payment recovery workflow for failed renewals.
 
 ### 5. Cancellation & Retention
 
@@ -167,3 +175,7 @@ If you want to contribute:
 - [Admin Plans & Offers API](../api/admin-plan-offers.md)
 - [Admin Plans & Offers UI](../admin/plan-offers.md)
 - [Plans & Offers Testing](../testing/plan-offers.md)
+- [Dunning Architecture](../architecture/dunning.md)
+- [Admin Dunning API](../api/admin-dunning.md)
+- [Admin Dunning UI](../admin/dunning.md)
+- [Dunning Testing](../testing/dunning.md)

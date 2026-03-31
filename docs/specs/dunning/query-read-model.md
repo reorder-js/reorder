@@ -23,9 +23,9 @@ The direction follows Medusa patterns:
 - in-memory sorting should be reserved for enriched display-only fields
 
 Implementation status:
-- `Dunning` is not implemented yet
-- this document is a design-time specification for the read model
-- runtime source-of-truth docs for `Dunning` will be added after implementation
+- `Dunning` is implemented
+- this document remains a design-time and decision-history specification for the read model
+- runtime source-of-truth lives in `docs/architecture/dunning.md`, `docs/api/admin-dunning.md`, `docs/admin/dunning.md`, and `docs/testing/dunning.md`
 
 ## 1. Read-model root
 

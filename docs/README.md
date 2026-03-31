@@ -6,9 +6,10 @@ At the moment, the following areas are implemented and tested:
 - `Subscriptions`
 - `Plans & Offers`
 - `Renewals`
-
-The remaining areas from the implementation plan are still in progress:
 - `Dunning`
+
+The remaining major areas from the implementation plan are still in progress:
+- `Cancellation & Retention`
 
 ## Current Status
 
@@ -31,6 +32,13 @@ Completed:
 - `Renewals` admin flow integration coverage
 - smoke-level integration between `Renewals`, `Subscriptions`, and `Plans & Offers`
 - `Renewals` operational hardening for scheduler and manual execution flows
+- `Dunning` domain model
+- `Dunning` admin API routes
+- `Dunning` Admin UI: queue, detail, retry-now, mark recovered, mark unrecovered, and retry schedule override
+- `Dunning` backend integration tests
+- `Dunning` admin flow integration coverage
+- smoke-level integration between `Dunning`, `Renewals`, and `Subscriptions`
+- `Dunning` operational hardening for scheduler and manual retry flows
 
 In progress:
 - next implementation stages from the roadmap
@@ -67,6 +75,11 @@ Runtime source-of-truth documents currently exist for:
   - `api/admin-renewals.md`
   - `admin/renewals.md`
   - `testing/renewals.md`
+- `Dunning`
+  - `architecture/dunning.md`
+  - `api/admin-dunning.md`
+  - `admin/dunning.md`
+  - `testing/dunning.md`
 
 ## Recommended Reading Order
 
@@ -79,7 +92,7 @@ For a new developer joining the project:
 
 ## Implemented Areas
 
-The currently implemented areas are `Subscriptions`, `Plans & Offers`, and `Renewals`.
+The currently implemented areas are `Subscriptions`, `Plans & Offers`, `Renewals`, and `Dunning`.
 
 ### Subscriptions
 
@@ -112,6 +125,21 @@ This area includes:
 - attempt history and linked subscription/order summaries
 - integration with `Subscriptions` eligibility and pending changes
 - integration with `Plans & Offers` policy validation at execution time
+- automatic `Dunning` case creation for payment-qualified renewal failures
+- operational hardening through workflow locking, correlation IDs, structured logs, and scheduler summary metrics
+
+### Dunning
+
+This area includes:
+- dunning case list in Admin
+- dunning case detail page
+- retry-now action
+- mark recovered and mark unrecovered actions
+- retry schedule override
+- scheduler-backed retry execution
+- attempt history and linked subscription, renewal, and order summaries
+- integration with `Renewals` payment-qualified failures
+- integration with `Subscriptions` lifecycle state through `past_due` and recovery back to `active`
 - operational hardening through workflow locking, correlation IDs, structured logs, and scheduler summary metrics
 
 ## Notes

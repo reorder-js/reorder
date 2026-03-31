@@ -22,9 +22,9 @@ The direction follows Medusa patterns:
 - manual admin actions should reuse the same domain rules rather than inventing parallel semantics
 
 Implementation status:
-- `Dunning` is not implemented yet
-- this document is a design-time specification for status and transition semantics
-- runtime source-of-truth docs for `Dunning` will be added after implementation
+- `Dunning` is implemented
+- this document remains a design-time and decision-history specification for status and transition semantics
+- runtime source-of-truth lives in `docs/architecture/dunning.md`, `docs/api/admin-dunning.md`, `docs/admin/dunning.md`, and `docs/testing/dunning.md`
 
 ## 1. State model overview
 
