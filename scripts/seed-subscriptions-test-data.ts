@@ -1,5 +1,12 @@
 import type { ExecArgs, MedusaContainer } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import { DUNNING_MODULE } from "../src/modules/dunning"
+import type DunningModuleService from "../src/modules/dunning/service"
+import {
+  DunningAttemptStatus,
+  DunningCaseStatus,
+  type DunningRetrySchedule,
+} from "../src/modules/dunning/types"
 import { PLAN_OFFER_MODULE } from "../src/modules/plan-offer"
 import type PlanOfferModuleService from "../src/modules/plan-offer/service"
 import {
@@ -50,6 +57,7 @@ type SeedSummaryRow = {
   scenario: string
   subscription_reference: string
   renewal_cycle_id?: string
+  dunning_case_id?: string
   notes: string
 }
 
@@ -64,13 +72,35 @@ const IDS = {
   subApprovalPending: "sub_seed_subscriptions_approval_pending",
   subPolicyBlocked: "sub_seed_subscriptions_policy_blocked",
   subFailedHistory: "sub_seed_subscriptions_failed_history",
+  subDunningRetryScheduled: "sub_seed_dunning_retry_scheduled",
+  subDunningAwaitingManual: "sub_seed_dunning_awaiting_manual",
+  subDunningRecovered: "sub_seed_dunning_recovered",
+  subDunningUnrecovered: "sub_seed_dunning_unrecovered",
+  subDunningManualOverride: "sub_seed_dunning_manual_override",
   cycleSuccess: "re_seed_subscriptions_success",
   cyclePaused: "re_seed_subscriptions_paused",
   cycleCancelEffective: "re_seed_subscriptions_cancel_effective",
   cycleApprovalPending: "re_seed_subscriptions_approval_pending",
   cyclePolicyBlocked: "re_seed_subscriptions_policy_blocked",
   cycleFailedHistory: "re_seed_subscriptions_failed_history",
+  cycleDunningRetryScheduled: "re_seed_dunning_retry_scheduled",
+  cycleDunningAwaitingManual: "re_seed_dunning_awaiting_manual",
+  cycleDunningRecovered: "re_seed_dunning_recovered",
+  cycleDunningUnrecovered: "re_seed_dunning_unrecovered",
+  cycleDunningManualOverride: "re_seed_dunning_manual_override",
   attemptFailedHistory: "rea_seed_subscriptions_failed_history",
+  dunningRetryScheduled: "dc_seed_dunning_retry_scheduled",
+  dunningAwaitingManual: "dc_seed_dunning_awaiting_manual",
+  dunningRecovered: "dc_seed_dunning_recovered",
+  dunningUnrecovered: "dc_seed_dunning_unrecovered",
+  dunningManualOverride: "dc_seed_dunning_manual_override",
+  dunningAttemptAwaitingManual: "da_seed_dunning_awaiting_manual_1",
+  dunningAttemptRecoveredFailed: "da_seed_dunning_recovered_1",
+  dunningAttemptRecoveredSucceeded: "da_seed_dunning_recovered_2",
+  dunningAttemptUnrecoveredOne: "da_seed_dunning_unrecovered_1",
+  dunningAttemptUnrecoveredTwo: "da_seed_dunning_unrecovered_2",
+  dunningAttemptUnrecoveredThree: "da_seed_dunning_unrecovered_3",
+  dunningAttemptManualOverride: "da_seed_dunning_manual_override_1",
 } as const
 
 function addDays(date: Date, days: number) {
@@ -149,6 +179,7 @@ function buildSubscriptionRecord(input: {
   cancel_effective_at?: Date | null
   pending_update_data?: Record<string, unknown> | null
   cart_id?: string | null
+  payment_provider_id?: string | null
 }) {
   return {
     id: input.id,
@@ -199,7 +230,7 @@ function buildSubscriptionRecord(input: {
       phone: "+48111111111",
     },
     payment_context: {
-      payment_provider_id: "pp_system_default",
+      payment_provider_id: input.payment_provider_id ?? "pp_system_default",
       source_payment_collection_id: null,
       source_payment_session_id: null,
       payment_method_reference: null,
@@ -262,14 +293,50 @@ async function upsertRenewalAttempt(
   }
 }
 
+async function upsertDunningCase(
+  service: DunningModuleService,
+  input: Record<string, unknown>
+) {
+  try {
+    await service.retrieveDunningCase(String(input.id))
+    return await service.updateDunningCases(input as any)
+  } catch {
+    return await service.createDunningCases(input as any)
+  }
+}
+
+async function upsertDunningAttempt(
+  service: DunningModuleService,
+  input: Record<string, unknown>
+) {
+  try {
+    await service.retrieveDunningAttempt(String(input.id))
+    return await service.updateDunningAttempts(input as any)
+  } catch {
+    return await service.createDunningAttempts(input as any)
+  }
+}
+
+function buildRetrySchedule(input?: Partial<DunningRetrySchedule>): DunningRetrySchedule {
+  return {
+    strategy: "fixed_intervals",
+    intervals: input?.intervals ?? [1440, 4320, 10080],
+    timezone: "UTC",
+    source: input?.source ?? "default_policy",
+  }
+}
+
 function formatSummary(rows: SeedSummaryRow[]) {
   return rows
     .map((row) => {
       const cyclePart = row.renewal_cycle_id
         ? ` renewal=${row.renewal_cycle_id}`
         : ""
+      const dunningPart = row.dunning_case_id
+        ? ` dunning=${row.dunning_case_id}`
+        : ""
 
-      return `- ${row.scenario}: subscription=${row.subscription_reference}${cyclePart} | ${row.notes}`
+      return `- ${row.scenario}: subscription=${row.subscription_reference}${cyclePart}${dunningPart} | ${row.notes}`
     })
     .join("\n")
 }
@@ -284,6 +351,8 @@ export default async function seedSubscriptionsTestData({
     container.resolve<SubscriptionModuleService>(SUBSCRIPTION_MODULE)
   const renewalModule =
     container.resolve<RenewalModuleService>(RENEWAL_MODULE)
+  const dunningModule =
+    container.resolve<DunningModuleService>(DUNNING_MODULE)
 
   logger.info("[subscriptions-test-data] Resolving products and existing offers")
 
@@ -359,6 +428,11 @@ export default async function seedSubscriptionsTestData({
   const approvalScheduledFor = addDays(FIXED_TIME, 5)
   const policyBlockedScheduledFor = addDays(FIXED_TIME, 6)
   const failedHistoryScheduledFor = addDays(FIXED_TIME, -2)
+  const dunningRetryScheduledAt = addDays(FIXED_TIME, -1)
+  const dunningAwaitingManualAt = addDays(FIXED_TIME, -3)
+  const dunningRecoveredAt = addDays(FIXED_TIME, -7)
+  const dunningUnrecoveredAt = addDays(FIXED_TIME, -10)
+  const dunningManualOverrideAt = addDays(FIXED_TIME, -4)
 
   await upsertSubscription(
     subscriptionModule,
@@ -464,6 +538,86 @@ export default async function seedSubscriptionsTestData({
       next_renewal_at: failedHistoryScheduledFor,
       skip_next_cycle: false,
       cart_id: null,
+    })
+  )
+
+  await upsertSubscription(
+    subscriptionModule,
+    buildSubscriptionRecord({
+      id: IDS.subDunningRetryScheduled,
+      reference: "SUB-QA-DUN-RETRY-SCHEDULED",
+      target: targets.success,
+      status: SubscriptionStatus.PAST_DUE,
+      frequency_interval: SubscriptionFrequencyInterval.MONTH,
+      frequency_value: 1,
+      next_renewal_at: addDays(FIXED_TIME, 1),
+      skip_next_cycle: false,
+      cart_id: "cart_seed_dunning_retry_scheduled",
+      payment_provider_id: "pp_stripe_stripe",
+    })
+  )
+
+  await upsertSubscription(
+    subscriptionModule,
+    buildSubscriptionRecord({
+      id: IDS.subDunningAwaitingManual,
+      reference: "SUB-QA-DUN-AWAITING-MANUAL",
+      target: targets.success,
+      status: SubscriptionStatus.PAST_DUE,
+      frequency_interval: SubscriptionFrequencyInterval.MONTH,
+      frequency_value: 1,
+      next_renewal_at: addDays(FIXED_TIME, 2),
+      skip_next_cycle: false,
+      cart_id: "cart_seed_dunning_awaiting_manual",
+      payment_provider_id: "pp_stripe_stripe",
+    })
+  )
+
+  await upsertSubscription(
+    subscriptionModule,
+    buildSubscriptionRecord({
+      id: IDS.subDunningRecovered,
+      reference: "SUB-QA-DUN-RECOVERED",
+      target: targets.success,
+      status: SubscriptionStatus.ACTIVE,
+      frequency_interval: SubscriptionFrequencyInterval.MONTH,
+      frequency_value: 1,
+      next_renewal_at: addDays(FIXED_TIME, 14),
+      skip_next_cycle: false,
+      cart_id: "cart_seed_dunning_recovered",
+      payment_provider_id: "pp_adyen_adyen",
+    })
+  )
+
+  await upsertSubscription(
+    subscriptionModule,
+    buildSubscriptionRecord({
+      id: IDS.subDunningUnrecovered,
+      reference: "SUB-QA-DUN-UNRECOVERED",
+      target: targets.success,
+      status: SubscriptionStatus.PAST_DUE,
+      frequency_interval: SubscriptionFrequencyInterval.MONTH,
+      frequency_value: 1,
+      next_renewal_at: addDays(FIXED_TIME, -1),
+      skip_next_cycle: false,
+      cart_id: "cart_seed_dunning_unrecovered",
+      payment_provider_id: "pp_paypal_paypal",
+    })
+  )
+
+  await upsertSubscription(
+    subscriptionModule,
+    buildSubscriptionRecord({
+      id: IDS.subDunningManualOverride,
+      reference: "SUB-QA-DUN-MANUAL-OVERRIDE",
+      target: targets.success,
+      status: SubscriptionStatus.PAST_DUE,
+      frequency_interval: SubscriptionFrequencyInterval.MONTH,
+      frequency_value: 1,
+      next_renewal_at: addDays(FIXED_TIME, 3),
+      skip_next_cycle: false,
+      cart_id: "cart_seed_dunning_manual_override",
+      payment_provider_id: "pp_stripe_stripe",
     })
   )
 
@@ -593,6 +747,111 @@ export default async function seedSubscriptionsTestData({
     },
   })
 
+  await upsertRenewalCycle(renewalModule, {
+    id: IDS.cycleDunningRetryScheduled,
+    subscription_id: IDS.subDunningRetryScheduled,
+    scheduled_for: dunningRetryScheduledAt,
+    processed_at: addDays(FIXED_TIME, -1),
+    status: RenewalCycleStatus.FAILED,
+    approval_required: false,
+    approval_status: null,
+    approval_decided_at: null,
+    approval_decided_by: null,
+    approval_reason: null,
+    generated_order_id: "ord_seed_dunning_retry_scheduled",
+    applied_pending_update_data: null,
+    last_error: "Card declined during payment authorization",
+    attempt_count: 1,
+    metadata: {
+      seed_namespace: "subscriptions-test-data",
+      scenario: "dunning-retry-scheduled",
+    },
+  })
+
+  await upsertRenewalCycle(renewalModule, {
+    id: IDS.cycleDunningAwaitingManual,
+    subscription_id: IDS.subDunningAwaitingManual,
+    scheduled_for: dunningAwaitingManualAt,
+    processed_at: addDays(FIXED_TIME, -3),
+    status: RenewalCycleStatus.FAILED,
+    approval_required: false,
+    approval_status: null,
+    approval_decided_at: null,
+    approval_decided_by: null,
+    approval_reason: null,
+    generated_order_id: "ord_seed_dunning_awaiting_manual",
+    applied_pending_update_data: null,
+    last_error: "Payment requires additional customer authentication",
+    attempt_count: 1,
+    metadata: {
+      seed_namespace: "subscriptions-test-data",
+      scenario: "dunning-awaiting-manual",
+    },
+  })
+
+  await upsertRenewalCycle(renewalModule, {
+    id: IDS.cycleDunningRecovered,
+    subscription_id: IDS.subDunningRecovered,
+    scheduled_for: dunningRecoveredAt,
+    processed_at: addDays(FIXED_TIME, -7),
+    status: RenewalCycleStatus.FAILED,
+    approval_required: false,
+    approval_status: null,
+    approval_decided_at: null,
+    approval_decided_by: null,
+    approval_reason: null,
+    generated_order_id: "ord_seed_dunning_recovered",
+    applied_pending_update_data: null,
+    last_error: "Initial payment authorization failed before recovery",
+    attempt_count: 1,
+    metadata: {
+      seed_namespace: "subscriptions-test-data",
+      scenario: "dunning-recovered",
+    },
+  })
+
+  await upsertRenewalCycle(renewalModule, {
+    id: IDS.cycleDunningUnrecovered,
+    subscription_id: IDS.subDunningUnrecovered,
+    scheduled_for: dunningUnrecoveredAt,
+    processed_at: addDays(FIXED_TIME, -10),
+    status: RenewalCycleStatus.FAILED,
+    approval_required: false,
+    approval_status: null,
+    approval_decided_at: null,
+    approval_decided_by: null,
+    approval_reason: null,
+    generated_order_id: "ord_seed_dunning_unrecovered",
+    applied_pending_update_data: null,
+    last_error: "Payment method expired and recovery attempts were exhausted",
+    attempt_count: 3,
+    metadata: {
+      seed_namespace: "subscriptions-test-data",
+      scenario: "dunning-unrecovered",
+    },
+  })
+
+  await upsertRenewalCycle(renewalModule, {
+    id: IDS.cycleDunningManualOverride,
+    subscription_id: IDS.subDunningManualOverride,
+    scheduled_for: dunningManualOverrideAt,
+    processed_at: addDays(FIXED_TIME, -4),
+    status: RenewalCycleStatus.FAILED,
+    approval_required: false,
+    approval_status: null,
+    approval_decided_at: null,
+    approval_decided_by: null,
+    approval_reason: null,
+    generated_order_id: "ord_seed_dunning_manual_override",
+    applied_pending_update_data: null,
+    last_error: "Retry schedule was manually overridden after repeated soft declines",
+    attempt_count: 1,
+    metadata: {
+      seed_namespace: "subscriptions-test-data",
+      scenario: "dunning-manual-override",
+    },
+  })
+
   await upsertRenewalAttempt(renewalModule, {
     id: IDS.attemptFailedHistory,
     renewal_cycle_id: IDS.cycleFailedHistory,
@@ -607,6 +866,237 @@ export default async function seedSubscriptionsTestData({
     metadata: {
       seed_namespace: "subscriptions-test-data",
       scenario: "renewal-failed-history",
+    },
+  })
+
+  await upsertDunningCase(dunningModule, {
+    id: IDS.dunningRetryScheduled,
+    subscription_id: IDS.subDunningRetryScheduled,
+    renewal_cycle_id: IDS.cycleDunningRetryScheduled,
+    renewal_order_id: "ord_seed_dunning_retry_scheduled",
+    status: DunningCaseStatus.RETRY_SCHEDULED,
+    attempt_count: 0,
+    max_attempts: 3,
+    retry_schedule: buildRetrySchedule(),
+    next_retry_at: addDays(FIXED_TIME, 1),
+    last_payment_error_code: "card_declined",
+    last_payment_error_message: "Issuer declined the renewal authorization attempt.",
+    last_attempt_at: null,
+    recovered_at: null,
+    closed_at: null,
+    recovery_reason: null,
+    metadata: {
+      seed_namespace: "subscriptions-test-data",
+      scenario: "dunning-retry-scheduled",
+      qa_focus: ["queue", "filters", "retry-now"],
+    },
+  })
+
+  await upsertDunningCase(dunningModule, {
+    id: IDS.dunningAwaitingManual,
+    subscription_id: IDS.subDunningAwaitingManual,
+    renewal_cycle_id: IDS.cycleDunningAwaitingManual,
+    renewal_order_id: "ord_seed_dunning_awaiting_manual",
+    status: DunningCaseStatus.AWAITING_MANUAL_RESOLUTION,
+    attempt_count: 1,
+    max_attempts: 3,
+    retry_schedule: buildRetrySchedule(),
+    next_retry_at: null,
+    last_payment_error_code: "requires_more",
+    last_payment_error_message: "Customer action is required before another retry can succeed.",
+    last_attempt_at: addDays(FIXED_TIME, -2),
+    recovered_at: null,
+    closed_at: null,
+    recovery_reason: null,
+    metadata: {
+      seed_namespace: "subscriptions-test-data",
+      scenario: "dunning-awaiting-manual",
+      qa_focus: ["detail", "mark-recovered", "mark-unrecovered"],
+    },
+  })
+
+  await upsertDunningCase(dunningModule, {
+    id: IDS.dunningRecovered,
+    subscription_id: IDS.subDunningRecovered,
+    renewal_cycle_id: IDS.cycleDunningRecovered,
+    renewal_order_id: "ord_seed_dunning_recovered",
+    status: DunningCaseStatus.RECOVERED,
+    attempt_count: 1,
+    max_attempts: 3,
+    retry_schedule: buildRetrySchedule(),
+    next_retry_at: null,
+    last_payment_error_code: null,
+    last_payment_error_message: null,
+    last_attempt_at: addDays(FIXED_TIME, -6),
+    recovered_at: addDays(FIXED_TIME, -6),
+    closed_at: addDays(FIXED_TIME, -6),
+    recovery_reason: "automatic_retry_succeeded",
+    metadata: {
+      seed_namespace: "subscriptions-test-data",
+      scenario: "dunning-recovered",
+      qa_focus: ["history", "detail", "terminal-state"],
+    },
+  })
+
+  await upsertDunningCase(dunningModule, {
+    id: IDS.dunningUnrecovered,
+    subscription_id: IDS.subDunningUnrecovered,
+    renewal_cycle_id: IDS.cycleDunningUnrecovered,
+    renewal_order_id: "ord_seed_dunning_unrecovered",
+    status: DunningCaseStatus.UNRECOVERED,
+    attempt_count: 3,
+    max_attempts: 3,
+    retry_schedule: buildRetrySchedule(),
+    next_retry_at: null,
+    last_payment_error_code: "expired_card",
+    last_payment_error_message: "The saved payment method expired and recovery attempts were exhausted.",
+    last_attempt_at: addDays(FIXED_TIME, -8),
+    recovered_at: null,
+    closed_at: addDays(FIXED_TIME, -8),
+    recovery_reason: "max_attempts_exceeded",
+    metadata: {
+      seed_namespace: "subscriptions-test-data",
+      scenario: "dunning-unrecovered",
+      qa_focus: ["history", "filters", "terminal-state"],
+    },
+  })
+
+  await upsertDunningCase(dunningModule, {
+    id: IDS.dunningManualOverride,
+    subscription_id: IDS.subDunningManualOverride,
+    renewal_cycle_id: IDS.cycleDunningManualOverride,
+    renewal_order_id: "ord_seed_dunning_manual_override",
+    status: DunningCaseStatus.RETRY_SCHEDULED,
+    attempt_count: 1,
+    max_attempts: 4,
+    retry_schedule: buildRetrySchedule({
+      intervals: [720, 1440, 2880, 5760],
+      source: "manual_override",
+    }),
+    next_retry_at: addDays(FIXED_TIME, 2),
+    last_payment_error_code: "insufficient_funds",
+    last_payment_error_message: "Soft decline after a manual retry schedule override.",
+    last_attempt_at: addDays(FIXED_TIME, -3),
+    recovered_at: null,
+    closed_at: null,
+    recovery_reason: null,
+    metadata: {
+      seed_namespace: "subscriptions-test-data",
+      scenario: "dunning-manual-override",
+      qa_focus: ["schedule-override", "filters", "detail"],
+    },
+  })
+
+  await upsertDunningAttempt(dunningModule, {
+    id: IDS.dunningAttemptAwaitingManual,
+    dunning_case_id: IDS.dunningAwaitingManual,
+    attempt_no: 1,
+    started_at: addDays(FIXED_TIME, -2),
+    finished_at: addDays(FIXED_TIME, -2),
+    status: DunningAttemptStatus.FAILED,
+    error_code: "requires_more",
+    error_message: "3DS authentication is required before another payment attempt.",
+    payment_reference: "pay_seed_dunning_awaiting_manual_1",
+    metadata: {
+      seed_namespace: "subscriptions-test-data",
+      scenario: "dunning-awaiting-manual",
+    },
+  })
+
+  await upsertDunningAttempt(dunningModule, {
+    id: IDS.dunningAttemptRecoveredFailed,
+    dunning_case_id: IDS.dunningRecovered,
+    attempt_no: 1,
+    started_at: addDays(FIXED_TIME, -7),
+    finished_at: addDays(FIXED_TIME, -7),
+    status: DunningAttemptStatus.FAILED,
+    error_code: "authentication_required",
+    error_message: "Initial recovery attempt required customer authentication.",
+    payment_reference: "pay_seed_dunning_recovered_1",
+    metadata: {
+      seed_namespace: "subscriptions-test-data",
+      scenario: "dunning-recovered",
+    },
+  })
+
+  await upsertDunningAttempt(dunningModule, {
+    id: IDS.dunningAttemptRecoveredSucceeded,
+    dunning_case_id: IDS.dunningRecovered,
+    attempt_no: 2,
+    started_at: addDays(FIXED_TIME, -6),
+    finished_at: addDays(FIXED_TIME, -6),
+    status: DunningAttemptStatus.SUCCEEDED,
+    error_code: null,
+    error_message: null,
+    payment_reference: "pay_seed_dunning_recovered_2",
+    metadata: {
+      seed_namespace: "subscriptions-test-data",
+      scenario: "dunning-recovered",
+    },
+  })
+
+  await upsertDunningAttempt(dunningModule, {
+    id: IDS.dunningAttemptUnrecoveredOne,
+    dunning_case_id: IDS.dunningUnrecovered,
+    attempt_no: 1,
+    started_at: addDays(FIXED_TIME, -10),
+    finished_at: addDays(FIXED_TIME, -10),
+    status: DunningAttemptStatus.FAILED,
+    error_code: "expired_card",
+    error_message: "Retry failed because the stored card was already expired.",
+    payment_reference: "pay_seed_dunning_unrecovered_1",
+    metadata: {
+      seed_namespace: "subscriptions-test-data",
+      scenario: "dunning-unrecovered",
+    },
+  })
+
+  await upsertDunningAttempt(dunningModule, {
+    id: IDS.dunningAttemptUnrecoveredTwo,
+    dunning_case_id: IDS.dunningUnrecovered,
+    attempt_no: 2,
+    started_at: addDays(FIXED_TIME, -9),
+    finished_at: addDays(FIXED_TIME, -9),
+    status: DunningAttemptStatus.FAILED,
+    error_code: "expired_card",
+    error_message: "Second retry failed with the same expired payment method.",
+    payment_reference: "pay_seed_dunning_unrecovered_2",
+    metadata: {
+      seed_namespace: "subscriptions-test-data",
+      scenario: "dunning-unrecovered",
+    },
+  })
+
+  await upsertDunningAttempt(dunningModule, {
+    id: IDS.dunningAttemptUnrecoveredThree,
+    dunning_case_id: IDS.dunningUnrecovered,
+    attempt_no: 3,
+    started_at: addDays(FIXED_TIME, -8),
+    finished_at: addDays(FIXED_TIME, -8),
+    status: DunningAttemptStatus.FAILED,
+    error_code: "expired_card",
+    error_message: "Final retry failed and the case was closed as unrecovered.",
+    payment_reference: "pay_seed_dunning_unrecovered_3",
+    metadata: {
+      seed_namespace: "subscriptions-test-data",
+      scenario: "dunning-unrecovered",
+    },
+  })
+
+  await upsertDunningAttempt(dunningModule, {
+    id: IDS.dunningAttemptManualOverride,
+    dunning_case_id: IDS.dunningManualOverride,
+    attempt_no: 1,
+    started_at: addDays(FIXED_TIME, -3),
+    finished_at: addDays(FIXED_TIME, -3),
+    status: DunningAttemptStatus.FAILED,
+    error_code: "insufficient_funds",
+    error_message: "Retry failed due to insufficient funds before a manual override was applied.",
+    payment_reference: "pay_seed_dunning_manual_override_1",
+    metadata: {
+      seed_namespace: "subscriptions-test-data",
+      scenario: "dunning-manual-override",
+      manual_override_reason: "Customer requested more time before next retry.",
     },
   })
 
@@ -650,6 +1140,46 @@ export default async function seedSubscriptionsTestData({
       renewal_cycle_id: IDS.cycleFailedHistory,
       notes:
         "Use to inspect failed attempt history and failed cycle UI states.",
+    },
+    {
+      scenario: "Dunning retry scheduled queue item",
+      subscription_reference: "SUB-QA-DUN-RETRY-SCHEDULED",
+      renewal_cycle_id: IDS.cycleDunningRetryScheduled,
+      dunning_case_id: IDS.dunningRetryScheduled,
+      notes:
+        "Use on Subscriptions > Dunning for queue filters, due retry visibility, and Retry now.",
+    },
+    {
+      scenario: "Dunning awaiting manual resolution",
+      subscription_reference: "SUB-QA-DUN-AWAITING-MANUAL",
+      renewal_cycle_id: IDS.cycleDunningAwaitingManual,
+      dunning_case_id: IDS.dunningAwaitingManual,
+      notes:
+        "Use on detail page to review failed timeline and test Mark recovered / Mark unrecovered.",
+    },
+    {
+      scenario: "Dunning recovered history",
+      subscription_reference: "SUB-QA-DUN-RECOVERED",
+      renewal_cycle_id: IDS.cycleDunningRecovered,
+      dunning_case_id: IDS.dunningRecovered,
+      notes:
+        "Use to inspect a completed recovery with failed + successful attempts in the timeline.",
+    },
+    {
+      scenario: "Dunning unrecovered history",
+      subscription_reference: "SUB-QA-DUN-UNRECOVERED",
+      renewal_cycle_id: IDS.cycleDunningUnrecovered,
+      dunning_case_id: IDS.dunningUnrecovered,
+      notes:
+        "Use to inspect max-attempt exhaustion, terminal unrecovered state, and filters by provider/error code.",
+    },
+    {
+      scenario: "Dunning manual schedule override",
+      subscription_reference: "SUB-QA-DUN-MANUAL-OVERRIDE",
+      renewal_cycle_id: IDS.cycleDunningManualOverride,
+      dunning_case_id: IDS.dunningManualOverride,
+      notes:
+        "Use to inspect a case with manual_override retry schedule and test the retry schedule drawer.",
     },
   ]
 
