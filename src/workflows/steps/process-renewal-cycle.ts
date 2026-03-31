@@ -1,4 +1,5 @@
 import { IPaymentModuleService, MedusaContainer } from "@medusajs/framework/types"
+import { BigNumberInput } from "@medusajs/types"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 import {
@@ -31,6 +32,7 @@ import {
   SubscriptionStatus,
 } from "../../modules/subscription/types"
 import { subscriptionErrors } from "../../modules/subscription/utils/errors"
+import { startDunningWorkflow } from "../start-dunning"
 
 type CartRecord = {
   id: string
@@ -48,6 +50,16 @@ type CartRecord = {
 type OrderRecord = {
   id: string
   total?: number | string | null
+}
+
+type PaymentSessionRecord = {
+  id: string
+  context?: Record<string, unknown> | null
+}
+
+type PaymentRecord = {
+  id: string
+  amount: BigNumberInput
 }
 
 type SubscriptionRecord = {
@@ -114,6 +126,17 @@ type RenewalCycleRecord = {
   last_error: string | null
   attempt_count: number
   metadata: Record<string, unknown> | null
+}
+
+type PaymentQualifiedFailureSource =
+  | "payment_session"
+  | "payment_provider"
+  | "payment_capture"
+
+type PaymentQualifiedRenewalError = Error & {
+  dunning_payment_failure_source?: PaymentQualifiedFailureSource
+  dunning_payment_error_code?: string | null
+  dunning_renewal_order_id?: string | null
 }
 
 function addCadence(
@@ -469,32 +492,60 @@ async function createRenewalOrder(
       )
     }
 
-    const paymentSessionResult = await createPaymentSessionsWorkflow(container).run({
-      input: {
-        payment_collection_id: paymentCollection.id,
-        provider_id: paymentContext.payment_provider_id,
-        customer_id: subscription.customer_id,
-        data: {
-          payment_method: paymentContext.payment_method_reference,
-          off_session: true,
-          confirm: true,
-          capture_method: "automatic",
+    let paymentSessionResult: { result: PaymentSessionRecord }
+
+    try {
+      paymentSessionResult = await createPaymentSessionsWorkflow(container).run({
+        input: {
+          payment_collection_id: paymentCollection.id,
+          provider_id: paymentContext.payment_provider_id,
+          customer_id: subscription.customer_id,
+          data: {
+            payment_method: paymentContext.payment_method_reference,
+            off_session: true,
+            confirm: true,
+            capture_method: "automatic",
+          },
         },
-      },
-    })
+      })
+    } catch (error) {
+      throw createPaymentQualifiedRenewalError(
+        error,
+        "payment_session",
+        order.id
+      )
+    }
 
     const paymentModule =
       container.resolve<IPaymentModuleService>(Modules.PAYMENT)
-    const payment = await paymentModule.authorizePaymentSession(
-      paymentSessionResult.result.id,
-      paymentSessionResult.result.context ?? {}
-    )
+    let payment: PaymentRecord | undefined | null
+
+    try {
+      payment = await paymentModule.authorizePaymentSession(
+        paymentSessionResult.result.id,
+        paymentSessionResult.result.context ?? {}
+      )
+    } catch (error) {
+      throw createPaymentQualifiedRenewalError(
+        error,
+        "payment_provider",
+        order.id
+      )
+    }
 
     if (payment?.id) {
-      await paymentModule.capturePayment({
-        payment_id: payment.id,
-        amount: payment.amount,
-      })
+      try {
+        await paymentModule.capturePayment({
+          payment_id: payment.id,
+          amount: payment.amount,
+        })
+      } catch (error) {
+        throw createPaymentQualifiedRenewalError(
+          error,
+          "payment_capture",
+          order.id
+        )
+      }
     }
   }
 
@@ -519,6 +570,47 @@ async function createRenewalOrder(
   })
 
   return order
+}
+
+function createPaymentQualifiedRenewalError(
+  error: unknown,
+  source: PaymentQualifiedFailureSource,
+  renewalOrderId: string
+): PaymentQualifiedRenewalError {
+  const message = getRenewalErrorMessage(error)
+  const nextError =
+    error instanceof Error ? error : new Error(message)
+
+  const typedError = nextError as PaymentQualifiedRenewalError
+  typedError.dunning_payment_failure_source = source
+  typedError.dunning_payment_error_code = null
+  typedError.dunning_renewal_order_id = renewalOrderId
+
+  return typedError
+}
+
+function getPaymentQualifiedFailureContext(
+  error: unknown
+): {
+  source: PaymentQualifiedFailureSource
+  error_code: string | null
+  renewal_order_id: string | null
+} | null {
+  if (!error || typeof error !== "object") {
+    return null
+  }
+
+  const typedError = error as PaymentQualifiedRenewalError
+
+  if (!typedError.dunning_payment_failure_source) {
+    return null
+  }
+
+  return {
+    source: typedError.dunning_payment_failure_source,
+    error_code: typedError.dunning_payment_error_code ?? null,
+    renewal_order_id: typedError.dunning_renewal_order_id ?? null,
+  }
 }
 
 export const processRenewalCycleStep = createStep(
@@ -729,6 +821,7 @@ export const processRenewalCycleStep = createStep(
       const finishedAt = new Date()
       const message = getRenewalErrorMessage(error)
       const failureKind = classifyRenewalFailure(error)
+      const paymentFailure = getPaymentQualifiedFailureContext(error)
 
       await renewalModule.updateRenewalAttempts({
         id: attempt.id,
@@ -736,14 +829,56 @@ export const processRenewalCycleStep = createStep(
         finished_at: finishedAt,
         error_code: "renewal_failed",
         error_message: message,
+        order_id: paymentFailure?.renewal_order_id ?? null,
       })
 
       await renewalModule.updateRenewalCycles({
         id: cycle.id,
         status: RenewalCycleStatus.FAILED,
         processed_at: finishedAt,
+        generated_order_id: paymentFailure?.renewal_order_id ?? null,
         last_error: message,
       })
+
+      if (paymentFailure) {
+        try {
+          await startDunningWorkflow(container).run({
+            input: {
+              subscription_id: subscription.id,
+              renewal_cycle_id: cycle.id,
+              renewal_order_id: paymentFailure.renewal_order_id,
+              payment_failure_source: paymentFailure.source,
+              payment_error_code: paymentFailure.error_code,
+              payment_error_message: message,
+              failed_at: finishedAt,
+              triggered_by: input.triggered_by ?? null,
+              reason: input.reason ?? null,
+              metadata: {
+                renewal_trigger_type: input.trigger_type,
+                renewal_attempt_id: attempt.id,
+                renewal_attempt_no: attemptNo,
+                renewal_correlation_id: correlationId,
+              },
+            },
+          })
+        } catch (dunningError) {
+          logRenewalEvent(logger, "warn", {
+            event: "renewal.dunning",
+            outcome: "failed",
+            correlation_id: correlationId,
+            renewal_cycle_id: cycle.id,
+            subscription_id: subscription.id,
+            trigger_type: input.trigger_type,
+            triggered_by: input.triggered_by ?? null,
+            duration_ms: Date.now() - operationStartedAt,
+            failure_kind: failureKind,
+            alertable: true,
+            message: `Failed to start dunning after renewal failure: ${getRenewalErrorMessage(
+              dunningError
+            )}`,
+          })
+        }
+      }
 
       logRenewalEvent(logger, "error", {
         event: "renewal.execution",
