@@ -1,9 +1,10 @@
 # Reorder: Cancellation & Retention Domain Model Spec
 
-This document covers step `2.5.3` from `documentation/implementation_plan.md`.
+This document covers steps `2.5.3` and `2.5.4` from `documentation/implementation_plan.md`.
 
 Goal:
 - define the domain contract for `CancellationCase`
+- define the domain contract for `RetentionOfferEvent`
 - decide which data belongs to regular model fields
 - decide which data should remain outside the aggregate and move to future history records
 - provide a stable foundation for workflows, Admin reads, and later retention-offer history
@@ -350,7 +351,213 @@ Why:
 - it can store supplementary audit or technical context
 - it should not store fields needed for primary filtering, sorting, or state transitions
 
-## 16. What should stay outside `CancellationCase`
+## 16. `RetentionOfferEvent` domain contract
+
+Minimal domain contract:
+
+- `id`
+- `cancellation_case_id`
+- `offer_type`
+- `offer_payload`
+- `decision_status`
+- `decision_reason`
+- `decided_at`
+- `decided_by`
+- `applied_at`
+- `metadata`
+
+### Proposed logical shape
+
+```ts
+type RetentionOfferEvent = {
+  id: string
+  cancellation_case_id: string
+  offer_type: "pause_offer" | "discount_offer" | "bonus_offer"
+  offer_payload: {
+    pause_offer?: {
+      pause_cycles: number | null
+      resume_at: string | null
+      note: string | null
+    }
+    discount_offer?: {
+      discount_type: "percentage" | "fixed"
+      discount_value: number
+      duration_cycles: number | null
+      note: string | null
+    }
+    bonus_offer?: {
+      bonus_type: "free_cycle" | "gift" | "credit"
+      value: number | null
+      label: string | null
+      duration_cycles: number | null
+      note: string | null
+    }
+  } | null
+  decision_status: "proposed" | "accepted" | "rejected" | "applied" | "expired"
+  decision_reason: string | null
+  decided_at: string | null
+  decided_by: string | null
+  applied_at: string | null
+  metadata: Record<string, unknown> | null
+}
+```
+
+## 17. Regular `RetentionOfferEvent` fields
+
+The following fields should be regular model columns:
+
+- `id`
+- `cancellation_case_id`
+- `offer_type`
+- `decision_status`
+- `decision_reason`
+- `decided_at`
+- `decided_by`
+- `applied_at`
+
+Why:
+- they are needed for timeline reads and audit history
+- they are needed for Admin detail rendering and later filtering
+- they express explicit event state rather than flexible configuration
+
+## 18. Why `cancellation_case_id` should be a scalar field
+
+The model should store:
+
+- `cancellation_case_id`
+
+as an explicit scalar field.
+
+Why:
+- it simplifies filtering and indexing
+- it simplifies timeline queries for one case
+- it preserves the same practical pattern already used by `RenewalAttempt` and `DunningAttempt`
+- later same-module relations can still be defined without losing efficient source-record access
+
+## 19. `offer_type`
+
+`offer_type` identifies what kind of save action this event represents.
+
+It should be a scalar enum field, not JSON.
+
+Recommended values:
+- `pause_offer`
+- `discount_offer`
+- `bonus_offer`
+
+Why:
+- the event timeline and Admin detail need a direct type discriminator
+- the payload shape depends on the offer type
+- reporting and filtering should not infer the type from JSON structure
+
+Important note:
+- `direct_cancel` should not be part of `RetentionOfferEvent`
+- direct cancellation is a case-level process path, not a retention offer
+
+## 20. `offer_payload`
+
+`offer_payload` is the structured snapshot of the concrete offer proposed in this event.
+
+It should be stored as JSON.
+
+Why:
+- the payload shape varies by `offer_type`
+- the field represents one structured business object
+- splitting it into many nullable scalar columns would make the model harder to evolve and harder to reason about
+
+Important note:
+- this payload is a snapshot of the proposed offer at the time of the event
+- it should not be reconstructed later from current recommendation state or current business rules
+
+## 21. `decision_status`
+
+`decision_status` is the event-level decision state for one concrete offer proposal.
+
+It should be a scalar enum field, not JSON.
+
+Recommended values:
+- `proposed`
+- `accepted`
+- `rejected`
+- `applied`
+- `expired`
+
+Why:
+- the event needs its own lifecycle separate from the case aggregate
+- Admin detail will later show a timeline of proposals and their outcomes
+- this field should remain directly queryable and auditable
+
+Important note:
+- `decision_status` is not the same as `CancellationCase.status`
+- it describes one offer event, not the whole cancellation journey
+
+## 22. `decision_reason`
+
+`decision_reason` stores the reason behind the outcome of this concrete event.
+
+It should be a regular nullable text field.
+
+Why:
+- the operator may need to explain why one offer was accepted, rejected, or allowed to expire
+- the field belongs to the event contract, not to flexible metadata
+
+Important note:
+- `decision_reason` is not the same as the churn `reason` on `CancellationCase`
+- `CancellationCase.reason` explains why the subscription entered cancellation handling
+- `decision_reason` explains why a specific offer event ended the way it did
+
+## 23. `decided_at`, `decided_by`, and `applied_at`
+
+These are event-level audit and materialization fields.
+
+They should be regular scalar columns.
+
+Why:
+- a decision and an application may happen at different times
+- Admin detail and audit history should be able to show both moments directly
+- these timestamps are first-class process fields, not metadata
+
+### `decided_at`
+
+Represents:
+- when the event moved from proposal to a decision state such as accepted or rejected
+
+### `decided_by`
+
+Represents:
+- who made the decision on the offer event
+
+### `applied_at`
+
+Represents:
+- when the accepted offer was actually materialized into a business effect
+
+This is intentionally separate from `decided_at`.
+
+## 24. `metadata`
+
+`metadata` remains a standard JSON field.
+
+Why:
+- this follows the Medusa pattern for extra non-core data
+- it can store supplementary technical or audit context
+- it should not store fields needed for primary filtering, sorting, or event-state transitions
+
+## 25. What should stay outside `RetentionOfferEvent`
+
+The following data should not be stored as core mutable fields on `RetentionOfferEvent`:
+
+- the aggregate `CancellationCase.status`
+- the aggregate `CancellationCase.final_outcome`
+- the lifecycle state of the subscription
+- dunning retry state
+- renewal execution state
+
+Why:
+- these belong to other aggregates
+- duplicating them would weaken source-of-truth boundaries already defined in `2.5.2`
+
+## 26. What should stay outside `CancellationCase`
 
 The following data should not be stored as core mutable fields on `CancellationCase`:
 
@@ -364,7 +571,7 @@ Why:
 - these belong to other aggregates or to the future `RetentionOfferEvent`
 - duplicating them would weaken source-of-truth boundaries already defined in `2.5.2`
 
-## 17. Query implications
+## 27. Query implications
 
 ### Direct fields should support:
 
@@ -373,6 +580,8 @@ Why:
 - Admin list filtering by `final_outcome`
 - sorting by creation and finalization timestamps
 - case-level lookup by `subscription_id`
+- event timeline lookup by `cancellation_case_id`
+- event-level ordering by `decided_at` and `applied_at` later in detail views
 
 ### `metadata` should not be relied on for:
 
