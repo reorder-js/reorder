@@ -14,6 +14,7 @@ export type DunningFailureKind =
   | "closed_case"
   | "invalid_transition"
   | "retry_exhausted"
+  | "lock_timeout"
   | "not_found"
   | "unexpected_error"
 
@@ -33,6 +34,10 @@ type DunningLogPayload = {
   recovered_count?: number
   rescheduled_count?: number
   unrecovered_count?: number
+  avg_attempts?: number
+  recovery_rate?: number
+  fail_rate?: number
+  avg_time_to_recover_ms?: number
   batch_size?: number
   job_name?: string
   outcome?: "started" | "succeeded" | "failed" | "blocked" | "completed"
@@ -95,6 +100,14 @@ export function classifyDunningFailure(error: unknown): DunningFailureKind {
     return "retry_exhausted"
   }
 
+  if (
+    message.includes("timed-out acquiring lock") ||
+    message.includes("timeout acquiring lock") ||
+    message.includes("timed out acquiring lock")
+  ) {
+    return "lock_timeout"
+  }
+
   if (message.includes("was not found")) {
     return "not_found"
   }
@@ -112,6 +125,7 @@ export function isAlertableDunningFailure(kind: DunningFailureKind) {
     "not_due",
     "closed_case",
     "retry_exhausted",
+    "lock_timeout",
   ].includes(kind)
 }
 

@@ -46,6 +46,7 @@ async function processCase(
       input: {
         dunning_case_id: dunningCase.id,
         now: new Date(),
+        correlation_id: caseCorrelationId,
       },
     })
 
@@ -66,7 +67,11 @@ async function processCase(
       },
     })
 
-    return result.outcome
+    return {
+      outcome: result.outcome,
+      attempt_no: result.attempt_no,
+      time_to_recover_ms: result.time_to_recover_ms ?? null,
+    }
   } catch (error) {
     const message = getDunningErrorMessage(error)
     const failureKind = classifyDunningFailure(error)
@@ -101,12 +106,18 @@ async function processCase(
       message,
     })
 
-    return failureKind === "already_retrying" ||
-      failureKind === "not_due" ||
-      failureKind === "closed_case" ||
-      failureKind === "retry_exhausted"
-      ? ("blocked" as const)
-      : ("failed" as const)
+    return {
+      outcome:
+        failureKind === "already_retrying" ||
+        failureKind === "not_due" ||
+        failureKind === "closed_case" ||
+        failureKind === "retry_exhausted" ||
+        failureKind === "lock_timeout"
+          ? ("blocked" as const)
+          : ("failed" as const),
+      attempt_no: dunningCase.attempt_count + 1,
+      time_to_recover_ms: null,
+    }
   }
 }
 
@@ -134,6 +145,9 @@ async function runJob(container: MedusaContainer) {
     let unrecovered = 0
     let failed = 0
     let blocked = 0
+    let attemptTotal = 0
+    let recoveredTtrTotal = 0
+    let recoveredTtrCount = 0
 
     while (true) {
       const result = await listDueDunningCasesForProcessing(container, {
@@ -174,15 +188,21 @@ async function runJob(container: MedusaContainer) {
       for (const dunningCase of result.cases) {
         processed += 1
 
-        const outcome = await processCase(
+        const result = await processCase(
           container,
           logger,
           dunningCase,
           jobCorrelationId
         )
+        const outcome = result.outcome
+        attemptTotal += result.attempt_no
 
         if (outcome === "recovered") {
           recovered += 1
+          if (typeof result.time_to_recover_ms === "number") {
+            recoveredTtrTotal += result.time_to_recover_ms
+            recoveredTtrCount += 1
+          }
         } else if (outcome === "retry_scheduled") {
           rescheduled += 1
         } else if (outcome === "unrecovered") {
@@ -211,6 +231,16 @@ async function runJob(container: MedusaContainer) {
       unrecovered_count: unrecovered,
       failure_count: failed,
       blocked_count: blocked,
+      avg_attempts: processed ? Number((attemptTotal / processed).toFixed(2)) : 0,
+      recovery_rate: processed
+        ? Number((recovered / processed).toFixed(4))
+        : 0,
+      fail_rate: processed
+        ? Number(((failed + unrecovered) / processed).toFixed(4))
+        : 0,
+      avg_time_to_recover_ms: recoveredTtrCount
+        ? Math.round(recoveredTtrTotal / recoveredTtrCount)
+        : undefined,
       message: "Dunning scheduler completed",
       metadata: {
         raw_count: rawCount,
