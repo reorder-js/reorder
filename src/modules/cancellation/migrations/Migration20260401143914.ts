@@ -22,6 +22,7 @@ export class Migration20260401143914 extends Migration {
     this.addSql(`CREATE INDEX IF NOT EXISTS "IDX_retention_offer_event_cancellation_case_id_created_at" ON "retention_offer_event" ("cancellation_case_id", "created_at") WHERE deleted_at IS NULL;`);
     this.addSql(`CREATE INDEX IF NOT EXISTS "IDX_retention_offer_event_offer_type_decision_status" ON "retention_offer_event" ("offer_type", "decision_status") WHERE deleted_at IS NULL;`);
 
+    this.addSql(`alter table if exists "retention_offer_event" drop constraint if exists "retention_offer_event_cancellation_case_id_foreign";`);
     this.addSql(`alter table if exists "retention_offer_event" add constraint "retention_offer_event_cancellation_case_id_foreign" foreign key ("cancellation_case_id") references "cancellation_case" ("id") on update cascade;`);
   }
 

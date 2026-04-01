@@ -444,12 +444,19 @@ The runtime pattern should match the current plugin conventions:
 Current implementation status:
 - the module skeleton exists in `src/modules/activity-log`
 - the model, service, and module export are defined
-- migration files are intentionally deferred to the next implementation step
+- the initial migration and module snapshot now exist under `src/modules/activity-log/migrations`
 
 The first migration for the module should:
 - create the `subscription_log` table
 - create the scalar and compound indexes listed above
 - rely on Medusa's standard `deleted_at` partial-index pattern
+
+Current implementation status:
+- the generated migration creates the `subscription_log` table
+- the generated migration includes the required scalar indexes
+- the generated migration includes the compound timeline and Admin filter indexes
+- the generated migration includes a unique index for `dedupe_key`
+- applying the migration to the database remains a separate application-level step
 
 The model should not introduce hard foreign keys to other modules.
 
