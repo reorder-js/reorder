@@ -19,4 +19,10 @@ export const cancellationErrors = {
       `Subscription '${subscriptionId}' has multiple active cancellation cases`
     )
   },
+  invalidCaseState(cancellationCaseId: string, action: string, status: string) {
+    return new MedusaError(
+      MedusaError.Types.CONFLICT,
+      `CancellationCase '${cancellationCaseId}' can't ${action} from status '${status}'`
+    )
+  },
 }

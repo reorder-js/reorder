@@ -59,6 +59,10 @@ export {
   default as startCancellationCaseWorkflowDefault,
 } from "./start-cancellation-case"
 export {
+  smartCancellationWorkflow,
+  default as smartCancellationWorkflowDefault,
+} from "./smart-cancellation"
+export {
   runDunningRetryWorkflow,
   default as runDunningRetryWorkflowDefault,
 } from "./run-dunning-retry"
