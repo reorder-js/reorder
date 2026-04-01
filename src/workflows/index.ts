@@ -67,6 +67,10 @@ export {
   default as applyRetentionOfferWorkflowDefault,
 } from "./apply-retention-offer"
 export {
+  finalizeCancellationWorkflow,
+  default as finalizeCancellationWorkflowDefault,
+} from "./finalize-cancellation"
+export {
   runDunningRetryWorkflow,
   default as runDunningRetryWorkflowDefault,
 } from "./run-dunning-retry"

@@ -25,4 +25,10 @@ export const cancellationErrors = {
       `CancellationCase '${cancellationCaseId}' can't ${action} from status '${status}'`
     )
   },
+  missingCancellationReason(cancellationCaseId: string) {
+    return new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      `CancellationCase '${cancellationCaseId}' requires a reason before final cancellation`
+    )
+  },
 }
