@@ -1,5 +1,15 @@
 import type { ExecArgs, MedusaContainer } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import { CANCELLATION_MODULE } from "../src/modules/cancellation"
+import type CancellationModuleService from "../src/modules/cancellation/service"
+import {
+  CancellationCaseStatus,
+  CancellationFinalOutcome,
+  CancellationReasonCategory,
+  CancellationRecommendedAction,
+  RetentionOfferDecisionStatus,
+  RetentionOfferType,
+} from "../src/modules/cancellation/types"
 import { DUNNING_MODULE } from "../src/modules/dunning"
 import type DunningModuleService from "../src/modules/dunning/service"
 import {
@@ -58,6 +68,7 @@ type SeedSummaryRow = {
   subscription_reference: string
   renewal_cycle_id?: string
   dunning_case_id?: string
+  cancellation_case_id?: string
   notes: string
 }
 
@@ -77,6 +88,13 @@ const IDS = {
   subDunningRecovered: "sub_seed_dunning_recovered",
   subDunningUnrecovered: "sub_seed_dunning_unrecovered",
   subDunningManualOverride: "sub_seed_dunning_manual_override",
+  subCancellationOpenBilling: "sub_seed_cancellation_open_billing",
+  subCancellationRetainedDiscount: "sub_seed_cancellation_retained_discount",
+  subCancellationPaused: "sub_seed_cancellation_paused",
+  subCancellationCanceledImmediate: "sub_seed_cancellation_canceled_immediate",
+  subCancellationCanceledEndCycle: "sub_seed_cancellation_canceled_end_cycle",
+  subCancellationOpenPrice: "sub_seed_cancellation_open_price",
+  subCancellationOpenPaused: "sub_seed_cancellation_open_paused",
   cycleSuccess: "re_seed_subscriptions_success",
   cyclePaused: "re_seed_subscriptions_paused",
   cycleCancelEffective: "re_seed_subscriptions_cancel_effective",
@@ -88,12 +106,20 @@ const IDS = {
   cycleDunningRecovered: "re_seed_dunning_recovered",
   cycleDunningUnrecovered: "re_seed_dunning_unrecovered",
   cycleDunningManualOverride: "re_seed_dunning_manual_override",
+  cycleCancellationOpenBilling: "re_seed_cancellation_open_billing",
+  cycleCancellationRetainedDiscount: "re_seed_cancellation_retained_discount",
+  cycleCancellationPaused: "re_seed_cancellation_paused",
+  cycleCancellationCanceledImmediate: "re_seed_cancellation_canceled_immediate",
+  cycleCancellationCanceledEndCycle: "re_seed_cancellation_canceled_end_cycle",
+  cycleCancellationOpenPrice: "re_seed_cancellation_open_price",
+  cycleCancellationOpenPaused: "re_seed_cancellation_open_paused",
   attemptFailedHistory: "rea_seed_subscriptions_failed_history",
   dunningRetryScheduled: "dc_seed_dunning_retry_scheduled",
   dunningAwaitingManual: "dc_seed_dunning_awaiting_manual",
   dunningRecovered: "dc_seed_dunning_recovered",
   dunningUnrecovered: "dc_seed_dunning_unrecovered",
   dunningManualOverride: "dc_seed_dunning_manual_override",
+  dunningCancellationOpenBilling: "dc_seed_cancellation_open_billing",
   dunningAttemptAwaitingManual: "da_seed_dunning_awaiting_manual_1",
   dunningAttemptRecoveredFailed: "da_seed_dunning_recovered_1",
   dunningAttemptRecoveredSucceeded: "da_seed_dunning_recovered_2",
@@ -101,6 +127,15 @@ const IDS = {
   dunningAttemptUnrecoveredTwo: "da_seed_dunning_unrecovered_2",
   dunningAttemptUnrecoveredThree: "da_seed_dunning_unrecovered_3",
   dunningAttemptManualOverride: "da_seed_dunning_manual_override_1",
+  cancellationOpenBilling: "cc_seed_cancellation_open_billing",
+  cancellationRetainedDiscount: "cc_seed_cancellation_retained_discount",
+  cancellationPaused: "cc_seed_cancellation_paused",
+  cancellationCanceledImmediate: "cc_seed_cancellation_canceled_immediate",
+  cancellationCanceledEndCycle: "cc_seed_cancellation_canceled_end_cycle",
+  cancellationOpenPrice: "cc_seed_cancellation_open_price",
+  cancellationOpenPaused: "cc_seed_cancellation_open_paused",
+  retentionDiscountRetained: "roe_seed_cancellation_discount_retained",
+  retentionPauseApplied: "roe_seed_cancellation_pause_applied",
 } as const
 
 function addDays(date: Date, days: number) {
@@ -176,6 +211,7 @@ function buildSubscriptionRecord(input: {
   next_renewal_at: Date | null
   skip_next_cycle: boolean
   paused_at?: Date | null
+  cancelled_at?: Date | null
   cancel_effective_at?: Date | null
   pending_update_data?: Record<string, unknown> | null
   cart_id?: string | null
@@ -195,7 +231,7 @@ function buildSubscriptionRecord(input: {
     next_renewal_at: input.next_renewal_at,
     last_renewal_at: null,
     paused_at: input.paused_at === undefined ? null : input.paused_at,
-    cancelled_at: null,
+    cancelled_at: input.cancelled_at === undefined ? null : input.cancelled_at,
     cancel_effective_at:
       input.cancel_effective_at === undefined ? null : input.cancel_effective_at,
     skip_next_cycle: input.skip_next_cycle,
@@ -317,6 +353,30 @@ async function upsertDunningAttempt(
   }
 }
 
+async function upsertCancellationCase(
+  service: CancellationModuleService,
+  input: Record<string, unknown>
+) {
+  try {
+    await service.retrieveCancellationCase(String(input.id))
+    return await service.updateCancellationCases(input as any)
+  } catch {
+    return await service.createCancellationCases(input as any)
+  }
+}
+
+async function upsertRetentionOfferEvent(
+  service: CancellationModuleService,
+  input: Record<string, unknown>
+) {
+  try {
+    await service.retrieveRetentionOfferEvent(String(input.id))
+    return await service.updateRetentionOfferEvents(input as any)
+  } catch {
+    return await service.createRetentionOfferEvents(input as any)
+  }
+}
+
 function buildRetrySchedule(input?: Partial<DunningRetrySchedule>): DunningRetrySchedule {
   return {
     strategy: "fixed_intervals",
@@ -335,8 +395,11 @@ function formatSummary(rows: SeedSummaryRow[]) {
       const dunningPart = row.dunning_case_id
         ? ` dunning=${row.dunning_case_id}`
         : ""
+      const cancellationPart = row.cancellation_case_id
+        ? ` cancellation=${row.cancellation_case_id}`
+        : ""
 
-      return `- ${row.scenario}: subscription=${row.subscription_reference}${cyclePart}${dunningPart} | ${row.notes}`
+      return `- ${row.scenario}: subscription=${row.subscription_reference}${cyclePart}${dunningPart}${cancellationPart} | ${row.notes}`
     })
     .join("\n")
 }
@@ -353,6 +416,8 @@ export default async function seedSubscriptionsTestData({
     container.resolve<RenewalModuleService>(RENEWAL_MODULE)
   const dunningModule =
     container.resolve<DunningModuleService>(DUNNING_MODULE)
+  const cancellationModule =
+    container.resolve<CancellationModuleService>(CANCELLATION_MODULE)
 
   logger.info("[subscriptions-test-data] Resolving products and existing offers")
 
@@ -433,6 +498,13 @@ export default async function seedSubscriptionsTestData({
   const dunningRecoveredAt = addDays(FIXED_TIME, -7)
   const dunningUnrecoveredAt = addDays(FIXED_TIME, -10)
   const dunningManualOverrideAt = addDays(FIXED_TIME, -4)
+  const cancellationOpenBillingAt = addDays(FIXED_TIME, 7)
+  const cancellationRetainedDiscountAt = addDays(FIXED_TIME, 8)
+  const cancellationPausedAt = addDays(FIXED_TIME, 9)
+  const cancellationCanceledImmediateAt = addDays(FIXED_TIME, 10)
+  const cancellationCanceledEndCycleAt = addDays(FIXED_TIME, 12)
+  const cancellationOpenPriceAt = addDays(FIXED_TIME, 13)
+  const cancellationOpenPausedAt = addDays(FIXED_TIME, 14)
 
   await upsertSubscription(
     subscriptionModule,
@@ -560,6 +632,118 @@ export default async function seedSubscriptionsTestData({
   await upsertSubscription(
     subscriptionModule,
     buildSubscriptionRecord({
+      id: IDS.subCancellationOpenBilling,
+      reference: "SUB-QA-CAN-OPEN-BILLING",
+      target: targets.success,
+      status: SubscriptionStatus.PAST_DUE,
+      frequency_interval: SubscriptionFrequencyInterval.MONTH,
+      frequency_value: 1,
+      next_renewal_at: cancellationOpenBillingAt,
+      skip_next_cycle: false,
+      cart_id: "cart_seed_cancellation_open_billing",
+      payment_provider_id: "pp_stripe_stripe",
+    })
+  )
+
+  await upsertSubscription(
+    subscriptionModule,
+    buildSubscriptionRecord({
+      id: IDS.subCancellationRetainedDiscount,
+      reference: "SUB-QA-CAN-RETAINED-DISCOUNT",
+      target: targets.success,
+      status: SubscriptionStatus.ACTIVE,
+      frequency_interval: SubscriptionFrequencyInterval.MONTH,
+      frequency_value: 1,
+      next_renewal_at: cancellationRetainedDiscountAt,
+      skip_next_cycle: false,
+      cart_id: "cart_seed_cancellation_retained_discount",
+    })
+  )
+
+  await upsertSubscription(
+    subscriptionModule,
+    buildSubscriptionRecord({
+      id: IDS.subCancellationPaused,
+      reference: "SUB-QA-CAN-PAUSED",
+      target: targets.success,
+      status: SubscriptionStatus.PAUSED,
+      frequency_interval: SubscriptionFrequencyInterval.MONTH,
+      frequency_value: 1,
+      next_renewal_at: cancellationPausedAt,
+      skip_next_cycle: false,
+      paused_at: addDays(FIXED_TIME, -2),
+      cart_id: "cart_seed_cancellation_paused",
+    })
+  )
+
+  await upsertSubscription(
+    subscriptionModule,
+    buildSubscriptionRecord({
+      id: IDS.subCancellationCanceledImmediate,
+      reference: "SUB-QA-CAN-CANCELED-IMMEDIATE",
+      target: targets.blocked,
+      status: SubscriptionStatus.CANCELLED,
+      frequency_interval: SubscriptionFrequencyInterval.MONTH,
+      frequency_value: 1,
+      next_renewal_at: null,
+      skip_next_cycle: false,
+      cancelled_at: FIXED_TIME,
+      cancel_effective_at: FIXED_TIME,
+      cart_id: "cart_seed_cancellation_canceled_immediate",
+    })
+  )
+
+  await upsertSubscription(
+    subscriptionModule,
+    buildSubscriptionRecord({
+      id: IDS.subCancellationCanceledEndCycle,
+      reference: "SUB-QA-CAN-CANCELED-END-CYCLE",
+      target: targets.blocked,
+      status: SubscriptionStatus.CANCELLED,
+      frequency_interval: SubscriptionFrequencyInterval.MONTH,
+      frequency_value: 1,
+      next_renewal_at: null,
+      skip_next_cycle: false,
+      cancelled_at: FIXED_TIME,
+      cancel_effective_at: cancellationCanceledEndCycleAt,
+      cart_id: "cart_seed_cancellation_canceled_end_cycle",
+    })
+  )
+
+  await upsertSubscription(
+    subscriptionModule,
+    buildSubscriptionRecord({
+      id: IDS.subCancellationOpenPrice,
+      reference: "SUB-QA-CAN-OPEN-PRICE",
+      target: targets.success,
+      status: SubscriptionStatus.ACTIVE,
+      frequency_interval: SubscriptionFrequencyInterval.MONTH,
+      frequency_value: 1,
+      next_renewal_at: cancellationOpenPriceAt,
+      skip_next_cycle: false,
+      cart_id: "cart_seed_cancellation_open_price",
+    })
+  )
+
+  await upsertSubscription(
+    subscriptionModule,
+    buildSubscriptionRecord({
+      id: IDS.subCancellationOpenPaused,
+      reference: "SUB-QA-CAN-OPEN-PAUSED-SUB",
+      target: targets.success,
+      status: SubscriptionStatus.PAUSED,
+      frequency_interval: SubscriptionFrequencyInterval.MONTH,
+      frequency_value: 1,
+      next_renewal_at: cancellationOpenPausedAt,
+      skip_next_cycle: false,
+      paused_at: addDays(FIXED_TIME, -5),
+      cart_id: "cart_seed_cancellation_open_paused",
+    })
+  )
+
+  await upsertSubscription(
+    subscriptionModule,
+    buildSubscriptionRecord({
       id: IDS.subDunningAwaitingManual,
       reference: "SUB-QA-DUN-AWAITING-MANUAL",
       target: targets.success,
@@ -639,6 +823,153 @@ export default async function seedSubscriptionsTestData({
     metadata: {
       seed_namespace: "subscriptions-test-data",
       scenario: "renewal-success",
+    },
+  })
+
+  await upsertRenewalCycle(renewalModule, {
+    id: IDS.cycleCancellationOpenBilling,
+    subscription_id: IDS.subCancellationOpenBilling,
+    scheduled_for: cancellationOpenBillingAt,
+    processed_at: addDays(FIXED_TIME, -1),
+    status: RenewalCycleStatus.FAILED,
+    approval_required: false,
+    approval_status: null,
+    approval_decided_at: null,
+    approval_decided_by: null,
+    approval_reason: null,
+    generated_order_id: "ord_seed_cancellation_open_billing",
+    applied_pending_update_data: null,
+    last_error: "Payment-qualified billing failure before retention handling.",
+    attempt_count: 1,
+    metadata: {
+      seed_namespace: "subscriptions-test-data",
+      scenario: "cancellation-open-billing",
+    },
+  })
+
+  await upsertRenewalCycle(renewalModule, {
+    id: IDS.cycleCancellationRetainedDiscount,
+    subscription_id: IDS.subCancellationRetainedDiscount,
+    scheduled_for: cancellationRetainedDiscountAt,
+    processed_at: null,
+    status: RenewalCycleStatus.SCHEDULED,
+    approval_required: false,
+    approval_status: null,
+    approval_decided_at: null,
+    approval_decided_by: null,
+    approval_reason: null,
+    generated_order_id: null,
+    applied_pending_update_data: null,
+    last_error: null,
+    attempt_count: 0,
+    metadata: {
+      seed_namespace: "subscriptions-test-data",
+      scenario: "cancellation-retained-discount",
+    },
+  })
+
+  await upsertRenewalCycle(renewalModule, {
+    id: IDS.cycleCancellationPaused,
+    subscription_id: IDS.subCancellationPaused,
+    scheduled_for: cancellationPausedAt,
+    processed_at: null,
+    status: RenewalCycleStatus.SCHEDULED,
+    approval_required: false,
+    approval_status: null,
+    approval_decided_at: null,
+    approval_decided_by: null,
+    approval_reason: null,
+    generated_order_id: null,
+    applied_pending_update_data: null,
+    last_error: null,
+    attempt_count: 0,
+    metadata: {
+      seed_namespace: "subscriptions-test-data",
+      scenario: "cancellation-paused",
+    },
+  })
+
+  await upsertRenewalCycle(renewalModule, {
+    id: IDS.cycleCancellationCanceledImmediate,
+    subscription_id: IDS.subCancellationCanceledImmediate,
+    scheduled_for: cancellationCanceledImmediateAt,
+    processed_at: null,
+    status: RenewalCycleStatus.SCHEDULED,
+    approval_required: false,
+    approval_status: null,
+    approval_decided_at: null,
+    approval_decided_by: null,
+    approval_reason: null,
+    generated_order_id: null,
+    applied_pending_update_data: null,
+    last_error: null,
+    attempt_count: 0,
+    metadata: {
+      seed_namespace: "subscriptions-test-data",
+      scenario: "cancellation-canceled-immediate",
+    },
+  })
+
+  await upsertRenewalCycle(renewalModule, {
+    id: IDS.cycleCancellationCanceledEndCycle,
+    subscription_id: IDS.subCancellationCanceledEndCycle,
+    scheduled_for: cancellationCanceledEndCycleAt,
+    processed_at: null,
+    status: RenewalCycleStatus.SCHEDULED,
+    approval_required: false,
+    approval_status: null,
+    approval_decided_at: null,
+    approval_decided_by: null,
+    approval_reason: null,
+    generated_order_id: null,
+    applied_pending_update_data: null,
+    last_error: null,
+    attempt_count: 0,
+    metadata: {
+      seed_namespace: "subscriptions-test-data",
+      scenario: "cancellation-canceled-end-cycle",
+    },
+  })
+
+  await upsertRenewalCycle(renewalModule, {
+    id: IDS.cycleCancellationOpenPrice,
+    subscription_id: IDS.subCancellationOpenPrice,
+    scheduled_for: cancellationOpenPriceAt,
+    processed_at: null,
+    status: RenewalCycleStatus.SCHEDULED,
+    approval_required: false,
+    approval_status: null,
+    approval_decided_at: null,
+    approval_decided_by: null,
+    approval_reason: null,
+    generated_order_id: null,
+    applied_pending_update_data: null,
+    last_error: null,
+    attempt_count: 0,
+    metadata: {
+      seed_namespace: "subscriptions-test-data",
+      scenario: "cancellation-open-price",
+    },
+  })
+
+  await upsertRenewalCycle(renewalModule, {
+    id: IDS.cycleCancellationOpenPaused,
+    subscription_id: IDS.subCancellationOpenPaused,
+    scheduled_for: cancellationOpenPausedAt,
+    processed_at: null,
+    status: RenewalCycleStatus.SCHEDULED,
+    approval_required: false,
+    approval_status: null,
+    approval_decided_at: null,
+    approval_decided_by: null,
+    approval_reason: null,
+    generated_order_id: null,
+    applied_pending_update_data: null,
+    last_error: null,
+    attempt_count: 0,
+    metadata: {
+      seed_namespace: "subscriptions-test-data",
+      scenario: "cancellation-open-paused-sub",
     },
   })
 
@@ -893,6 +1224,30 @@ export default async function seedSubscriptionsTestData({
   })
 
   await upsertDunningCase(dunningModule, {
+    id: IDS.dunningCancellationOpenBilling,
+    subscription_id: IDS.subCancellationOpenBilling,
+    renewal_cycle_id: IDS.cycleCancellationOpenBilling,
+    renewal_order_id: "ord_seed_cancellation_open_billing",
+    status: DunningCaseStatus.RETRY_SCHEDULED,
+    attempt_count: 1,
+    max_attempts: 3,
+    retry_schedule: buildRetrySchedule(),
+    next_retry_at: addDays(FIXED_TIME, 1),
+    last_payment_error_code: "card_declined",
+    last_payment_error_message:
+      "Billing issue is active while the operator evaluates retention.",
+    last_attempt_at: FIXED_TIME,
+    recovered_at: null,
+    closed_at: null,
+    recovery_reason: null,
+    metadata: {
+      seed_namespace: "subscriptions-test-data",
+      scenario: "cancellation-open-billing",
+      qa_focus: ["cancellation-detail", "linked-dunning", "smart-cancel"],
+    },
+  })
+
+  await upsertDunningCase(dunningModule, {
     id: IDS.dunningAwaitingManual,
     subscription_id: IDS.subDunningAwaitingManual,
     renewal_cycle_id: IDS.cycleDunningAwaitingManual,
@@ -1000,6 +1355,213 @@ export default async function seedSubscriptionsTestData({
     metadata: {
       seed_namespace: "subscriptions-test-data",
       scenario: "dunning-awaiting-manual",
+    },
+  })
+
+  await upsertCancellationCase(cancellationModule, {
+    id: IDS.cancellationOpenBilling,
+    subscription_id: IDS.subCancellationOpenBilling,
+    status: CancellationCaseStatus.EVALUATING_RETENTION,
+    reason: "Customer reports billing problems and wants to stop unless billing is stabilized.",
+    reason_category: CancellationReasonCategory.BILLING,
+    notes: "Use to validate active case detail with linked dunning summary.",
+    recommended_action: CancellationRecommendedAction.PAUSE_OFFER,
+    final_outcome: null,
+    finalized_at: null,
+    finalized_by: null,
+    cancellation_effective_at: null,
+    metadata: {
+      seed_namespace: "subscriptions-test-data",
+      scenario: "cancellation-open-billing",
+      smart_cancellation: {
+        recommended_action: CancellationRecommendedAction.PAUSE_OFFER,
+        eligible_actions: [
+          CancellationRecommendedAction.PAUSE_OFFER,
+          CancellationRecommendedAction.DIRECT_CANCEL,
+        ],
+        rationale:
+          "Billing issues with active dunning make pause safer than a new discount.",
+        evaluated_by: "qa-seed",
+        evaluated_at: FIXED_TIME.toISOString(),
+      },
+    },
+  })
+
+  await upsertCancellationCase(cancellationModule, {
+    id: IDS.cancellationRetainedDiscount,
+    subscription_id: IDS.subCancellationRetainedDiscount,
+    status: CancellationCaseStatus.RETAINED,
+    reason: "Customer said the current price is too high.",
+    reason_category: CancellationReasonCategory.PRICE,
+    notes: "Use to validate retained detail, timeline, and discount-offer filtering.",
+    recommended_action: CancellationRecommendedAction.DISCOUNT_OFFER,
+    final_outcome: CancellationFinalOutcome.RETAINED,
+    finalized_at: FIXED_TIME,
+    finalized_by: "qa-seed",
+    cancellation_effective_at: null,
+    metadata: {
+      seed_namespace: "subscriptions-test-data",
+      scenario: "cancellation-retained-discount",
+      manual_actions: [
+        {
+          action: "apply_offer",
+          who: "qa-seed",
+          when: FIXED_TIME.toISOString(),
+          why: "Customer accepted a temporary discount.",
+          data: {
+            offer_type: "discount_offer",
+          },
+        },
+      ],
+    },
+  })
+
+  await upsertCancellationCase(cancellationModule, {
+    id: IDS.cancellationPaused,
+    subscription_id: IDS.subCancellationPaused,
+    status: CancellationCaseStatus.PAUSED,
+    reason: "Customer asked for a temporary pause instead of canceling.",
+    reason_category: CancellationReasonCategory.TEMPORARY_PAUSE,
+    notes: "Use to validate pause as retention outcome.",
+    recommended_action: CancellationRecommendedAction.PAUSE_OFFER,
+    final_outcome: CancellationFinalOutcome.PAUSED,
+    finalized_at: addDays(FIXED_TIME, -2),
+    finalized_by: "qa-seed",
+    cancellation_effective_at: null,
+    metadata: {
+      seed_namespace: "subscriptions-test-data",
+      scenario: "cancellation-paused",
+    },
+  })
+
+  await upsertCancellationCase(cancellationModule, {
+    id: IDS.cancellationCanceledImmediate,
+    subscription_id: IDS.subCancellationCanceledImmediate,
+    status: CancellationCaseStatus.CANCELED,
+    reason: "Customer switched to another provider and requested immediate cancel.",
+    reason_category: CancellationReasonCategory.SWITCHED_COMPETITOR,
+    notes: "Use to compare immediate cancel semantics on detail.",
+    recommended_action: CancellationRecommendedAction.DIRECT_CANCEL,
+    final_outcome: CancellationFinalOutcome.CANCELED,
+    finalized_at: FIXED_TIME,
+    finalized_by: "qa-seed",
+    cancellation_effective_at: FIXED_TIME,
+    metadata: {
+      seed_namespace: "subscriptions-test-data",
+      scenario: "cancellation-canceled-immediate",
+      final_cancellation: {
+        effective_at: "immediately",
+      },
+    },
+  })
+
+  await upsertCancellationCase(cancellationModule, {
+    id: IDS.cancellationCanceledEndCycle,
+    subscription_id: IDS.subCancellationCanceledEndCycle,
+    status: CancellationCaseStatus.CANCELED,
+    reason: "Customer wants cancellation at the end of the current cycle.",
+    reason_category: CancellationReasonCategory.OTHER,
+    notes: "Use to compare end-of-cycle cancellation semantics.",
+    recommended_action: CancellationRecommendedAction.DIRECT_CANCEL,
+    final_outcome: CancellationFinalOutcome.CANCELED,
+    finalized_at: FIXED_TIME,
+    finalized_by: "qa-seed",
+    cancellation_effective_at: cancellationCanceledEndCycleAt,
+    metadata: {
+      seed_namespace: "subscriptions-test-data",
+      scenario: "cancellation-canceled-end-cycle",
+      final_cancellation: {
+        effective_at: "end_of_cycle",
+      },
+    },
+  })
+
+  await upsertCancellationCase(cancellationModule, {
+    id: IDS.cancellationOpenPrice,
+    subscription_id: IDS.subCancellationOpenPrice,
+    status: CancellationCaseStatus.REQUESTED,
+    reason: "Customer is considering cancellation because the price feels too high.",
+    reason_category: CancellationReasonCategory.PRICE,
+    notes: "Use to run smart cancellation and test discount recommendation.",
+    recommended_action: null,
+    final_outcome: null,
+    finalized_at: null,
+    finalized_by: null,
+    cancellation_effective_at: null,
+    metadata: {
+      seed_namespace: "subscriptions-test-data",
+      scenario: "cancellation-open-price",
+    },
+  })
+
+  await upsertCancellationCase(cancellationModule, {
+    id: IDS.cancellationOpenPaused,
+    subscription_id: IDS.subCancellationOpenPaused,
+    status: CancellationCaseStatus.REQUESTED,
+    reason: "Paused customer may still want final cancellation after the break.",
+    reason_category: CancellationReasonCategory.OTHER,
+    notes: "Use to validate an active case on an already paused subscription.",
+    recommended_action: CancellationRecommendedAction.DIRECT_CANCEL,
+    final_outcome: null,
+    finalized_at: null,
+    finalized_by: null,
+    cancellation_effective_at: null,
+    metadata: {
+      seed_namespace: "subscriptions-test-data",
+      scenario: "cancellation-open-paused-sub",
+      smart_cancellation: {
+        recommended_action: CancellationRecommendedAction.DIRECT_CANCEL,
+        eligible_actions: [CancellationRecommendedAction.DIRECT_CANCEL],
+        rationale:
+          "Subscription is already paused, so direct cancellation is the main remaining operator path.",
+        evaluated_by: "qa-seed",
+        evaluated_at: FIXED_TIME.toISOString(),
+      },
+    },
+  })
+
+  await upsertRetentionOfferEvent(cancellationModule, {
+    id: IDS.retentionDiscountRetained,
+    cancellation_case_id: IDS.cancellationRetainedDiscount,
+    offer_type: RetentionOfferType.DISCOUNT_OFFER,
+    offer_payload: {
+      discount_offer: {
+        discount_type: "percentage",
+        discount_value: 15,
+        duration_cycles: 2,
+        note: "QA seed retention discount",
+      },
+    },
+    decision_status: RetentionOfferDecisionStatus.APPLIED,
+    decision_reason: "Customer accepted a temporary 15% retention discount.",
+    decided_at: FIXED_TIME,
+    decided_by: "qa-seed",
+    applied_at: FIXED_TIME,
+    metadata: {
+      seed_namespace: "subscriptions-test-data",
+      scenario: "cancellation-retained-discount",
+    },
+  })
+
+  await upsertRetentionOfferEvent(cancellationModule, {
+    id: IDS.retentionPauseApplied,
+    cancellation_case_id: IDS.cancellationPaused,
+    offer_type: RetentionOfferType.PAUSE_OFFER,
+    offer_payload: {
+      pause_offer: {
+        pause_cycles: 2,
+        resume_at: null,
+        note: "QA seed pause offer",
+      },
+    },
+    decision_status: RetentionOfferDecisionStatus.APPLIED,
+    decision_reason: "Customer accepted a two-cycle pause.",
+    decided_at: addDays(FIXED_TIME, -2),
+    decided_by: "qa-seed",
+    applied_at: addDays(FIXED_TIME, -2),
+    metadata: {
+      seed_namespace: "subscriptions-test-data",
+      scenario: "cancellation-paused",
     },
   })
 
@@ -1180,6 +1742,63 @@ export default async function seedSubscriptionsTestData({
       dunning_case_id: IDS.dunningManualOverride,
       notes:
         "Use to inspect a case with manual_override retry schedule and test the retry schedule drawer.",
+    },
+    {
+      scenario: "Cancellation open case with linked dunning",
+      subscription_reference: "SUB-QA-CAN-OPEN-BILLING",
+      renewal_cycle_id: IDS.cycleCancellationOpenBilling,
+      dunning_case_id: IDS.dunningCancellationOpenBilling,
+      cancellation_case_id: IDS.cancellationOpenBilling,
+      notes:
+        "Use on Subscriptions > Cancellation & Retention to inspect an active case with billing reason, linked dunning summary, and pause-oriented recommendation.",
+    },
+    {
+      scenario: "Cancellation retained after discount offer",
+      subscription_reference: "SUB-QA-CAN-RETAINED-DISCOUNT",
+      renewal_cycle_id: IDS.cycleCancellationRetainedDiscount,
+      cancellation_case_id: IDS.cancellationRetainedDiscount,
+      notes:
+        "Use to validate retained detail, offer history, final timeline, and filters by outcome and discount offer type.",
+    },
+    {
+      scenario: "Cancellation paused after pause offer",
+      subscription_reference: "SUB-QA-CAN-PAUSED",
+      renewal_cycle_id: IDS.cycleCancellationPaused,
+      cancellation_case_id: IDS.cancellationPaused,
+      notes:
+        "Use to validate pause as a retention outcome and compare subscription paused state with case final outcome.",
+    },
+    {
+      scenario: "Cancellation finalized immediately",
+      subscription_reference: "SUB-QA-CAN-CANCELED-IMMEDIATE",
+      renewal_cycle_id: IDS.cycleCancellationCanceledImmediate,
+      cancellation_case_id: IDS.cancellationCanceledImmediate,
+      notes:
+        "Use to inspect immediate final cancel, cancel_effective_at, and cleared renewal eligibility semantics.",
+    },
+    {
+      scenario: "Cancellation finalized at end of cycle",
+      subscription_reference: "SUB-QA-CAN-CANCELED-END-CYCLE",
+      renewal_cycle_id: IDS.cycleCancellationCanceledEndCycle,
+      cancellation_case_id: IDS.cancellationCanceledEndCycle,
+      notes:
+        "Use to compare end-of-cycle final cancel against immediate cancel on the detail page.",
+    },
+    {
+      scenario: "Cancellation open case with price reason",
+      subscription_reference: "SUB-QA-CAN-OPEN-PRICE",
+      renewal_cycle_id: IDS.cycleCancellationOpenPrice,
+      cancellation_case_id: IDS.cancellationOpenPrice,
+      notes:
+        "Use to run smart cancellation and validate a discount-oriented recommendation path without active dunning.",
+    },
+    {
+      scenario: "Cancellation open case for paused subscription",
+      subscription_reference: "SUB-QA-CAN-OPEN-PAUSED-SUB",
+      renewal_cycle_id: IDS.cycleCancellationOpenPaused,
+      cancellation_case_id: IDS.cancellationOpenPaused,
+      notes:
+        "Use to validate cancellation detail and decision-making when the subscription is already paused.",
     },
   ]
 

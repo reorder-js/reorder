@@ -53,6 +53,19 @@ const IDS = {
     "da_seed_dunning_unrecovered_3",
     "da_seed_dunning_manual_override_1",
   ],
+  cancellationCases: [
+    "cc_seed_cancellation_open_billing",
+    "cc_seed_cancellation_retained_discount",
+    "cc_seed_cancellation_paused",
+    "cc_seed_cancellation_canceled_immediate",
+    "cc_seed_cancellation_canceled_end_cycle",
+    "cc_seed_cancellation_open_price",
+    "cc_seed_cancellation_open_paused",
+  ],
+  retentionOfferEvents: [
+    "roe_seed_cancellation_discount_retained",
+    "roe_seed_cancellation_pause_applied",
+  ],
 } as const
 
 type QueryRecord = {
@@ -153,7 +166,31 @@ export default async function resetSubscriptionsTestData({
   const dunningAttemptIds = await listSeedRecordIds(query, "dunning_attempt", [
     ...IDS.dunningAttempts,
   ])
+  const cancellationCaseIds = await listSeedRecordIds(query, "cancellation_case", [
+    ...IDS.cancellationCases,
+  ])
+  const retentionOfferEventIds = await listSeedRecordIds(
+    query,
+    "retention_offer_event",
+    [...IDS.retentionOfferEvents]
+  )
 
+  const deletedRetentionOfferEvents = await deleteFromTable(
+    pgConnection,
+    "retention_offer_event",
+    retentionOfferEventIds
+  )
+  const deletedRetentionOfferEventsByCase = await deleteFromTableByColumn(
+    pgConnection,
+    "retention_offer_event",
+    "cancellation_case_id",
+    cancellationCaseIds
+  )
+  const deletedCancellationCases = await deleteFromTable(
+    pgConnection,
+    "cancellation_case",
+    cancellationCaseIds
+  )
   const deletedDunningAttempts = await deleteFromTable(
     pgConnection,
     "dunning_attempt",
@@ -199,6 +236,6 @@ export default async function resetSubscriptionsTestData({
 
   logger.info("[subscriptions-test-data-reset] Reset completed.")
   logger.info(
-    `[subscriptions-test-data-reset] Removed plan_offers=${deletedPlanOffers} subscriptions=${deletedSubscriptions} renewal_cycles=${deletedRenewalCycles} renewal_attempts=${deletedRenewalAttempts + deletedRenewalAttemptsByCycle} dunning_cases=${deletedDunningCases} dunning_attempts=${deletedDunningAttempts + deletedDunningAttemptsByCase}`
+    `[subscriptions-test-data-reset] Removed plan_offers=${deletedPlanOffers} subscriptions=${deletedSubscriptions} renewal_cycles=${deletedRenewalCycles} renewal_attempts=${deletedRenewalAttempts + deletedRenewalAttemptsByCycle} dunning_cases=${deletedDunningCases} dunning_attempts=${deletedDunningAttempts + deletedDunningAttemptsByCase} cancellation_cases=${deletedCancellationCases} retention_offer_events=${deletedRetentionOfferEvents + deletedRetentionOfferEventsByCase}`
   )
 }

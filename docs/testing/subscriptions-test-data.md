@@ -7,8 +7,9 @@ It covers test data used across:
 - `Plans & Offers`
 - `Renewals`
 - `Dunning`
+- `Cancellation & Retention`
 
-The current focus of the seeded scenarios is the operational QA surface around `Renewals` and `Dunning`, but the script is intentionally named and structured more broadly so it can be extended for the whole module over time.
+The script is intentionally named and structured broadly so it can seed the operational QA surface for the full recurring-commerce workspace under `Subscriptions`.
 
 ## Files
 
@@ -22,10 +23,13 @@ Related runtime docs:
 - [Subscriptions Testing](./subscriptions.md)
 - [Renewals Testing](./renewals.md)
 - [Dunning Testing](./dunning.md)
+- [Cancellations Testing](./cancellations.md)
 - [Renewals Admin UI](../admin/renewals.md)
 - [Dunning Admin UI](../admin/dunning.md)
+- [Cancellations Admin UI](../admin/cancellations.md)
 - [Renewals Architecture](../architecture/renewals.md)
 - [Dunning Architecture](../architecture/dunning.md)
+- [Cancellation Architecture](../architecture/cancellation.md)
 
 ## Purpose
 
@@ -109,6 +113,8 @@ The script creates or updates:
 - one failed renewal attempt for history/detail testing
 - multiple dunning cases
 - multiple dunning attempts
+- multiple cancellation cases
+- multiple retention offer events
 
 The reset script removes the seeded records for the same areas:
 - seeded `Plan Offers`
@@ -117,6 +123,8 @@ The reset script removes the seeded records for the same areas:
 - seeded `RenewalAttempt`
 - seeded `DunningCase`
 - seeded `DunningAttempt`
+- seeded `CancellationCase`
+- seeded `RetentionOfferEvent`
 
 The seed is designed to be idempotent:
 - it uses stable IDs
@@ -280,6 +288,109 @@ Implementation note:
 - `max_attempts` and `intervals` differ from the default policy
 - one failed attempt already exists to give the operator timeline context before overriding again
 
+### 12. Cancellation: open billing case with active dunning
+
+Subscription reference:
+- `SUB-QA-CAN-OPEN-BILLING`
+
+Purpose:
+- validate the cancellation queue and detail for an active case
+- validate linked dunning summary
+- validate smart-cancel behavior when billing issues and active dunning coexist
+
+Implementation note:
+- subscription is already `past_due`
+- an active `DunningCase` exists for the same subscription
+- the cancellation case is in `evaluating_retention`
+- the seeded recommendation favors `pause_offer`
+
+### 13. Cancellation: retained after discount offer
+
+Subscription reference:
+- `SUB-QA-CAN-RETAINED-DISCOUNT`
+
+Purpose:
+- validate a terminal retained case
+- validate offer history rendering
+- validate timeline and filters by `final_outcome` and `offer_type`
+
+Implementation note:
+- the case is already `retained`
+- one `discount_offer` event exists with `decision_status = applied`
+
+### 14. Cancellation: paused after pause offer
+
+Subscription reference:
+- `SUB-QA-CAN-PAUSED`
+
+Purpose:
+- validate pause as a retention outcome
+- validate paused subscription summary vs paused case outcome
+- validate terminal paused detail state
+
+Implementation note:
+- subscription is already `paused`
+- the case is already `paused`
+- one `pause_offer` event exists with `decision_status = applied`
+
+### 15. Cancellation: immediate final cancel
+
+Subscription reference:
+- `SUB-QA-CAN-CANCELED-IMMEDIATE`
+
+Purpose:
+- validate terminal canceled detail state
+- validate `cancel_effective_at` semantics for immediate cancel
+- validate list filtering by `final_outcome = canceled`
+
+Implementation note:
+- subscription is already `cancelled`
+- the case is already `canceled`
+- `cancellation_effective_at` matches the immediate final-cancel path
+
+### 16. Cancellation: end-of-cycle final cancel
+
+Subscription reference:
+- `SUB-QA-CAN-CANCELED-END-CYCLE`
+
+Purpose:
+- compare end-of-cycle cancel against immediate cancel
+- validate final outcome timeline and effective-date semantics
+
+Implementation note:
+- subscription is already `cancelled`
+- the case is already `canceled`
+- `cancellation_effective_at` is set to a later end-of-cycle point
+
+### 17. Cancellation: open price-driven case
+
+Subscription reference:
+- `SUB-QA-CAN-OPEN-PRICE`
+
+Purpose:
+- run `smart cancellation`
+- validate price-driven recommendation behavior
+- use as a clean base for manual `apply-offer` testing
+
+Implementation note:
+- subscription is `active`
+- the case is still `requested`
+- no offer event exists yet
+
+### 18. Cancellation: open case on already paused subscription
+
+Subscription reference:
+- `SUB-QA-CAN-OPEN-PAUSED-SUB`
+
+Purpose:
+- validate an active cancellation case on top of an already paused subscription
+- verify detail context and recommendation boundary for paused subscriptions
+
+Implementation note:
+- subscription is already `paused`
+- the case is still active
+- this scenario is useful for direct-cancel-oriented operator review
+
 ## What the Script Does Not Create
 
 The current version does not build a full checkout or order-generation setup.
@@ -318,6 +429,42 @@ For `Dunning`:
    - `Attempts min / max`
    - `Next retry from / to`
 4. open case detail and manually validate:
+
+For `Cancellation & Retention`:
+1. open `Subscriptions -> Cancellation & Retention`
+2. search or filter by the seeded references, for example:
+   - `SUB-QA-CAN-OPEN-BILLING`
+   - `SUB-QA-CAN-RETAINED-DISCOUNT`
+   - `SUB-QA-CAN-PAUSED`
+   - `SUB-QA-CAN-CANCELED-IMMEDIATE`
+   - `SUB-QA-CAN-CANCELED-END-CYCLE`
+   - `SUB-QA-CAN-OPEN-PRICE`
+   - `SUB-QA-CAN-OPEN-PAUSED-SUB`
+3. verify queue filters:
+   - `Reason category`
+   - `Outcome`
+   - `Offer type`
+   - `Created from / Created to`
+4. open case detail and manually validate:
+   - linked subscription summary
+   - linked dunning / renewal summary
+   - decision timeline
+   - offer history
+   - smart cancellation
+   - apply offer
+   - finalize cancellation
+   - update reason
+
+## Cancellation Scenario Summary
+
+The seeded cancellation scenarios intentionally cover:
+- active open case with linked dunning context
+- retained outcome through `discount_offer`
+- paused outcome through `pause_offer`
+- immediate canceled outcome
+- end-of-cycle canceled outcome
+- open price-driven case for smart-cancel testing
+- open case on already paused subscription
    - timeline rendering
    - linked renewal summary
    - retry schedule section
