@@ -66,6 +66,27 @@ async function loadCancellationCase(
 }
 
 function validateCaseState(cancellationCase: CancellationCaseRecord) {
+  if (cancellationCase.status === CancellationCaseStatus.RETAINED) {
+    throw cancellationErrors.alreadyFinalized(
+      cancellationCase.id,
+      cancellationCase.status
+    )
+  }
+
+  if (cancellationCase.status === CancellationCaseStatus.PAUSED) {
+    throw cancellationErrors.alreadyFinalized(
+      cancellationCase.id,
+      cancellationCase.status
+    )
+  }
+
+  if (cancellationCase.status === CancellationCaseStatus.CANCELED) {
+    throw cancellationErrors.alreadyFinalized(
+      cancellationCase.id,
+      cancellationCase.status
+    )
+  }
+
   if (!REASON_MUTABLE_CASE_STATUSES.has(cancellationCase.status)) {
     throw cancellationErrors.invalidCaseState(
       cancellationCase.id,

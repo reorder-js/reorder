@@ -96,6 +96,13 @@ async function loadSubscription(
 }
 
 function validateCaseState(cancellationCase: CancellationCaseRecord) {
+  if (cancellationCase.finalized_at) {
+    throw cancellationErrors.alreadyFinalized(
+      cancellationCase.id,
+      cancellationCase.status
+    )
+  }
+
   if (!FINALIZABLE_CANCELLATION_CASE_STATUSES.has(cancellationCase.status)) {
     throw cancellationErrors.invalidCaseState(
       cancellationCase.id,

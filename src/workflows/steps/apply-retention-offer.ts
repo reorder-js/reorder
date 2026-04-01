@@ -127,6 +127,13 @@ async function loadActiveDunningCase(
 }
 
 function validateCaseState(cancellationCase: CancellationCaseRecord) {
+  if (cancellationCase.finalized_at) {
+    throw cancellationErrors.alreadyFinalized(
+      cancellationCase.id,
+      cancellationCase.status
+    )
+  }
+
   if (!APPLIABLE_CANCELLATION_CASE_STATUSES.has(cancellationCase.status)) {
     throw cancellationErrors.invalidCaseState(
       cancellationCase.id,
@@ -198,8 +205,9 @@ function validateOfferPolicy(params: {
   const requiredAction = requiredActionByOfferType[params.offerType]
 
   if (!eligibleActions.includes(requiredAction)) {
-    throw cancellationErrors.conflict(
-      `Retention offer '${params.offerType}' is out of policy for CancellationCase '${params.cancellationCase.id}'`
+    throw cancellationErrors.offerOutOfPolicy(
+      params.cancellationCase.id,
+      params.offerType
     )
   }
 }

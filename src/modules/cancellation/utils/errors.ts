@@ -25,10 +25,22 @@ export const cancellationErrors = {
       `CancellationCase '${cancellationCaseId}' can't ${action} from status '${status}'`
     )
   },
+  alreadyFinalized(cancellationCaseId: string, status: string) {
+    return new MedusaError(
+      MedusaError.Types.CONFLICT,
+      `CancellationCase '${cancellationCaseId}' is already finalized with status '${status}'`
+    )
+  },
   missingCancellationReason(cancellationCaseId: string) {
     return new MedusaError(
       MedusaError.Types.INVALID_DATA,
       `CancellationCase '${cancellationCaseId}' requires a reason before final cancellation`
+    )
+  },
+  offerOutOfPolicy(cancellationCaseId: string, offerType: string) {
+    return new MedusaError(
+      MedusaError.Types.CONFLICT,
+      `Retention offer '${offerType}' is out of policy for CancellationCase '${cancellationCaseId}'`
     )
   },
 }

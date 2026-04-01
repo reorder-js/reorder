@@ -113,6 +113,13 @@ async function loadActiveDunningCase(
 }
 
 function validateSmartCancellationState(cancellationCase: CancellationCaseRecord) {
+  if (cancellationCase.finalized_at) {
+    throw cancellationErrors.alreadyFinalized(
+      cancellationCase.id,
+      cancellationCase.status
+    )
+  }
+
   if (!ACTIVE_CANCELLATION_CASE_STATUSES.has(cancellationCase.status)) {
     throw cancellationErrors.invalidCaseState(
       cancellationCase.id,

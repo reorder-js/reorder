@@ -55,10 +55,22 @@ export async function getAdminCancellationsListResponse(
 }
 
 export function mapCancellationAdminRouteError(error: unknown) {
+  if (error instanceof MedusaError) {
+    const typeToStatus: Record<string, number> = {
+      [MedusaError.Types.NOT_FOUND]: 404,
+      [MedusaError.Types.INVALID_DATA]: 400,
+      [MedusaError.Types.CONFLICT]: 409,
+    }
+
+    return {
+      status: typeToStatus[error.type] ?? 500,
+      type: error.type,
+      message: error.message,
+    }
+  }
+
   const message =
-    error instanceof Error
-      ? error.message
-      : "Unexpected cancellation admin error"
+    error instanceof Error ? error.message : "Unexpected cancellation admin error"
   const normalized = message.toLowerCase()
 
   if (normalized.includes("was not found")) {
