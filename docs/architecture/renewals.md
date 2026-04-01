@@ -119,6 +119,19 @@ This means:
 - `Plans & Offers` own current policy validation
 - `Renewals` own execution state and outcome history
 
+The implemented `Cancellation & Retention` area does not change `Renewals` ownership.
+
+Current boundary with `Cancellation & Retention`:
+- `Renewals` do not own cancellation process state
+- `Cancellation & Retention` do not own renewal-cycle execution history
+- future cycle eligibility is derived from `Subscription` lifecycle state rather than by moving cycle ownership into the cancellation module
+
+In runtime terms:
+- future cycles must respect `Subscription.status`
+- future cycles must respect `cancel_effective_at`
+- future cycles must respect `next_renewal_at`
+- `pause` and `cancel` affect eligibility, not ownership of `renewal_cycle` records
+
 ## 4. Read Path
 
 The read path is optimized for the Admin renewal queue and cycle detail.
@@ -172,6 +185,14 @@ It selects due cycles by:
 - approval-eligible state when approval is required
 
 This keeps scheduler discovery lightweight and separate from Admin display concerns.
+
+Because `Cancellation & Retention` can materialize `paused` and `cancelled` states back to `Subscription`, scheduler behavior must treat those lifecycle fields as the operational gate.
+
+Current implications:
+- `paused` subscriptions are not normally eligible for renewal execution
+- `cancelled` subscriptions are not eligible for renewal execution
+- due cycles after effective cancellation should not execute
+- cycle records may still exist historically even when they are no longer eligible
 
 ## 5. Write Path
 
@@ -286,6 +307,15 @@ Operational implementation note:
 - structured renewal observability lives in `src/modules/renewal/utils/observability.ts`
 - the scheduler job logs per-run and per-cycle summaries
 - the core execution step and manual force flow emit correlation-aware operational events
+
+## 8.1 Boundary with Cancellation & Retention
+
+`Cancellation & Retention` now participates in the recurring-commerce runtime boundary, but it does so through subscription lifecycle effects rather than by taking over renewal ownership.
+
+Current runtime split:
+- `RenewalCycle` remains the source of truth for renewal scheduling and execution history
+- `CancellationCase` remains the source of truth for churn handling decisions
+- subscription lifecycle fields are the integration point between those domains
 
 ## 9. Admin API Architecture
 

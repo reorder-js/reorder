@@ -21,6 +21,11 @@ Implemented routes:
 - `/app/subscriptions`
 - `/app/subscriptions/:id`
 
+Related recurring-operations routes under the same navigation group:
+- `/app/subscriptions/renewals`
+- `/app/subscriptions/dunning`
+- `/app/subscriptions/cancellations`
+
 Navigation behavior:
 - the list route is available as a sidebar page
 - clicking a row in the list navigates to the detail route
@@ -314,3 +319,17 @@ The implemented UI is supported by integration coverage for the underlying Admin
 The browser UI itself is not currently covered by Playwright.
 
 The current project relies on Medusa-supported HTTP integration tests for end-to-end backend flow validation.
+
+## 10. Boundary with Cancellation & Retention
+
+The `Subscriptions` Admin area still owns direct lifecycle actions such as:
+- pause
+- resume
+- cancel
+
+At the same time, churn-handling now has its own dedicated workspace under `Subscriptions`:
+- `Cancellation & Retention`
+
+This means:
+- direct subscription lifecycle operations remain available on subscription detail
+- retention recommendation, retention offers, cancellation-case review, and churn-specific operator flows now live in the dedicated cancellation workspace

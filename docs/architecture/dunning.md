@@ -122,6 +122,19 @@ This means:
 - `Dunning` owns the later payment recovery journey
 - `Subscriptions` own the operational customer lifecycle state
 
+The implemented `Cancellation & Retention` area does not take over payment recovery ownership.
+
+Current boundary with `Cancellation & Retention`:
+- an active `DunningCase` may coexist with an active `CancellationCase`
+- `Cancellation & Retention` may read dunning context for operator visibility
+- `Cancellation & Retention` does not become the owner of retry schedule, retry attempts, or dunning closure state
+- `past_due` subscriptions may still enter retention or final-cancel flow
+
+This means:
+- cancellation workflows may operate while dunning is active
+- but dunning lifecycle state remains owned by `Dunning`
+- the cancellation module does not directly mutate dunning state as part of normal case progression
+
 ## 4. Read Path
 
 The read path is optimized for the Admin dunning queue and case detail.
@@ -295,5 +308,6 @@ In the current runtime:
 - `Renewals` create the failed debt event
 - `Dunning` recovers or closes that debt event
 - `Subscriptions` reflect customer lifecycle state such as `active` and `past_due`
+- `Cancellation & Retention` may coexist with dunning for the same subscription without taking over recovery ownership
 
 The architecture keeps each domain boundary explicit while still giving operators a single, coherent Admin workspace for recurring commerce operations.

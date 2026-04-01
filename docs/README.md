@@ -7,8 +7,6 @@ At the moment, the following areas are implemented and tested:
 - `Plans & Offers`
 - `Renewals`
 - `Dunning`
-
-The remaining major areas from the implementation plan are still in progress:
 - `Cancellation & Retention`
 
 ## Current Status
@@ -39,9 +37,17 @@ Completed:
 - `Dunning` admin flow integration coverage
 - smoke-level integration between `Dunning`, `Renewals`, and `Subscriptions`
 - `Dunning` operational hardening for scheduler and manual retry flows
+- `Cancellation & Retention` domain model
+- `Cancellation & Retention` admin API routes
+- `Cancellation & Retention` Admin UI: queue, detail, smart-cancel, apply-offer, finalize, and reason-update flows
+- `Cancellation & Retention` backend integration tests
+- `Cancellation & Retention` admin flow integration coverage
+- smoke-level integration between `Cancellation & Retention`, `Subscriptions`, `Renewals`, and `Dunning`
+- `Cancellation & Retention` operational hardening for audit trail, structured logging, and scheduler summary metrics
 
 In progress:
 - next implementation stages from the roadmap
+- dedicated analytics page and reporting views for `Cancellation & Retention`
 
 ## Documentation Map
 
@@ -80,6 +86,11 @@ Runtime source-of-truth documents currently exist for:
   - `api/admin-dunning.md`
   - `admin/dunning.md`
   - `testing/dunning.md`
+- `Cancellation & Retention`
+  - `architecture/cancellation.md`
+  - `api/admin-cancellations.md`
+  - `admin/cancellations.md`
+  - `testing/cancellations.md`
 
 ## Recommended Reading Order
 
@@ -92,7 +103,7 @@ For a new developer joining the project:
 
 ## Implemented Areas
 
-The currently implemented areas are `Subscriptions`, `Plans & Offers`, `Renewals`, and `Dunning`.
+The currently implemented areas are `Subscriptions`, `Plans & Offers`, `Renewals`, `Dunning`, and `Cancellation & Retention`.
 
 ### Subscriptions
 
@@ -141,6 +152,21 @@ This area includes:
 - integration with `Renewals` payment-qualified failures
 - integration with `Subscriptions` lifecycle state through `past_due` and recovery back to `active`
 - operational hardening through workflow locking, correlation IDs, structured logs, and scheduler summary metrics
+
+### Cancellation & Retention
+
+This area includes:
+- cancellation case list in Admin
+- cancellation case detail page
+- smart cancellation recommendation flow
+- apply retention offer flow for `pause`, `discount`, and `bonus`
+- update reason flow
+- finalize cancellation flow
+- offer history and final outcome timeline
+- integration with `Subscriptions` lifecycle state
+- integration with `Renewals` through renewal summary and renewal eligibility effects
+- integration with `Dunning` through active-case coexistence and linked dunning summary
+- operational hardening through audit trail, structured logs, and scheduler summary metrics
 
 ## Notes
 

@@ -75,7 +75,7 @@ These helpers are used to:
 - reduce duplication across integration tests
 - keep route and workflow tests focused on behavior
 - provide realistic case, attempt, and renewal setup
-- support smoke-level integration across `Dunning`, `Renewals`, and `Subscriptions`
+- support smoke-level integration across `Dunning`, `Renewals`, `Subscriptions`, and `Cancellation & Retention`
 
 ## 5. Current Coverage
 
@@ -133,8 +133,15 @@ Covered behavior:
 - a qualifying failed renewal starts dunning
 - successful payment recovery closes the case and restores the subscription to `active`
 - unrecovered closure leaves the subscription in `past_due` and preserves the failed renewal outcome
+- active dunning may coexist with cancellation handling on the same subscription without ownership overlap
 
 This is intentionally a smoke-level integration check, not a full browser or system test.
+
+The file [cancellations-smoke.spec.ts](../../integration-tests/http/cancellations-smoke.spec.ts) also protects a shared runtime boundary from the cancellation side.
+
+Covered behavior there includes:
+- `past_due` subscriptions may still enter cancellation and retention flows
+- active `DunningCase` remains visible and does not get taken over by cancellation workflows
 
 ## 6. Commands
 
@@ -179,7 +186,7 @@ Use this rule of thumb:
 
 - add or extend an HTTP integration test when behavior depends on real routes, workflows, auth, validation, or linked Medusa modules
 - add a scenario test when you want to protect a full operational Admin flow across multiple endpoints
-- extend the smoke-check when changes affect the runtime boundary with `Renewals` or `Subscriptions`
+- extend the smoke-check when changes affect the runtime boundary with `Renewals`, `Subscriptions`, or `Cancellation & Retention`
 
 For new `Dunning` functionality:
 - prefer extending the existing `dunning-*` test files if the change matches their scope
@@ -193,4 +200,4 @@ This provides strong protection for:
 - payment recovery workflows
 - Admin read and mutation routes
 - scenario-style operator flows
-- the runtime integration boundary with `Renewals` and `Subscriptions`
+- the runtime integration boundary with `Renewals`, `Subscriptions`, and `Cancellation & Retention`

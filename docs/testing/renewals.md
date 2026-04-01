@@ -100,7 +100,7 @@ These helpers are used to:
 - reduce duplication across integration tests
 - keep route and workflow tests focused on behavior
 - provide realistic seed data for approval, retry, and execution flows
-- support smoke-level integration across `Renewals`, `Subscriptions`, and `Plans & Offers`
+- support smoke-level integration across `Renewals`, `Subscriptions`, `Plans & Offers`, and `Cancellation & Retention`
 
 ## 5. Current Coverage
 
@@ -165,6 +165,7 @@ Covered behavior:
 - renewal applies approved pending changes back to the subscription state
 - renewal does not bypass active `Plans & Offers` policy
 - qualifying renewal payment failure starts `Dunning`
+- future renewal execution respects lifecycle effects coming from `Cancellation & Retention`
 
 This is intentionally a smoke-level integration check, not a full browser or system test.
 
@@ -173,6 +174,7 @@ This smoke-check is the main protection for the renewal boundary with:
 - approved pending change materialization
 - current offer-policy revalidation at execution time
 - dunning startup after payment-qualified renewal failure
+- cancellation-driven pause and cancel eligibility effects
 
 ## 6. Commands
 
@@ -230,7 +232,7 @@ Use this rule of thumb:
 - add a module test when the behavior belongs to the module service itself
 - add an HTTP integration test when the behavior depends on real routes, workflows, auth, request validation, or linked Medusa modules
 - add a scenario test when you want to protect a full operational Admin flow across multiple endpoints
-- extend the smoke-check when changes affect integration with `Subscriptions` or `Plans & Offers`
+- extend the smoke-check when changes affect integration with `Subscriptions`, `Plans & Offers`, or `Cancellation & Retention`
 
 For new `Renewals` functionality:
 - prefer extending the existing `renewals-*` test files if the change matches their scope
@@ -242,7 +244,7 @@ When changing the `Renewals` area:
 1. update or add a module test if the service behavior changes
 2. update or add an HTTP integration test if route behavior, validators, queries, workflows, or scheduler-facing behavior change
 3. update the scenario flow if the main Admin operator flow changes
-4. update the smoke-check if renewal semantics change at the boundary with `Subscriptions` or `Plans & Offers`
+4. update the smoke-check if renewal semantics change at the boundary with `Subscriptions`, `Plans & Offers`, or `Cancellation & Retention`
 
 If a feature changes the contract of:
 - queue filtering

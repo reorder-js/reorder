@@ -256,16 +256,36 @@ Important note:
 - Admin operational management of subscriptions
 - pending plan changes
 - shipping address updates
+- lifecycle materialization for `active`, `paused`, `past_due`, and `cancelled`
+- lifecycle fields such as `paused_at`, `cancelled_at`, `cancel_effective_at`, and `next_renewal_at`
 
 It does not yet own:
 - offer definition and subscription configuration rules
 - renewal execution
 - payment recovery and dunning
+- cancellation and retention process state
+- retention recommendation state
+- retention offer history
+- churn reason classification workflow
 
 Those concerns are intentionally left for later areas:
 - `Plans & Offers`
 - `Renewals`
 - `Dunning`
+
+The implemented `Cancellation & Retention` area now adds a separate process layer on top of the subscription lifecycle.
+
+Current boundary with `Cancellation & Retention`:
+- `Subscription` remains the source of truth for lifecycle state
+- `CancellationCase` remains the source of truth for cancellation and retention process state
+- `RetentionOfferEvent` remains the source of truth for concrete retention-offer history
+
+This means:
+- `paused` and `cancelled` may be materialized by cancellation workflows
+- but those workflows materialize into `Subscription`, they do not replace it as the lifecycle owner
+- final cancel sets `cancel_effective_at`
+- final cancel clears `next_renewal_at`
+- retained outcomes do not set `cancel_effective_at`
 
 ## 12. Why This Structure
 

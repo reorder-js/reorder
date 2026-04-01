@@ -41,7 +41,7 @@ Implemented today:
 - production hardening for dunning scheduler and manual retry flows
 
 Planned next:
-- `Cancellation & Retention`
+- dedicated analytics page and reporting views for `Cancellation & Retention`
 
 ## Product Areas
 
@@ -117,19 +117,27 @@ This area reduces churn caused by payment failures and provides a dedicated paym
 
 ### 5. Cancellation & Retention
 
-Status: `Planned`
+Status: `Completed`
 
-This area will focus on churn handling and retention workflows.
+This area focuses on churn handling and retention workflows.
 
-Planned scope:
-- domain-first definition of cancellation case semantics and retention decisions
+Implemented scope:
+- cancellation case domain model and storage
+- retention offer event domain model and storage
 - source-of-truth boundaries with `Subscriptions`, `Renewals`, and `Dunning`
-- structured cancellation reasons
-- retention offer flows before final cancellation
-- admin tools for pause, discount, or other save actions
-- reporting inputs for churn analysis
+- structured churn reason and reason-category handling
+- smart cancellation recommendation workflow
+- retention offer flows for `pause`, `discount`, and `bonus`
+- final cancellation workflow with required reason semantics
+- admin API routes for cancellation list, detail, recommendation, offer application, finalization, and reason updates
+- Admin UI for cancellation queue and case detail under `Subscriptions`
+- backend integration tests, admin flow integration coverage, and cross-module smoke coverage
+- operational hardening through audit trail, structured logging, scheduler summary metrics, and churn-spike alertable logs
 
-This area will support more deliberate offboarding and retention decisions.
+Deferred scope:
+- dedicated analytics page and reporting views for churn KPIs
+
+This area now supports deliberate offboarding and retention decisions through workflow-backed Admin operations.
 
 ## Roadmap Principles
 
@@ -177,6 +185,10 @@ If you want to contribute:
 - [Admin Plans & Offers API](../api/admin-plan-offers.md)
 - [Admin Plans & Offers UI](../admin/plan-offers.md)
 - [Plans & Offers Testing](../testing/plan-offers.md)
+- [Cancellation Architecture](../architecture/cancellation.md)
+- [Admin Cancellations API](../api/admin-cancellations.md)
+- [Admin Cancellations UI](../admin/cancellations.md)
+- [Cancellations Testing](../testing/cancellations.md)
 - [Dunning Architecture](../architecture/dunning.md)
 - [Admin Dunning API](../api/admin-dunning.md)
 - [Admin Dunning UI](../admin/dunning.md)
