@@ -5,6 +5,7 @@ import {
   CancellationCaseStatus,
   CancellationReasonCategory,
 } from "../../modules/cancellation/types"
+import { appendCancellationManualAction } from "../../modules/cancellation/utils/audit"
 import { cancellationErrors } from "../../modules/cancellation/utils/errors"
 import { SUBSCRIPTION_MODULE } from "../../modules/subscription"
 import type SubscriptionModuleService from "../../modules/subscription/service"
@@ -132,12 +133,22 @@ function mergeCaseMetadata(
   input: StartCancellationCaseStepInput,
   entryContext: ReturnType<typeof normalizeEntryContext>
 ) {
-  return {
+  const base = {
     ...(existingMetadata ?? {}),
     ...(input.metadata ?? {}),
     origin: "admin_cancel_intent",
     entry_context: entryContext,
   }
+
+  return appendCancellationManualAction(base, {
+    action: "start_case",
+    who: entryContext.triggered_by,
+    when: entryContext.triggered_at,
+    why: entryContext.reason,
+    data: {
+      entry_source: entryContext.source,
+    },
+  })
 }
 
 export const startCancellationCaseStep = createStep(

@@ -6,6 +6,7 @@ import {
   CancellationRecommendedAction,
   type CancellationReasonCategory,
 } from "../../modules/cancellation/types"
+import { appendCancellationManualAction } from "../../modules/cancellation/utils/audit"
 import { cancellationErrors } from "../../modules/cancellation/utils/errors"
 import {
   getSmartCancellationRecommendation,
@@ -126,7 +127,8 @@ function createRecommendationMetadata(
   recommendation: SmartCancellationRecommendation,
   input: SmartCancellationStepInput
 ) {
-  return {
+  const evaluatedAt = new Date().toISOString()
+  const base = {
     ...(previousMetadata ?? {}),
     ...(input.metadata ?? {}),
     smart_cancellation: {
@@ -134,9 +136,20 @@ function createRecommendationMetadata(
       eligible_actions: recommendation.eligible_actions,
       rationale: recommendation.rationale,
       evaluated_by: input.evaluated_by ?? null,
-      evaluated_at: new Date().toISOString(),
+      evaluated_at: evaluatedAt,
     },
   }
+
+  return appendCancellationManualAction(base, {
+    action: "smart_cancel",
+    who: input.evaluated_by ?? null,
+    when: evaluatedAt,
+    why: recommendation.rationale,
+    data: {
+      recommended_action: recommendation.recommended_action,
+      eligible_actions: recommendation.eligible_actions,
+    },
+  })
 }
 
 export const smartCancellationStep = createStep(

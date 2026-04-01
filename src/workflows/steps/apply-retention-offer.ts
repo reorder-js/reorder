@@ -10,6 +10,7 @@ import {
   type CancellationReasonCategory,
   type RetentionOfferPayload,
 } from "../../modules/cancellation/types"
+import { appendCancellationManualAction } from "../../modules/cancellation/utils/audit"
 import { cancellationErrors } from "../../modules/cancellation/utils/errors"
 import {
   getEligibleCancellationActions,
@@ -208,7 +209,7 @@ function buildAppliedRetentionMetadata(
   input: ApplyRetentionOfferStepInput,
   appliedAt: Date
 ) {
-  return {
+  const base = {
     ...(subscription.metadata ?? {}),
     applied_retention_offer: {
       offer_type: input.offer_type,
@@ -218,6 +219,16 @@ function buildAppliedRetentionMetadata(
       applied_at: appliedAt.toISOString(),
     },
   }
+
+  return appendCancellationManualAction(base, {
+    action: "apply_offer",
+    who: input.decided_by ?? null,
+    when: appliedAt.toISOString(),
+    why: input.decision_reason ?? null,
+    data: {
+      offer_type: input.offer_type,
+    },
+  })
 }
 
 export const applyRetentionOfferStep = createStep(
@@ -300,7 +311,8 @@ export const applyRetentionOfferStep = createStep(
       final_outcome: finalOutcome,
       finalized_at: appliedAt,
       finalized_by: input.decided_by ?? null,
-      metadata: {
+      metadata: appendCancellationManualAction(
+        {
         ...(cancellationCase.metadata ?? {}),
         ...(input.metadata ?? {}),
         applied_retention_offer: {
@@ -310,6 +322,18 @@ export const applyRetentionOfferStep = createStep(
           applied_at: appliedAt.toISOString(),
         },
       },
+        {
+          action: "apply_offer",
+          who: input.decided_by ?? null,
+          when: appliedAt.toISOString(),
+          why: input.decision_reason ?? null,
+          data: {
+            event_id: createdEvent.id,
+            offer_type: input.offer_type,
+            final_outcome: finalOutcome,
+          },
+        }
+      ),
     } as any)
 
     return new StepResponse<

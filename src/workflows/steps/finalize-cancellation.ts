@@ -6,6 +6,7 @@ import {
   CancellationFinalOutcome,
   type CancellationReasonCategory,
 } from "../../modules/cancellation/types"
+import { appendCancellationManualAction } from "../../modules/cancellation/utils/audit"
 import { cancellationErrors } from "../../modules/cancellation/utils/errors"
 import { SUBSCRIPTION_MODULE } from "../../modules/subscription"
 import type SubscriptionModuleService from "../../modules/subscription/service"
@@ -151,7 +152,7 @@ function buildSubscriptionCancellationMetadata(
   cancelEffectiveAt: Date,
   cancelledAt: Date
 ) {
-  return {
+  const base = {
     ...(subscription.metadata ?? {}),
     cancel_context: {
       reason,
@@ -161,6 +162,17 @@ function buildSubscriptionCancellationMetadata(
       finalized_by: input.finalized_by ?? null,
     },
   }
+
+  return appendCancellationManualAction(base, {
+    action: "finalize_cancellation",
+    who: input.finalized_by ?? null,
+    when: cancelledAt.toISOString(),
+    why: reason,
+    data: {
+      effective_at: input.effective_at ?? "immediately",
+      cancel_effective_at: cancelEffectiveAt.toISOString(),
+    },
+  })
 }
 
 function buildCaseFinalizeMetadata(
@@ -171,7 +183,7 @@ function buildCaseFinalizeMetadata(
   cancelEffectiveAt: Date,
   finalizedAt: Date
 ) {
-  return {
+  const base = {
     ...(cancellationCase.metadata ?? {}),
     ...(input.metadata ?? {}),
     final_cancellation: {
@@ -183,6 +195,18 @@ function buildCaseFinalizeMetadata(
       finalized_at: finalizedAt.toISOString(),
     },
   }
+
+  return appendCancellationManualAction(base, {
+    action: "finalize_cancellation",
+    who: input.finalized_by ?? null,
+    when: finalizedAt.toISOString(),
+    why: reason,
+    data: {
+      reason_category: reasonCategory,
+      effective_at: input.effective_at ?? "immediately",
+      cancel_effective_at: cancelEffectiveAt.toISOString(),
+    },
+  })
 }
 
 export const finalizeCancellationStep = createStep(

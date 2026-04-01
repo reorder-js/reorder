@@ -71,6 +71,10 @@ export {
   default as finalizeCancellationWorkflowDefault,
 } from "./finalize-cancellation"
 export {
+  updateCancellationReasonWorkflow,
+  default as updateCancellationReasonWorkflowDefault,
+} from "./update-cancellation-reason"
+export {
   runDunningRetryWorkflow,
   default as runDunningRetryWorkflowDefault,
 } from "./run-dunning-retry"
