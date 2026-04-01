@@ -1,10 +1,15 @@
 import {
   MiddlewareRoute,
+  validateAndTransformBody,
   validateAndTransformQuery,
 } from "@medusajs/framework/http"
 import {
   GetAdminCancellationSchema,
   GetAdminCancellationsSchema,
+  PostAdminApplyRetentionOfferSchema,
+  PostAdminFinalizeCancellationSchema,
+  PostAdminSmartCancelSchema,
+  PostAdminUpdateCancellationReasonSchema,
 } from "./validators"
 
 export const adminCancellationsMiddlewares: MiddlewareRoute[] = [
@@ -37,6 +42,28 @@ export const adminCancellationsMiddlewares: MiddlewareRoute[] = [
         defaults: ["*"],
         isList: false,
       }),
+    ],
+  },
+  {
+    matcher: "/admin/cancellations/:id/smart-cancel",
+    method: "POST",
+    middlewares: [validateAndTransformBody(PostAdminSmartCancelSchema)],
+  },
+  {
+    matcher: "/admin/cancellations/:id/apply-offer",
+    method: "POST",
+    middlewares: [validateAndTransformBody(PostAdminApplyRetentionOfferSchema)],
+  },
+  {
+    matcher: "/admin/cancellations/:id/finalize",
+    method: "POST",
+    middlewares: [validateAndTransformBody(PostAdminFinalizeCancellationSchema)],
+  },
+  {
+    matcher: "/admin/cancellations/:id/reason",
+    method: "POST",
+    middlewares: [
+      validateAndTransformBody(PostAdminUpdateCancellationReasonSchema),
     ],
   },
 ]
