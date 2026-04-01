@@ -294,6 +294,14 @@ This model is intended to be:
 
 It is not intended to become a generalized event bus or a storage area for operational diagnostics.
 
+The runtime owner of that model is the dedicated Medusa custom module:
+- `src/modules/activity-log`
+
+The module exposes:
+- `ACTIVITY_LOG_MODULE = "activityLog"`
+- the `subscription_log` data model
+- the module service used later by workflows and Admin read helpers
+
 ## Append-Only Semantics
 
 `subscription_log` should be treated as an append-only entity.
@@ -432,6 +440,11 @@ The runtime pattern should match the current plugin conventions:
 - dedicated module service
 - dedicated migrations
 - scalar references to external domains instead of direct cross-module ownership
+
+Current implementation status:
+- the module skeleton exists in `src/modules/activity-log`
+- the model, service, and module export are defined
+- migration files are intentionally deferred to the next implementation step
 
 The first migration for the module should:
 - create the `subscription_log` table
