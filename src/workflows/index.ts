@@ -63,6 +63,10 @@ export {
   default as smartCancellationWorkflowDefault,
 } from "./smart-cancellation"
 export {
+  applyRetentionOfferWorkflow,
+  default as applyRetentionOfferWorkflowDefault,
+} from "./apply-retention-offer"
+export {
   runDunningRetryWorkflow,
   default as runDunningRetryWorkflowDefault,
 } from "./run-dunning-retry"

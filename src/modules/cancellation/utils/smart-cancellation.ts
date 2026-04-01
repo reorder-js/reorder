@@ -41,6 +41,7 @@ export function getEligibleCancellationActions(
   ) {
     return [
       CancellationRecommendedAction.PAUSE_OFFER,
+      CancellationRecommendedAction.BONUS_OFFER,
       CancellationRecommendedAction.DIRECT_CANCEL,
     ]
   }
@@ -48,6 +49,7 @@ export function getEligibleCancellationActions(
   return [
     CancellationRecommendedAction.PAUSE_OFFER,
     CancellationRecommendedAction.DISCOUNT_OFFER,
+    CancellationRecommendedAction.BONUS_OFFER,
     CancellationRecommendedAction.DIRECT_CANCEL,
   ]
 }
