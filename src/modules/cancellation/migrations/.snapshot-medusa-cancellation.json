@@ -1,0 +1,507 @@
+{
+  "namespaces": [
+    "public"
+  ],
+  "name": "public",
+  "tables": [
+    {
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
+        },
+        "subscription_id": {
+          "name": "subscription_id",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "'requested'",
+          "enumItems": [
+            "requested",
+            "evaluating_retention",
+            "retention_offered",
+            "retained",
+            "paused",
+            "canceled"
+          ],
+          "mappedType": "enum"
+        },
+        "reason": {
+          "name": "reason",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "text"
+        },
+        "reason_category": {
+          "name": "reason_category",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "enumItems": [
+            "price",
+            "product_fit",
+            "delivery",
+            "billing",
+            "temporary_pause",
+            "switched_competitor",
+            "other"
+          ],
+          "mappedType": "enum"
+        },
+        "notes": {
+          "name": "notes",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "text"
+        },
+        "recommended_action": {
+          "name": "recommended_action",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "enumItems": [
+            "pause_offer",
+            "discount_offer",
+            "bonus_offer",
+            "direct_cancel"
+          ],
+          "mappedType": "enum"
+        },
+        "final_outcome": {
+          "name": "final_outcome",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "enumItems": [
+            "retained",
+            "paused",
+            "canceled"
+          ],
+          "mappedType": "enum"
+        },
+        "finalized_at": {
+          "name": "finalized_at",
+          "type": "timestamptz",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "length": 6,
+          "mappedType": "datetime"
+        },
+        "finalized_by": {
+          "name": "finalized_by",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "text"
+        },
+        "cancellation_effective_at": {
+          "name": "cancellation_effective_at",
+          "type": "timestamptz",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "length": 6,
+          "mappedType": "datetime"
+        },
+        "metadata": {
+          "name": "metadata",
+          "type": "jsonb",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "json"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamptz",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "length": 6,
+          "default": "now()",
+          "mappedType": "datetime"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamptz",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "length": 6,
+          "default": "now()",
+          "mappedType": "datetime"
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "type": "timestamptz",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "length": 6,
+          "mappedType": "datetime"
+        }
+      },
+      "name": "cancellation_case",
+      "schema": "public",
+      "indexes": [
+        {
+          "keyName": "IDX_cancellation_case_deleted_at",
+          "columnNames": [],
+          "composite": false,
+          "constraint": false,
+          "primary": false,
+          "unique": false,
+          "expression": "CREATE INDEX IF NOT EXISTS \"IDX_cancellation_case_deleted_at\" ON \"cancellation_case\" (\"deleted_at\") WHERE deleted_at IS NULL"
+        },
+        {
+          "keyName": "IDX_cancellation_case_subscription_id",
+          "columnNames": [],
+          "composite": false,
+          "constraint": false,
+          "primary": false,
+          "unique": false,
+          "expression": "CREATE INDEX IF NOT EXISTS \"IDX_cancellation_case_subscription_id\" ON \"cancellation_case\" (\"subscription_id\") WHERE deleted_at IS NULL"
+        },
+        {
+          "keyName": "IDX_cancellation_case_status",
+          "columnNames": [],
+          "composite": false,
+          "constraint": false,
+          "primary": false,
+          "unique": false,
+          "expression": "CREATE INDEX IF NOT EXISTS \"IDX_cancellation_case_status\" ON \"cancellation_case\" (\"status\") WHERE deleted_at IS NULL"
+        },
+        {
+          "keyName": "IDX_cancellation_case_final_outcome",
+          "columnNames": [],
+          "composite": false,
+          "constraint": false,
+          "primary": false,
+          "unique": false,
+          "expression": "CREATE INDEX IF NOT EXISTS \"IDX_cancellation_case_final_outcome\" ON \"cancellation_case\" (\"final_outcome\") WHERE deleted_at IS NULL"
+        },
+        {
+          "keyName": "IDX_cancellation_case_reason_category",
+          "columnNames": [],
+          "composite": false,
+          "constraint": false,
+          "primary": false,
+          "unique": false,
+          "expression": "CREATE INDEX IF NOT EXISTS \"IDX_cancellation_case_reason_category\" ON \"cancellation_case\" (\"reason_category\") WHERE deleted_at IS NULL"
+        },
+        {
+          "keyName": "IDX_cancellation_case_created_at",
+          "columnNames": [],
+          "composite": false,
+          "constraint": false,
+          "primary": false,
+          "unique": false,
+          "expression": "CREATE INDEX IF NOT EXISTS \"IDX_cancellation_case_created_at\" ON \"cancellation_case\" (\"created_at\") WHERE deleted_at IS NULL"
+        },
+        {
+          "keyName": "IDX_cancellation_case_subscription_id_status",
+          "columnNames": [],
+          "composite": false,
+          "constraint": false,
+          "primary": false,
+          "unique": false,
+          "expression": "CREATE INDEX IF NOT EXISTS \"IDX_cancellation_case_subscription_id_status\" ON \"cancellation_case\" (\"subscription_id\", \"status\") WHERE deleted_at IS NULL"
+        },
+        {
+          "keyName": "IDX_cancellation_case_status_created_at",
+          "columnNames": [],
+          "composite": false,
+          "constraint": false,
+          "primary": false,
+          "unique": false,
+          "expression": "CREATE INDEX IF NOT EXISTS \"IDX_cancellation_case_status_created_at\" ON \"cancellation_case\" (\"status\", \"created_at\") WHERE deleted_at IS NULL"
+        },
+        {
+          "keyName": "cancellation_case_pkey",
+          "columnNames": [
+            "id"
+          ],
+          "composite": false,
+          "constraint": true,
+          "primary": true,
+          "unique": true
+        }
+      ],
+      "checks": [],
+      "foreignKeys": {},
+      "nativeEnums": {}
+    },
+    {
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
+        },
+        "cancellation_case_id": {
+          "name": "cancellation_case_id",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
+        },
+        "offer_type": {
+          "name": "offer_type",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "enumItems": [
+            "pause_offer",
+            "discount_offer",
+            "bonus_offer"
+          ],
+          "mappedType": "enum"
+        },
+        "offer_payload": {
+          "name": "offer_payload",
+          "type": "jsonb",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "json"
+        },
+        "decision_status": {
+          "name": "decision_status",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "'proposed'",
+          "enumItems": [
+            "proposed",
+            "accepted",
+            "rejected",
+            "applied",
+            "expired"
+          ],
+          "mappedType": "enum"
+        },
+        "decision_reason": {
+          "name": "decision_reason",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "text"
+        },
+        "decided_at": {
+          "name": "decided_at",
+          "type": "timestamptz",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "length": 6,
+          "mappedType": "datetime"
+        },
+        "decided_by": {
+          "name": "decided_by",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "text"
+        },
+        "applied_at": {
+          "name": "applied_at",
+          "type": "timestamptz",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "length": 6,
+          "mappedType": "datetime"
+        },
+        "metadata": {
+          "name": "metadata",
+          "type": "jsonb",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "json"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamptz",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "length": 6,
+          "default": "now()",
+          "mappedType": "datetime"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamptz",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "length": 6,
+          "default": "now()",
+          "mappedType": "datetime"
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "type": "timestamptz",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "length": 6,
+          "mappedType": "datetime"
+        }
+      },
+      "name": "retention_offer_event",
+      "schema": "public",
+      "indexes": [
+        {
+          "keyName": "IDX_retention_offer_event_cancellation_case_id",
+          "columnNames": [],
+          "composite": false,
+          "constraint": false,
+          "primary": false,
+          "unique": false,
+          "expression": "CREATE INDEX IF NOT EXISTS \"IDX_retention_offer_event_cancellation_case_id\" ON \"retention_offer_event\" (\"cancellation_case_id\") WHERE deleted_at IS NULL"
+        },
+        {
+          "keyName": "IDX_retention_offer_event_deleted_at",
+          "columnNames": [],
+          "composite": false,
+          "constraint": false,
+          "primary": false,
+          "unique": false,
+          "expression": "CREATE INDEX IF NOT EXISTS \"IDX_retention_offer_event_deleted_at\" ON \"retention_offer_event\" (\"deleted_at\") WHERE deleted_at IS NULL"
+        },
+        {
+          "keyName": "IDX_retention_offer_event_offer_type",
+          "columnNames": [],
+          "composite": false,
+          "constraint": false,
+          "primary": false,
+          "unique": false,
+          "expression": "CREATE INDEX IF NOT EXISTS \"IDX_retention_offer_event_offer_type\" ON \"retention_offer_event\" (\"offer_type\") WHERE deleted_at IS NULL"
+        },
+        {
+          "keyName": "IDX_retention_offer_event_decision_status",
+          "columnNames": [],
+          "composite": false,
+          "constraint": false,
+          "primary": false,
+          "unique": false,
+          "expression": "CREATE INDEX IF NOT EXISTS \"IDX_retention_offer_event_decision_status\" ON \"retention_offer_event\" (\"decision_status\") WHERE deleted_at IS NULL"
+        },
+        {
+          "keyName": "IDX_retention_offer_event_created_at",
+          "columnNames": [],
+          "composite": false,
+          "constraint": false,
+          "primary": false,
+          "unique": false,
+          "expression": "CREATE INDEX IF NOT EXISTS \"IDX_retention_offer_event_created_at\" ON \"retention_offer_event\" (\"created_at\") WHERE deleted_at IS NULL"
+        },
+        {
+          "keyName": "IDX_retention_offer_event_cancellation_case_id_created_at",
+          "columnNames": [],
+          "composite": false,
+          "constraint": false,
+          "primary": false,
+          "unique": false,
+          "expression": "CREATE INDEX IF NOT EXISTS \"IDX_retention_offer_event_cancellation_case_id_created_at\" ON \"retention_offer_event\" (\"cancellation_case_id\", \"created_at\") WHERE deleted_at IS NULL"
+        },
+        {
+          "keyName": "IDX_retention_offer_event_offer_type_decision_status",
+          "columnNames": [],
+          "composite": false,
+          "constraint": false,
+          "primary": false,
+          "unique": false,
+          "expression": "CREATE INDEX IF NOT EXISTS \"IDX_retention_offer_event_offer_type_decision_status\" ON \"retention_offer_event\" (\"offer_type\", \"decision_status\") WHERE deleted_at IS NULL"
+        },
+        {
+          "keyName": "retention_offer_event_pkey",
+          "columnNames": [
+            "id"
+          ],
+          "composite": false,
+          "constraint": true,
+          "primary": true,
+          "unique": true
+        }
+      ],
+      "checks": [],
+      "foreignKeys": {
+        "retention_offer_event_cancellation_case_id_foreign": {
+          "constraintName": "retention_offer_event_cancellation_case_id_foreign",
+          "columnNames": [
+            "cancellation_case_id"
+          ],
+          "localTableName": "public.retention_offer_event",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "referencedTableName": "public.cancellation_case",
+          "updateRule": "cascade"
+        }
+      },
+      "nativeEnums": {}
+    }
+  ],
+  "nativeEnums": {}
+}
