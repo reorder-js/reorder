@@ -33,6 +33,9 @@ export const adminCancellationsQueryKeys = {
   all: ["admin-cancellations"] as const,
   detail: (id: string) =>
     [...adminCancellationsQueryKeys.all, "detail", id] as const,
+  actionForm: (id: string) =>
+    [...adminCancellationsQueryKeys.all, "action-form", id] as const,
+  analytics: ["admin-cancellations", "analytics"] as const,
   display: (params: {
     pageSize: number
     offset: number
@@ -147,6 +150,19 @@ export function useAdminCancellationDetailQuery(
   })
 }
 
+export function useAdminCancellationActionFormQuery(
+  id?: string,
+  enabled = false,
+  initialData?: CancellationCaseAdminDetailResponse
+) {
+  return useQuery<CancellationCaseAdminDetailResponse>({
+    queryKey: adminCancellationsQueryKeys.actionForm(id ?? ""),
+    queryFn: () => sdk.client.fetch(`/admin/cancellations/${id}`),
+    enabled: enabled && Boolean(id),
+    initialData,
+  })
+}
+
 export async function invalidateAdminCancellationQueries(
   queryClient: QueryClient,
   id?: string
@@ -160,6 +176,14 @@ export async function invalidateAdminCancellationQueries(
           queryKey: adminCancellationsQueryKeys.detail(id),
         })
       : Promise.resolve(),
+    id
+      ? queryClient.invalidateQueries({
+          queryKey: adminCancellationsQueryKeys.actionForm(id),
+        })
+      : Promise.resolve(),
+    queryClient.invalidateQueries({
+      queryKey: adminCancellationsQueryKeys.analytics,
+    }),
   ])
 }
 

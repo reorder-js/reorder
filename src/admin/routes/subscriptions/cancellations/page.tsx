@@ -174,14 +174,10 @@ const CancellationsPage = () => {
     [filtering]
   )
   const createdFromValue = useMemo(() => {
-    return typeof filtering.created_from === "string"
-      ? toLocalDateTimeInputValue(filtering.created_from)
-      : ""
+    return typeof filtering.created_from === "string" ? filtering.created_from : ""
   }, [filtering])
   const createdToValue = useMemo(() => {
-    return typeof filtering.created_to === "string"
-      ? toLocalDateTimeInputValue(filtering.created_to)
-      : ""
+    return typeof filtering.created_to === "string" ? filtering.created_to : ""
   }, [filtering])
 
   const { data, isLoading, isError, error } = useAdminCancellationsDisplayQuery({
@@ -537,13 +533,7 @@ function formatDateTime(value?: string | null) {
   }).format(date)
 }
 
-function toLocalDateTimeInputValue(value: string) {
-  const date = new Date(value)
-
-  if (Number.isNaN(date.getTime())) {
-    return value
-  }
-
+function toLocalDateTimeInputValue(date: Date) {
   const next = new Date(date)
   next.setSeconds(0, 0)
 
@@ -560,25 +550,6 @@ function addDays(date: Date, amount: number) {
   const next = new Date(date)
   next.setDate(next.getDate() + amount)
   return next
-}
-
-function formatDateRange(from?: string, to?: string) {
-  const formattedFrom = formatDateTime(from)
-  const formattedTo = formatDateTime(to)
-
-  if (from && to) {
-    return `${formattedFrom} to ${formattedTo}`
-  }
-
-  if (from) {
-    return `From ${formattedFrom}`
-  }
-
-  if (to) {
-    return `Until ${formattedTo}`
-  }
-
-  return "-"
 }
 
 function removeFilter(current: DataTableFilteringState, key: string) {
