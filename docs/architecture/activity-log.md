@@ -283,6 +283,170 @@ Examples:
 
 If configuration-audit requirements become important later, they should be modeled as a separate configuration audit trail rather than folded into the per-subscription activity stream.
 
+## SubscriptionLog Data Model
+
+The future `Activity Log` area should use a dedicated custom data model named `subscription_log`.
+
+This model is intended to be:
+- append-only
+- subscription-centric
+- optimized for Admin list, detail, and per-subscription timeline reads
+
+It is not intended to become a generalized event bus or a storage area for operational diagnostics.
+
+## Append-Only Semantics
+
+`subscription_log` should be treated as an append-only entity.
+
+That means:
+- one business event produces one log record
+- existing records are not edited as part of normal business flow
+- state evolution is represented by new log entries, not by mutating older ones
+
+This keeps the audit trail stable and understandable for operators.
+
+The append-only rule is especially important because the log is meant to describe historical business events, not current domain ownership.
+
+## Proposed Physical Fields
+
+The model should store the following fields:
+
+- `id`
+- `subscription_id`
+- `customer_id`
+- `event_type`
+- `actor_type`
+- `actor_id`
+- `subscription_reference`
+- `customer_name`
+- `product_title`
+- `variant_title`
+- `previous_state`
+- `new_state`
+- `changed_fields`
+- `reason`
+- `metadata`
+
+Automatic Medusa fields are also present:
+- `created_at`
+- `updated_at`
+- `deleted_at`
+
+### Core Filtering Fields
+
+The primary Admin filtering and timeline fields are:
+- `subscription_id`
+- `customer_id`
+- `event_type`
+- `created_at`
+
+These should be first-class scalar columns, not values hidden inside JSON.
+
+### JSON Fields
+
+The model should use JSON fields for:
+- `previous_state`
+- `new_state`
+- `changed_fields`
+- `metadata`
+
+These JSON fields are justified because they store event-specific payloads that may vary by event type.
+
+However, they should remain compact and bounded:
+- no full aggregate copies
+- no attempt-history arrays
+- no raw payment-provider payloads
+- no large diagnostic dumps
+
+## Display Snapshot Decision
+
+The `subscription_log` model should store a small set of display-oriented snapshot fields directly on the record:
+- `subscription_reference`
+- `customer_name`
+- `product_title`
+- `variant_title`
+
+This is the recommended decision for `Activity Log` v1.
+
+### Why store small display snapshots
+
+The audit trail should remain readable even if current linked entities change later.
+
+For example:
+- a customer's display name may change
+- a product or variant title may change
+- subscription-facing labels may evolve after the event happened
+
+If the Admin log relied only on current enrichment, historical events could become misleading.
+
+Small snapshots solve that problem without copying the whole subscription aggregate.
+
+### Why not store full entity snapshots
+
+The current plugin already uses snapshots where they are operationally necessary, especially in `Subscriptions`.
+
+For `Activity Log`, a full snapshot would be unnecessary and too heavy because:
+- the log is event-focused, not aggregate-focused
+- most Admin list rows only need a few stable display labels
+- large snapshots would create schema drift and duplication pressure
+
+So the agreed rule is:
+- store a few stable display snapshot fields as scalar columns
+- keep event-specific change detail in compact JSON fields
+- rely on query-time enrichment only for optional contextual detail, not for the core audit labels
+
+## Indexing Strategy
+
+The initial indexing strategy should match the plugin's existing pattern of pragmatic scalar indexes.
+
+Required single-column indexes:
+- `subscription_id`
+- `customer_id`
+- `event_type`
+- `created_at`
+
+Required compound indexes:
+- `subscription_id + created_at`
+- `customer_id + created_at`
+- `event_type + created_at`
+
+Reasoning:
+- `subscription_id + created_at` supports the per-subscription timeline
+- `customer_id + created_at` supports future customer-level audit queries
+- `event_type + created_at` supports operational filtering in Admin
+- `created_at` supports default reverse-chronological browsing
+
+The initial model should not add JSON indexes.
+
+Reasoning:
+- the expected primary query paths are scalar and time-based
+- JSON indexing would add complexity before real query evidence exists
+- event payload filtering is not a primary v1 requirement
+
+## Module and Migration Strategy
+
+`subscription_log` should live in a dedicated `activity-log` custom module.
+
+The runtime pattern should match the current plugin conventions:
+- dedicated data model
+- dedicated module service
+- dedicated migrations
+- scalar references to external domains instead of direct cross-module ownership
+
+The first migration for the module should:
+- create the `subscription_log` table
+- create the scalar and compound indexes listed above
+- rely on Medusa's standard `deleted_at` partial-index pattern
+
+The model should not introduce hard foreign keys to other modules.
+
+This follows the same practical boundary already used in:
+- `renewal_cycle`
+- `dunning_case`
+- `cancellation_case`
+
+Those areas persist scalar identifiers and use query-time enrichment rather than cross-module ownership at the SQL level.
+
 ## Summary
 
 The agreed boundary for `Activity Log` is:
@@ -294,3 +458,5 @@ The agreed boundary for `Activity Log` is:
 - cross-domain event recording should happen through workflow orchestration, consistent with Medusa patterns
 - event records should stay compact, stable, and operator-readable
 - `Plans & Offers` configuration changes are out of scope for standalone `Activity Log` v1 events
+- `subscription_log` should be a dedicated append-only model with scalar filter fields and compact JSON payloads
+- `subscription_log` should store small Admin display snapshots directly on the record
