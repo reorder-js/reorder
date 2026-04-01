@@ -499,6 +499,36 @@ The helper should generate `dedupe_key` deterministically from:
 
 This allows later workflow-backed writes to remain idempotent across retries.
 
+## Central Workflow Write Step
+
+The future write path should use one central workflow step for persistence:
+- `create-subscription-log-event`
+
+The step is responsible only for:
+- receiving a workflow-friendly normalized event payload
+- checking for an existing record by `dedupe_key`
+- creating a new `subscription_log` record only when needed
+- returning compensation input that distinguishes `created` from `existing`
+
+### Idempotency Rule
+
+The step should treat `dedupe_key` as the primary logical idempotency key.
+
+Current write strategy:
+- read by `dedupe_key`
+- if a record exists, reuse it
+- if no record exists, create one
+
+The unique database index on `dedupe_key` remains the last line of protection against duplicate writes.
+
+### Compensation Rule
+
+The step's compensation function should delete only records created by the current workflow execution.
+
+It should not delete:
+- previously existing log records
+- records returned because the write path hit an idempotent duplicate
+
 The model should not introduce hard foreign keys to other modules.
 
 This follows the same practical boundary already used in:
