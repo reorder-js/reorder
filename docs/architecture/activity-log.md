@@ -458,6 +458,47 @@ Current implementation status:
 - the generated migration includes a unique index for `dedupe_key`
 - applying the migration to the database remains a separate application-level step
 
+## Normalization Helper Boundary
+
+Before event records are written, they should pass through a shared normalization helper owned by the `activity-log` module.
+
+The helper is responsible for:
+- building compact `changed_fields` from `previous_state` and `new_state`
+- redacting sensitive values from event state payloads
+- filtering `metadata` down to a stable allow-list
+- attaching `correlation_id` when one already exists in the calling flow
+- generating a deterministic `dedupe_key`
+
+The helper is intentionally:
+- synchronous
+- side-effect free
+- independent from the Medusa container
+
+This keeps payload shaping reusable across workflows without mixing normalization logic into persistence logic.
+
+### Redaction Rules
+
+The helper should remove or exclude sensitive values from state payloads and metadata.
+
+Current protected categories include:
+- full shipping address lines
+- phone numbers
+- payment context and payment references
+- raw provider payloads
+- stack traces and low-level diagnostics
+
+The goal is to preserve operator-facing business meaning without turning `Activity Log` into a storage area for sensitive or low-level technical data.
+
+### Dedupe Key Rules
+
+The helper should generate `dedupe_key` deterministically from:
+- `event_type`
+- a domain scope
+- a target domain identifier
+- an optional event qualifier
+
+This allows later workflow-backed writes to remain idempotent across retries.
+
 The model should not introduce hard foreign keys to other modules.
 
 This follows the same practical boundary already used in:
