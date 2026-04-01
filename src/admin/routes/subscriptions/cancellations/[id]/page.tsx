@@ -139,6 +139,7 @@ const CancellationDetailPage = () => {
     data
   )
   const actionFormCancellation = actionFormData?.cancellation ?? cancellation
+  const isActionFormLoading = actionDrawerOpen && !actionFormData && Boolean(id)
 
   const smartCancelMutation = useMutation({
     mutationFn: async (body: SmartCancellationAdminRequest) =>
@@ -418,6 +419,18 @@ const CancellationDetailPage = () => {
           return
         }
 
+        const confirmed = await prompt({
+          title: "Apply pause offer?",
+          description:
+            "You are about to pause the subscription as a retention outcome and close this case as paused.",
+          confirmText: "Apply pause offer",
+          cancelText: "Cancel",
+        })
+
+        if (!confirmed) {
+          return
+        }
+
         await applyOfferMutation.mutateAsync({
           offer_type: "pause_offer",
           offer_payload: {
@@ -442,6 +455,18 @@ const CancellationDetailPage = () => {
         if (!normalizedDiscountValue) {
           setFormError("Discount value must be greater than 0")
           toast.error("Discount value must be greater than 0")
+          return
+        }
+
+        const confirmed = await prompt({
+          title: "Apply discount offer?",
+          description:
+            "You are about to apply a retention discount and close this case as retained.",
+          confirmText: "Apply offer",
+          cancelText: "Cancel",
+        })
+
+        if (!confirmed) {
           return
         }
 
@@ -470,6 +495,18 @@ const CancellationDetailPage = () => {
       ) {
         setFormError("Bonus value is required for free cycle or credit")
         toast.error("Bonus value is required for free cycle or credit")
+        return
+      }
+
+      const confirmed = await prompt({
+        title: "Apply bonus offer?",
+        description:
+          "You are about to apply a retention bonus and close this case as retained.",
+        confirmText: "Apply offer",
+        cancelText: "Cancel",
+      })
+
+      if (!confirmed) {
         return
       }
 
@@ -878,9 +915,11 @@ const CancellationDetailPage = () => {
               ))}
             </div>
           ) : (
-            <Text size="small" leading="compact" className="text-ui-fg-subtle">
-              No retention offers or final outcome entries have been recorded yet.
-            </Text>
+            <Alert variant="info">
+              <Text size="small" leading="compact">
+                No retention offers or final outcome entries have been recorded yet.
+              </Text>
+            </Alert>
           )}
         </div>
       </Container>
@@ -931,9 +970,11 @@ const CancellationDetailPage = () => {
               </Table.Body>
             </Table>
           ) : (
-            <Text size="small" leading="compact" className="text-ui-fg-subtle">
-              No retention offers have been recorded for this case yet.
-            </Text>
+            <Alert variant="info">
+              <Text size="small" leading="compact">
+                No retention offers have been recorded for this case yet.
+              </Text>
+            </Alert>
           )}
         </div>
       </Container>
@@ -963,9 +1004,17 @@ const CancellationDetailPage = () => {
             <Drawer.Title>{getDrawerTitle(actionDrawerMode)}</Drawer.Title>
           </Drawer.Header>
           <Drawer.Body className="flex flex-1 flex-col gap-y-4 p-4">
+            {isActionFormLoading ? (
+              <div className="flex items-center gap-x-2 text-ui-fg-subtle">
+                <Spinner className="animate-spin" />
+                <Text size="small" leading="compact" className="text-ui-fg-subtle">
+                  Loading latest case data for this action...
+                </Text>
+              </div>
+            ) : null}
             {formError ? <Alert variant="error">{formError}</Alert> : null}
 
-            {actionDrawerMode === "reason" ? (
+            {!isActionFormLoading && actionDrawerMode === "reason" ? (
               <div className="grid gap-4">
                 <div className="grid gap-2">
                   <Label htmlFor="cancellation-reason">Reason</Label>
@@ -1015,7 +1064,7 @@ const CancellationDetailPage = () => {
               </div>
             ) : null}
 
-            {actionDrawerMode === "apply_offer" ? (
+            {!isActionFormLoading && actionDrawerMode === "apply_offer" ? (
               <div className="grid gap-4">
                 <div className="grid gap-2">
                   <Label htmlFor="offer-type">Offer type</Label>
@@ -1187,7 +1236,7 @@ const CancellationDetailPage = () => {
               </div>
             ) : null}
 
-            {actionDrawerMode === "finalize" ? (
+            {!isActionFormLoading && actionDrawerMode === "finalize" ? (
               <div className="grid gap-4">
                 <div className="grid gap-2">
                   <Label htmlFor="finalize-reason">Reason</Label>
@@ -1256,6 +1305,7 @@ const CancellationDetailPage = () => {
                   variant="secondary"
                   type="button"
                   disabled={
+                    isActionFormLoading ||
                     applyOfferMutation.isPending ||
                     finalizeMutation.isPending ||
                     updateReasonMutation.isPending
@@ -1278,6 +1328,7 @@ const CancellationDetailPage = () => {
                       : updateReasonMutation.isPending
                 }
                 disabled={
+                  isActionFormLoading ||
                   applyOfferMutation.isPending ||
                   finalizeMutation.isPending ||
                   updateReasonMutation.isPending
