@@ -17,6 +17,7 @@ export function normalizeAdminCancellationsListQuery(
     status: query.status,
     final_outcome: query.final_outcome,
     reason_category: query.reason_category,
+    offer_type: query.offer_type,
     subscription_id: query.subscription_id,
     created_from: query.created_from,
     created_to: query.created_to,

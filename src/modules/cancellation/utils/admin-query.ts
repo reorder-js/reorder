@@ -18,6 +18,7 @@ import {
   CancellationCaseStatus,
   CancellationFinalOutcome,
   CancellationRecommendedAction,
+  RetentionOfferType,
   RetentionOfferDecisionStatus,
 } from "../types"
 import { cancellationErrors } from "./errors"
@@ -31,6 +32,7 @@ export type ListAdminCancellationCasesInput = {
   status?: string[]
   final_outcome?: string[]
   reason_category?: string[]
+  offer_type?: RetentionOfferType[]
   subscription_id?: string
   created_from?: string
   created_to?: string
@@ -289,6 +291,30 @@ function buildFilters(input: ListAdminCancellationCasesInput) {
   }
 
   return filters
+}
+
+async function getCancellationCaseIdsForOfferTypes(
+  container: MedusaContainer,
+  offerTypes: RetentionOfferType[]
+): Promise<string[]> {
+  if (!offerTypes.length) {
+    return []
+  }
+
+  const query = container.resolve(ContainerRegistrationKeys.QUERY)
+  const { data } = await query.graph({
+    entity: "retention_offer_event",
+    fields: ["cancellation_case_id"],
+    filters: {
+      offer_type: offerTypes,
+    },
+  })
+
+  return [...new Set(
+    (data as Array<{ cancellation_case_id: string }>).map(
+      (record) => record.cancellation_case_id
+    )
+  )]
 }
 
 async function getSubscriptionSummaryMap(
@@ -591,6 +617,24 @@ export async function listAdminCancellationCases(
   const isInMemorySort =
     typeof order === "string" && inMemorySortableFields.has(order)
   const requiresInMemoryProcessing = Boolean(input.q) || isInMemorySort
+
+  if (input.offer_type?.length) {
+    const cancellationCaseIds = await getCancellationCaseIdsForOfferTypes(
+      container,
+      input.offer_type
+    )
+
+    if (!cancellationCaseIds.length) {
+      return {
+        cancellations: [],
+        count: 0,
+        limit,
+        offset,
+      }
+    }
+
+    filters.id = cancellationCaseIds
+  }
 
   if (!requiresInMemoryProcessing) {
     const {

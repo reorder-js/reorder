@@ -53,6 +53,12 @@ export const GetAdminCancellationsSchema = createFindParams({
     }
     return value
   }, z.array(cancellationReasonCategorySchema).optional()),
+  offer_type: z.preprocess((value) => {
+    if (typeof value === "string") {
+      return [value]
+    }
+    return value
+  }, z.array(z.nativeEnum(RetentionOfferType)).optional()),
   subscription_id: z.string().optional(),
   created_from: optionalIsoDateTime,
   created_to: optionalIsoDateTime,
