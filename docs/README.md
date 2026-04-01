@@ -91,6 +91,8 @@ Runtime source-of-truth documents currently exist for:
   - `api/admin-cancellations.md`
   - `admin/cancellations.md`
   - `testing/cancellations.md`
+- `Activity Log`
+  - `architecture/activity-log.md`
 
 ## Recommended Reading Order
 
@@ -104,6 +106,8 @@ For a new developer joining the project:
 ## Implemented Areas
 
 The currently implemented areas are `Subscriptions`, `Plans & Offers`, `Renewals`, `Dunning`, and `Cancellation & Retention`.
+
+`Activity Log` currently has an architectural boundary document only. It is not yet implemented end-to-end.
 
 ### Subscriptions
 
