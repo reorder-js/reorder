@@ -1,5 +1,5 @@
 import { HttpTypes } from "@medusajs/framework/types"
-import { keepPreviousData, useQuery } from "@tanstack/react-query"
+import { keepPreviousData, QueryClient, useQuery } from "@tanstack/react-query"
 import { sdk } from "../../../lib/client"
 import type {
   AdminAnalyticsFilters,
@@ -15,6 +15,8 @@ export const adminAnalyticsQueryKeys = {
     [...adminAnalyticsQueryKeys.all, "kpis", filters] as const,
   trends: (filters: AdminAnalyticsFilters) =>
     [...adminAnalyticsQueryKeys.all, "trends", filters] as const,
+  export: (filters: AdminAnalyticsFilters, format: AnalyticsExportFormat) =>
+    [...adminAnalyticsQueryKeys.all, "export", filters, format] as const,
   products: () => [...adminAnalyticsQueryKeys.all, "products"] as const,
 }
 
@@ -101,6 +103,12 @@ export async function exportAdminAnalytics(
   downloadFile(content, response.file_name, response.content_type)
 
   return response
+}
+
+export async function invalidateAdminAnalyticsQueries(queryClient: QueryClient) {
+  await queryClient.invalidateQueries({
+    queryKey: adminAnalyticsQueryKeys.all,
+  })
 }
 
 function toUtcStartOfDay(value: string) {

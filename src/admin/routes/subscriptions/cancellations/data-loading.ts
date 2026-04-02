@@ -9,6 +9,7 @@ import {
   useQuery,
 } from "@tanstack/react-query"
 import { sdk } from "../../../lib/client"
+import { invalidateAdminAnalyticsQueries } from "../analytics/data-loading"
 import { invalidateAdminActivityLogQueries } from "../activity-log/data-loading"
 import {
   CancellationCaseAdminDetailResponse,
@@ -186,6 +187,7 @@ export async function invalidateAdminCancellationQueries(
     queryClient.invalidateQueries({
       queryKey: adminCancellationsQueryKeys.analytics,
     }),
+    invalidateAdminAnalyticsQueries(queryClient),
     invalidateAdminActivityLogQueries(queryClient, {
       subscriptionId,
     }),

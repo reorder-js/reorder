@@ -9,6 +9,7 @@ import {
   useQuery,
 } from "@tanstack/react-query";
 import { sdk } from "../../../lib/client";
+import { invalidateAdminAnalyticsQueries } from "../analytics/data-loading";
 import { invalidateAdminActivityLogQueries } from "../activity-log/data-loading";
 import {
   RenewalCycleAdminDetailResponse,
@@ -154,6 +155,7 @@ export async function invalidateAdminRenewalsQueries(
           queryKey: adminRenewalsQueryKeys.detail(id),
         })
       : Promise.resolve(),
+    invalidateAdminAnalyticsQueries(queryClient),
     invalidateAdminActivityLogQueries(queryClient, {
       subscriptionId,
     }),
