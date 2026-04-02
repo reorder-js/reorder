@@ -14,6 +14,12 @@ import {
   RetentionOfferDecisionStatus,
   RetentionOfferType,
 } from "../../src/modules/cancellation/types"
+import { ACTIVITY_LOG_MODULE } from "../../src/modules/activity-log"
+import type ActivityLogModuleService from "../../src/modules/activity-log/service"
+import {
+  ActivityLogActorType,
+  ActivityLogEventType,
+} from "../../src/modules/activity-log/types"
 import { DUNNING_MODULE } from "../../src/modules/dunning"
 import type DunningModuleService from "../../src/modules/dunning/service"
 import { DunningCaseStatus } from "../../src/modules/dunning/types"
@@ -28,6 +34,7 @@ import {
   finalizeCancellationWorkflow,
   smartCancellationWorkflow,
   startCancellationCaseWorkflow,
+  updateCancellationReasonWorkflow,
 } from "../../src/workflows"
 import {
   createCancellationCaseSeed,
@@ -134,6 +141,8 @@ medusaIntegrationTestRunner({
 
       it("starts a cancellation case and reuses the active case idempotently", async () => {
         const container = getContainer()
+        const activityLogModule =
+          container.resolve<ActivityLogModuleService>(ACTIVITY_LOG_MODULE)
         const cancellationModule =
           container.resolve<CancellationModuleService>(CANCELLATION_MODULE)
 
@@ -157,8 +166,10 @@ medusaIntegrationTestRunner({
 
         expect(firstRun.result).toMatchObject({
           action: "created",
-          subscription_id: subscription.id,
-          status: CancellationCaseStatus.REQUESTED,
+          current: {
+            subscription_id: subscription.id,
+            status: CancellationCaseStatus.REQUESTED,
+          },
         })
 
         const secondRun = await startCancellationCaseWorkflow(container).run({
@@ -180,19 +191,35 @@ medusaIntegrationTestRunner({
 
         expect(secondRun.result).toMatchObject({
           action: "updated",
-          cancellation_case_id: firstRun.result.cancellation_case_id,
+          current: {
+            id: firstRun.result.current.id,
+          },
         })
         expect(cases).toHaveLength(1)
         expect(cases[0]).toMatchObject({
-          id: firstRun.result.cancellation_case_id,
+          id: firstRun.result.current.id,
           reason: "Need a break",
           reason_category: CancellationReasonCategory.TEMPORARY_PAUSE,
           notes: "first intent",
+        })
+
+        const logs = await activityLogModule.listSubscriptionLogs({
+          subscription_id: subscription.id,
+          event_type: ActivityLogEventType.CANCELLATION_CASE_STARTED,
+        } as any)
+
+        expect(logs).toHaveLength(2)
+        expect(logs[0]).toMatchObject({
+          subscription_id: subscription.id,
+          event_type: ActivityLogEventType.CANCELLATION_CASE_STARTED,
+          actor_type: ActivityLogActorType.USER,
         })
       })
 
       it("branches smart cancellation recommendations based on subscription state and churn reason", async () => {
         const container = getContainer()
+        const activityLogModule =
+          container.resolve<ActivityLogModuleService>(ACTIVITY_LOG_MODULE)
         const renewal = container.resolve<RenewalModuleService>(RENEWAL_MODULE)
 
         const priceSubscription = await createSubscriptionSeed(container, {
@@ -242,6 +269,19 @@ medusaIntegrationTestRunner({
           recommended_action: CancellationRecommendedAction.DIRECT_CANCEL,
         })
 
+        const priceLogs = await activityLogModule.listSubscriptionLogs({
+          subscription_id: priceSubscription.id,
+          event_type: ActivityLogEventType.CANCELLATION_RECOMMENDATION_GENERATED,
+        } as any)
+
+        expect(priceLogs).toHaveLength(1)
+        expect(priceLogs[0]).toMatchObject({
+          subscription_id: priceSubscription.id,
+          event_type: ActivityLogEventType.CANCELLATION_RECOMMENDATION_GENERATED,
+          actor_type: ActivityLogActorType.USER,
+          actor_id: "admin_pricing",
+        })
+
         const futureCycles = await renewal.listRenewalCycles({
           subscription_id: priceSubscription.id,
         } as any)
@@ -250,6 +290,8 @@ medusaIntegrationTestRunner({
 
       it("accepts a pause offer and materializes paused subscription state", async () => {
         const container = getContainer()
+        const activityLogModule =
+          container.resolve<ActivityLogModuleService>(ACTIVITY_LOG_MODULE)
         const cancellationModule =
           container.resolve<CancellationModuleService>(CANCELLATION_MODULE)
         const subscriptionModule =
@@ -309,6 +351,79 @@ medusaIntegrationTestRunner({
           offer_type: RetentionOfferType.PAUSE_OFFER,
           decision_status: RetentionOfferDecisionStatus.APPLIED,
         })
+
+        const logs = await activityLogModule.listSubscriptionLogs({
+          subscription_id: subscription.id,
+          event_type: ActivityLogEventType.CANCELLATION_OFFER_APPLIED,
+        } as any)
+
+        expect(logs).toHaveLength(1)
+        expect(logs[0]).toMatchObject({
+          subscription_id: subscription.id,
+          event_type: ActivityLogEventType.CANCELLATION_OFFER_APPLIED,
+          actor_type: ActivityLogActorType.USER,
+          actor_id: "admin_pause",
+        })
+      })
+
+      it("updates cancellation reason and records an activity log entry", async () => {
+        const container = getContainer()
+        const activityLogModule =
+          container.resolve<ActivityLogModuleService>(ACTIVITY_LOG_MODULE)
+        const cancellationModule =
+          container.resolve<CancellationModuleService>(CANCELLATION_MODULE)
+
+        const subscription = await createSubscriptionSeed(container, {
+          reference: "SUB-CAN-WF-004A",
+          status: SubscriptionStatus.ACTIVE,
+        })
+        const cancellationCase = await createCancellationCaseSeed(container, {
+          subscription_id: subscription.id,
+          status: CancellationCaseStatus.REQUESTED,
+          reason: "Initial reason",
+          reason_category: CancellationReasonCategory.OTHER,
+          notes: "Initial note",
+        })
+
+        const { result } = await updateCancellationReasonWorkflow(container).run({
+          input: {
+            cancellation_case_id: cancellationCase.id,
+            reason: "Updated billing reason",
+            reason_category: CancellationReasonCategory.BILLING,
+            notes: "Updated by admin",
+            updated_by: "admin_reason",
+            update_reason: "Refined churn classification",
+          },
+        })
+
+        const updatedCase = await cancellationModule.retrieveCancellationCase(
+          cancellationCase.id
+        )
+
+        expect(result).toMatchObject({
+          cancellation_case_id: cancellationCase.id,
+          reason: "Updated billing reason",
+          reason_category: CancellationReasonCategory.BILLING,
+        })
+        expect(updatedCase).toMatchObject({
+          reason: "Updated billing reason",
+          reason_category: CancellationReasonCategory.BILLING,
+          notes: "Updated by admin",
+        })
+
+        const logs = await activityLogModule.listSubscriptionLogs({
+          subscription_id: subscription.id,
+          event_type: ActivityLogEventType.CANCELLATION_REASON_UPDATED,
+        } as any)
+
+        expect(logs).toHaveLength(1)
+        expect(logs[0]).toMatchObject({
+          subscription_id: subscription.id,
+          event_type: ActivityLogEventType.CANCELLATION_REASON_UPDATED,
+          actor_type: ActivityLogActorType.USER,
+          actor_id: "admin_reason",
+          reason: "Refined churn classification",
+        })
       })
 
       it("rejects retention offers that are out of policy", async () => {
@@ -364,6 +479,8 @@ medusaIntegrationTestRunner({
 
       it("finalizes cancellation, requires a reason, and updates subscription lifecycle", async () => {
         const container = getContainer()
+        const activityLogModule =
+          container.resolve<ActivityLogModuleService>(ACTIVITY_LOG_MODULE)
         const cancellationModule =
           container.resolve<CancellationModuleService>(CANCELLATION_MODULE)
         const subscriptionModule =
@@ -428,6 +545,19 @@ medusaIntegrationTestRunner({
         expect(updatedSubscription.cancel_effective_at?.toISOString()).toEqual(
           nextRenewalAt.toISOString()
         )
+
+        const logs = await activityLogModule.listSubscriptionLogs({
+          subscription_id: subscription.id,
+          event_type: ActivityLogEventType.CANCELLATION_FINALIZED,
+        } as any)
+
+        expect(logs).toHaveLength(1)
+        expect(logs[0]).toMatchObject({
+          subscription_id: subscription.id,
+          event_type: ActivityLogEventType.CANCELLATION_FINALIZED,
+          actor_type: ActivityLogActorType.USER,
+          actor_id: "admin_cancel",
+        })
       })
     })
   },

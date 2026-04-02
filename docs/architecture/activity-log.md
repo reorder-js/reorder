@@ -418,6 +418,30 @@ Required compound indexes:
 - `customer_id + created_at`
 - `event_type + created_at`
 
+## Workflow Emission Scope
+
+`Activity Log` entries are emitted from workflow-backed mutation paths, not directly from routes or low-level technical helpers.
+
+For `Cancellation & Retention`, the current business-event emission scope is:
+- `start-cancellation-case` -> `cancellation.case_started`
+- `smart-cancellation` -> `cancellation.recommendation_generated`
+- `apply-retention-offer` -> `cancellation.offer_applied`
+- `update-cancellation-reason` -> `cancellation.reason_updated`
+- `finalize-cancellation` -> `cancellation.finalized`
+
+These entries are intended to summarize operator-facing outcomes of the cancellation flow.
+
+They do not replace the more detailed module-local audit context stored in the cancellation domain itself, such as:
+- `finalized_by`
+- `decided_by`
+- `manual_actions`
+- offer-event history
+- detailed case metadata
+
+Those detailed process records remain source-of-truth inside `Cancellation & Retention`.
+
+`Activity Log` only stores a compact cross-domain summary that is suitable for Admin timeline and audit views.
+
 Reasoning:
 - `subscription_id + created_at` supports the per-subscription timeline
 - `customer_id + created_at` supports future customer-level audit queries

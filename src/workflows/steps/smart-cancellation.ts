@@ -19,6 +19,7 @@ import { DunningCaseStatus } from "../../modules/dunning/types"
 import { SUBSCRIPTION_MODULE } from "../../modules/subscription"
 import type SubscriptionModuleService from "../../modules/subscription/service"
 import { SubscriptionStatus } from "../../modules/subscription/types"
+import { CancellationSubscriptionDisplayRecord } from "./shared-cancellation-log"
 
 const ACTIVE_CANCELLATION_CASE_STATUSES = new Set<CancellationCaseStatus>([
   CancellationCaseStatus.REQUESTED,
@@ -46,7 +47,16 @@ type CancellationCaseRecord = {
 
 type SubscriptionRecord = {
   id: string
+  reference: string
   status: SubscriptionStatus
+  customer_id: string
+  customer_snapshot: {
+    full_name?: string | null
+  } | null
+  product_snapshot: {
+    product_title?: string | null
+    variant_title?: string | null
+  } | null
 }
 
 type DunningCaseRecord = {
@@ -61,6 +71,9 @@ export type SmartCancellationStepInput = {
 }
 
 type SmartCancellationStepOutput = {
+  current: CancellationCaseRecord
+  previous: CancellationCaseRecord
+  subscription: CancellationSubscriptionDisplayRecord
   cancellation_case_id: string
   subscription_id: string
   status: CancellationCaseStatus
@@ -206,6 +219,9 @@ export const smartCancellationStep = createStep(
       SmartCancellationCompensation
     >(
       {
+        current: updated,
+        previous: cancellationCase,
+        subscription: subscription as CancellationSubscriptionDisplayRecord,
         cancellation_case_id: updated.id,
         subscription_id: updated.subscription_id,
         status: updated.status,

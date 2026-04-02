@@ -22,6 +22,7 @@ import { DunningCaseStatus } from "../../modules/dunning/types"
 import { SUBSCRIPTION_MODULE } from "../../modules/subscription"
 import type SubscriptionModuleService from "../../modules/subscription/service"
 import { SubscriptionStatus } from "../../modules/subscription/types"
+import { CancellationSubscriptionDisplayRecord } from "./shared-cancellation-log"
 
 const APPLIABLE_CANCELLATION_CASE_STATUSES = new Set<CancellationCaseStatus>([
   CancellationCaseStatus.EVALUATING_RETENTION,
@@ -53,9 +54,18 @@ type RetentionOfferEventRecord = {
 
 type SubscriptionRecord = {
   id: string
+  reference: string
+  customer_id: string
   status: SubscriptionStatus
   paused_at: Date | null
   cancel_effective_at: Date | null
+  customer_snapshot: {
+    full_name?: string | null
+  } | null
+  product_snapshot: {
+    product_title?: string | null
+    variant_title?: string | null
+  } | null
   metadata: Record<string, unknown> | null
 }
 
@@ -74,6 +84,9 @@ export type ApplyRetentionOfferStepInput = {
 }
 
 type ApplyRetentionOfferStepOutput = {
+  current: CancellationCaseRecord
+  previous: CancellationCaseRecord
+  subscription: CancellationSubscriptionDisplayRecord
   cancellation_case_id: string
   retention_offer_event_id: string
   subscription_id: string
@@ -344,11 +357,18 @@ export const applyRetentionOfferStep = createStep(
       ),
     } as any)
 
+    const updatedCase = (await cancellationModule.retrieveCancellationCase(
+      cancellationCase.id
+    )) as CancellationCaseRecord
+
     return new StepResponse<
       ApplyRetentionOfferStepOutput,
       ApplyRetentionOfferCompensation
     >(
       {
+        current: updatedCase,
+        previous: cancellationCase,
+        subscription: subscription as CancellationSubscriptionDisplayRecord,
         cancellation_case_id: cancellationCase.id,
         retention_offer_event_id: createdEvent.id,
         subscription_id: subscription.id,

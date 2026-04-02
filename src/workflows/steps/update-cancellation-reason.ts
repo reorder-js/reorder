@@ -7,6 +7,9 @@ import {
 } from "../../modules/cancellation/types"
 import { appendCancellationManualAction } from "../../modules/cancellation/utils/audit"
 import { cancellationErrors } from "../../modules/cancellation/utils/errors"
+import { SUBSCRIPTION_MODULE } from "../../modules/subscription"
+import type SubscriptionModuleService from "../../modules/subscription/service"
+import { CancellationSubscriptionDisplayRecord } from "./shared-cancellation-log"
 
 const REASON_MUTABLE_CASE_STATUSES = new Set<CancellationCaseStatus>([
   CancellationCaseStatus.REQUESTED,
@@ -27,6 +30,8 @@ type CancellationCaseRecord = {
   deleted_at: Date | null
 }
 
+type SubscriptionRecord = CancellationSubscriptionDisplayRecord
+
 export type UpdateCancellationReasonStepInput = {
   cancellation_case_id: string
   reason: string
@@ -38,6 +43,9 @@ export type UpdateCancellationReasonStepInput = {
 }
 
 type UpdateCancellationReasonStepOutput = {
+  current: CancellationCaseRecord
+  previous: CancellationCaseRecord
+  subscription: CancellationSubscriptionDisplayRecord
   cancellation_case_id: string
   subscription_id: string
   status: CancellationCaseStatus
@@ -63,6 +71,16 @@ async function loadCancellationCase(
   } catch {
     throw cancellationErrors.notFound("CancellationCase", id)
   }
+}
+
+async function loadSubscription(
+  container: { resolve(key: string): unknown },
+  id: string
+) {
+  const subscriptionModule =
+    container.resolve(SUBSCRIPTION_MODULE) as SubscriptionModuleService
+
+  return (await subscriptionModule.retrieveSubscription(id)) as SubscriptionRecord
 }
 
 function validateCaseState(cancellationCase: CancellationCaseRecord) {
@@ -115,6 +133,10 @@ export const updateCancellationReasonStep = createStep(
       container,
       input.cancellation_case_id
     )
+    const subscription = await loadSubscription(
+      container,
+      cancellationCase.subscription_id
+    )
     validateCaseState(cancellationCase)
 
     const changedAt = new Date().toISOString()
@@ -154,6 +176,9 @@ export const updateCancellationReasonStep = createStep(
       UpdateCancellationReasonCompensation
     >(
       {
+        current: updated,
+        previous: cancellationCase,
+        subscription,
         cancellation_case_id: updated.id,
         subscription_id: updated.subscription_id,
         status: updated.status,

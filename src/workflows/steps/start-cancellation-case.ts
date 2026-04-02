@@ -11,6 +11,7 @@ import { SUBSCRIPTION_MODULE } from "../../modules/subscription"
 import type SubscriptionModuleService from "../../modules/subscription/service"
 import { SubscriptionStatus } from "../../modules/subscription/types"
 import { subscriptionErrors } from "../../modules/subscription/utils/errors"
+import { CancellationSubscriptionDisplayRecord } from "./shared-cancellation-log"
 
 const ACTIVE_CANCELLATION_CASE_STATUSES = new Set<CancellationCaseStatus>([
   CancellationCaseStatus.REQUESTED,
@@ -20,7 +21,16 @@ const ACTIVE_CANCELLATION_CASE_STATUSES = new Set<CancellationCaseStatus>([
 
 type SubscriptionRecord = {
   id: string
+  reference: string
   status: SubscriptionStatus
+  customer_id: string
+  customer_snapshot: {
+    full_name?: string | null
+  } | null
+  product_snapshot: {
+    product_title?: string | null
+    variant_title?: string | null
+  } | null
 }
 
 type CancellationCaseRecord = {
@@ -59,9 +69,9 @@ export type StartCancellationCaseStepInput = {
 
 type StartCancellationCaseStepOutput = {
   action: "created" | "updated"
-  cancellation_case_id: string
-  subscription_id: string
-  status: CancellationCaseStatus
+  current: CancellationCaseRecord
+  previous: CancellationCaseRecord | null
+  subscription: CancellationSubscriptionDisplayRecord
 }
 
 type StartCancellationCaseCompensation =
@@ -201,9 +211,9 @@ export const startCancellationCaseStep = createStep(
       >(
         {
           action: "updated",
-          cancellation_case_id: updated.id,
-          subscription_id: updated.subscription_id,
-          status: updated.status,
+          current: updated,
+          previous: activeCase,
+          subscription: subscription as CancellationSubscriptionDisplayRecord,
         },
         {
           action: "updated",
@@ -232,9 +242,9 @@ export const startCancellationCaseStep = createStep(
     >(
       {
         action: "created",
-        cancellation_case_id: created.id,
-        subscription_id: created.subscription_id,
-        status: created.status,
+        current: created,
+        previous: null,
+        subscription: subscription as CancellationSubscriptionDisplayRecord,
       },
       {
         action: "created",

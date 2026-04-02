@@ -12,6 +12,7 @@ import { SUBSCRIPTION_MODULE } from "../../modules/subscription"
 import type SubscriptionModuleService from "../../modules/subscription/service"
 import { SubscriptionStatus } from "../../modules/subscription/types"
 import { subscriptionErrors } from "../../modules/subscription/utils/errors"
+import { CancellationSubscriptionDisplayRecord } from "./shared-cancellation-log"
 
 const FINALIZABLE_CANCELLATION_CASE_STATUSES = new Set<CancellationCaseStatus>([
   CancellationCaseStatus.REQUESTED,
@@ -39,10 +40,19 @@ type CancellationCaseRecord = {
 
 type SubscriptionRecord = {
   id: string
+  reference: string
+  customer_id: string
   status: SubscriptionStatus
   next_renewal_at: Date | null
   cancelled_at: Date | null
   cancel_effective_at: Date | null
+  customer_snapshot: {
+    full_name?: string | null
+  } | null
+  product_snapshot: {
+    product_title?: string | null
+    variant_title?: string | null
+  } | null
   metadata: Record<string, unknown> | null
 }
 
@@ -57,6 +67,9 @@ export type FinalizeCancellationStepInput = {
 }
 
 type FinalizeCancellationStepOutput = {
+  current: CancellationCaseRecord
+  previous: CancellationCaseRecord
+  subscription: CancellationSubscriptionDisplayRecord
   cancellation_case_id: string
   subscription_id: string
   case_status: CancellationCaseStatus
@@ -291,11 +304,18 @@ export const finalizeCancellationStep = createStep(
       ),
     } as any)
 
+    const updatedCase = (await cancellationModule.retrieveCancellationCase(
+      cancellationCase.id
+    )) as CancellationCaseRecord
+
     return new StepResponse<
       FinalizeCancellationStepOutput,
       FinalizeCancellationCompensation
     >(
       {
+        current: updatedCase,
+        previous: cancellationCase,
+        subscription: subscription as CancellationSubscriptionDisplayRecord,
         cancellation_case_id: cancellationCase.id,
         subscription_id: subscription.id,
         case_status: CancellationCaseStatus.CANCELED,
