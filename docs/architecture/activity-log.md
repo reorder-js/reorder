@@ -442,6 +442,155 @@ Those detailed process records remain source-of-truth inside `Cancellation & Ret
 
 `Activity Log` only stores a compact cross-domain summary that is suitable for Admin timeline and audit views.
 
+## Admin Read Model
+
+`Activity Log` should expose a dedicated Admin read model, separate from the module service write paths.
+
+The recommended shape follows the same pattern already used in the plugin's other Admin areas:
+- dedicated read/query helpers
+- dedicated Admin DTOs
+- read composition outside the module's core write service
+
+The read model should support three query paths:
+- global log list
+- single log detail
+- per-subscription timeline
+
+## Global Log List
+
+The global list is intended for the future `Activity Log` Admin page.
+
+Its purpose is to support:
+- high-signal operator audit browsing
+- filtering across subscriptions and customers
+- pagination and default descending chronology
+
+The recommended list DTO includes:
+- `id`
+- `subscription_id`
+- `subscription_reference`
+- `customer_id`
+- `customer_name`
+- `event_type`
+- `actor_type`
+- `actor_id`
+- `reason`
+- `created_at`
+- compact `change_summary`
+
+### List Filters
+
+The list read path should support:
+- `subscription_id`
+- `customer_id`
+- `event_type[]`
+- `actor_type[]`
+- `date_from`
+- `date_to`
+- free-text `q`
+
+Free-text search should be limited to stable operator-facing fields:
+- `subscription_reference`
+- `customer_name`
+- `reason`
+
+### List Sorting and Pagination
+
+The default sort should be:
+- `created_at desc`
+
+Pagination should follow the plugin's standard Admin pattern:
+- `limit`
+- `offset`
+- `count`
+
+The global list should read directly from `subscription_log` and should not require linked runtime enrichment to render useful rows.
+
+## Log Detail
+
+The log detail read path is intended for drill-down from the Admin table or timeline.
+
+The detail DTO should expose the full event payload:
+- `id`
+- `subscription_id`
+- `customer_id`
+- `event_type`
+- `actor_type`
+- `actor_id`
+- display snapshot fields
+- `previous_state`
+- `new_state`
+- `changed_fields`
+- `reason`
+- `metadata`
+- `created_at`
+
+The detail view may optionally add a light linked summary for the related subscription, but that enrichment should stay intentionally small.
+
+Recommended optional linked summary:
+- `subscription_id`
+- `subscription_reference`
+- current subscription `status`
+
+The detail read path should not eagerly hydrate current `renewal`, `dunning`, or `cancellation` state, because that would mix historical audit data with current cross-module runtime state.
+
+## Per-Subscription Timeline
+
+The per-subscription timeline is intended for embedding inside the `Subscriptions` Admin experience.
+
+It should use the same underlying event records as the global list, but filtered by one `subscription_id`.
+
+The timeline DTO can reuse the list DTO with the same core fields:
+- `id`
+- `event_type`
+- `actor_type`
+- `actor_id`
+- `reason`
+- `created_at`
+- `change_summary`
+- display snapshot fields when needed
+
+The timeline should support:
+- default `created_at desc`
+- optional ascending order later if needed for timeline playback
+
+Timeline grouping, badges, and presentation logic belong to the UI layer, not to the read model.
+
+## Enrichment Decision
+
+The final read-model decision for `Activity Log` v1 is:
+- use `snapshot-first` display data
+- allow optional light enrichment only where clearly needed
+
+This means:
+- the primary list and timeline should render from `subscription_log` alone
+- display labels come from stored snapshot fields
+- optional linked lookup can be added for detail convenience, but it is not the foundation of the read model
+
+### Why snapshot-first
+
+The audit trail must remain historically stable.
+
+If current linked entities changed over time:
+- customer names could change
+- product titles could change
+- variant titles could change
+- subscription-facing labels could drift
+
+Using snapshot fields as the first source preserves what operators should have seen at the time of the event.
+
+### Why not full linked enrichment
+
+Heavy linked enrichment would create several problems:
+- it would weaken the historical nature of the audit trail
+- it would introduce unnecessary cross-module coupling into Admin reads
+- it would make the list and timeline more expensive than needed
+
+So the agreed rule is:
+- list and timeline are snapshot-first and table-local
+- detail may use light enrichment for convenience
+- current domain state stays owned by its original modules
+
 Reasoning:
 - `subscription_id + created_at` supports the per-subscription timeline
 - `customer_id + created_at` supports future customer-level audit queries
