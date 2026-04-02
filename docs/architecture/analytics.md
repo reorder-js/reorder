@@ -278,6 +278,253 @@ They exist to provide:
 - stable time-series behavior
 - simpler Admin reporting APIs
 
+## Data Layer and Module Ownership
+
+The `Analytics` area should be implemented as a dedicated custom module in the plugin.
+
+Recommended module structure:
+- `src/modules/analytics/models/*`
+- `src/modules/analytics/service.ts`
+- `src/modules/analytics/index.ts`
+
+The module follows the same Medusa pattern used by the existing plugin areas:
+- domain data model lives in the module
+- the module service owns CRUD access to analytics-owned tables
+- workflows and jobs populate derived analytics data
+- Admin API routes read from analytics-owned snapshots and aggregates
+
+### Ownership Boundary
+
+The `analytics` module owns:
+- daily analytics snapshots
+- reporting-oriented derived facts
+- read-optimized aggregate outputs exposed to Admin
+
+The `analytics` module does not own:
+- subscription lifecycle state
+- renewal execution state
+- cancellation process state
+- audit event ownership
+
+This means the module is a reporting domain, not an operational domain.
+
+## Recommended MVP Data Model
+
+For MVP, the recommended primary model is:
+- `subscription_metrics_daily`
+
+This model should be the canonical analytics snapshot table used by KPI queries, trend queries, and exports.
+
+### Why a Daily Snapshot Model
+
+The current plugin already separates:
+- source modules that own business facts
+- read paths optimized for Admin
+- scheduler and workflow logic that derives operational outputs
+
+The same principle should apply here.
+
+A daily analytics snapshot table provides:
+- stable performance for Admin reads
+- explicit rebuild semantics
+- low coupling to source-module query shapes
+- enough flexibility to aggregate by date, status, product, and cadence without re-reading the full operational graph for every request
+
+### Why Not a Materialized View as the Primary MVP Model
+
+For MVP, the analytics layer should not use a database materialized view as its primary source of truth.
+
+Reasons:
+- higher operational complexity
+- refresh semantics introduce avoidable coupling to database-specific behavior
+- rebuild and backfill become less explicit
+- the plugin’s existing architecture favors Medusa-owned data models plus workflows/jobs over DB-specific reporting primitives
+
+Materialized views may be introduced later if performance requires them.
+
+For MVP:
+- analytics-owned snapshot tables should be the primary persisted reporting layer
+- query-time aggregation should happen in analytics read helpers or services
+
+## `subscription_metrics_daily` Snapshot Semantics
+
+`subscription_metrics_daily` should be a per-subscription, per-day analytics fact snapshot.
+
+The recommended granularity is:
+- one row per `subscription_id`
+- per `metric_date`
+
+This model is preferred over already-aggregated product/day rows because it preserves enough detail for:
+- filtering by subscription dimensions
+- reliable rebuilds and backfills
+- future expansion of dimensions without redesigning the whole reporting layer
+
+### Recommended Fields
+
+The recommended MVP fields are:
+- `id`
+- `metric_date`
+- `subscription_id`
+- `customer_id`
+- `product_id`
+- `variant_id`
+- `status`
+- `frequency_interval`
+- `frequency_value`
+- `currency_code`
+- `is_active`
+- `active_subscriptions_count`
+- `mrr_amount`
+- `churned_subscriptions_count`
+- `churn_reason_category`
+- `source_snapshot`
+- `metadata`
+
+### Field Roles
+
+`metric_date`
+- the analytics day represented by the row
+- normalized to `UTC`
+
+`subscription_id`
+- the subscription for which the snapshot was computed
+- persisted to support idempotent rebuild and later reconciliation
+
+`customer_id`
+- optional reporting dimension
+
+`product_id`, `variant_id`
+- reporting dimensions used by filters and future segmentation
+
+`status`
+- the subscription lifecycle state for the represented day
+
+`frequency_interval`, `frequency_value`
+- cadence dimensions used by reporting filters
+
+`currency_code`
+- reporting currency context for money-based metrics
+- nullable when revenue is not computable
+
+`is_active`
+- boolean marker derived from analytics-active semantics
+- `true` only when the snapshot should contribute to active-base calculations
+
+`active_subscriptions_count`
+- `1` when the row contributes to active-subscription counting
+- `0` otherwise
+
+`mrr_amount`
+- the monthly-normalized recurring revenue contribution of the subscription for that day
+- nullable when no valid monetary snapshot exists
+
+`churned_subscriptions_count`
+- `1` only on the day the subscription contributes to churn numerator
+- `0` otherwise
+
+`churn_reason_category`
+- populated only when the row contributes to churn-oriented reporting
+
+`source_snapshot`
+- compact JSON describing the reporting source basis used to compute the row
+- may include stable references such as:
+  - renewal identifiers
+  - cancellation identifiers
+  - resolved monetary-source hints
+
+`metadata`
+- extensible analytics-owned technical metadata
+
+## Derived Metrics vs Persisted Facts
+
+The analytics layer should persist reporting facts, not every final KPI as a stored field.
+
+Persisted MVP facts should include:
+- active-base contribution
+- monthly-normalized revenue contribution
+- churn contribution
+
+Derived metrics such as `LTV` should be computed in the analytics read layer.
+
+### `LTV` Handling
+
+`LTV` should not be persisted as a canonical daily field in MVP.
+
+Instead:
+- `LTV` is derived at read time from persisted reporting facts
+- the read layer computes it from the current `MRR` and `churn_rate` semantics
+
+This keeps the snapshot model simpler and avoids locking the plugin too early into one persisted interpretation of `LTV`.
+
+## Uniqueness and Rebuild Semantics
+
+The daily snapshot model should support idempotent rebuilds.
+
+Recommended logical uniqueness:
+- `metric_date`
+- `subscription_id`
+
+This enables:
+- safe day-level recalculation
+- range rebuilds
+- upsert-style snapshot replacement
+- easier reconciliation against source domains
+
+## Indexing Strategy
+
+The snapshot model should be indexed for the future Admin analytics filters and trend queries.
+
+Recommended single-field indexes:
+- `metric_date`
+- `subscription_id`
+- `product_id`
+- `status`
+- `currency_code`
+- `frequency_interval`
+- `frequency_value`
+
+Recommended composite indexes:
+- `metric_date, status`
+- `metric_date, product_id`
+- `metric_date, frequency_interval, frequency_value`
+- `metric_date, currency_code`
+- `metric_date, churn_reason_category`
+
+These indexes are aligned with the planned MVP filters:
+- date range
+- status
+- product
+- frequency
+- grouping by day, week, or month
+
+## Read Model Strategy
+
+The Admin analytics read path should use `subscription_metrics_daily` as its reporting source.
+
+This means:
+- KPI queries aggregate persisted snapshot facts across the selected date range
+- trend queries group persisted snapshot facts into `day`, `week`, and `month` buckets
+- export queries flatten the same reporting source into export-ready rows
+
+The Admin read path should not:
+- compute analytics live from source modules on every request
+- use `Activity Log` as its primary fact source
+- depend on operational query helpers from unrelated modules for dashboard performance
+
+## Relationship to Source Modules
+
+The recommended data flow is:
+
+1. source modules own the raw facts
+2. analytics pipeline reads those facts
+3. analytics module writes `subscription_metrics_daily`
+4. Admin analytics routes read from the analytics snapshot layer
+
+This preserves:
+- source ownership
+- Medusa module isolation
+- predictable reporting behavior
+
 ## Reporting Boundary with Existing Modules
 
 ### Relation to `Subscriptions`
