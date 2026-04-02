@@ -30,12 +30,19 @@ import {
   useLoaderData,
   useParams,
 } from "react-router-dom";
-import { sdk } from "../../../lib/client";
 import {
-  adminSubscriptionsQueryKeys,
+  invalidateSubscriptionDetailQueries,
+  useAdminSubscriptionLogDetailQuery,
+  useAdminSubscriptionLogsQuery,
   useAdminSubscriptionDetailQuery,
   useAdminSubscriptionPlanOptionsQuery,
 } from "../data-loading";
+import { sdk } from "../../../lib/client";
+import {
+  ActivityLogAdminActorType,
+  ActivityLogAdminDetail,
+  ActivityLogAdminListItem,
+} from "../../../types/activity-log";
 import {
   SubscriptionAdminDetailResponse,
   SubscriptionAdminShippingAddress,
@@ -75,6 +82,8 @@ const SubscriptionDetailPage = () => {
   const prompt = usePrompt();
   const [planDrawerOpen, setPlanDrawerOpen] = useState(false);
   const [shippingDrawerOpen, setShippingDrawerOpen] = useState(false);
+  const [activityLogDrawerOpen, setActivityLogDrawerOpen] = useState(false);
+  const [selectedLogId, setSelectedLogId] = useState<string | null>(null);
   const [variantId, setVariantId] = useState("");
   const [frequencyInterval, setFrequencyInterval] =
     useState<SubscriptionFrequencyInterval>(SubscriptionFrequencyInterval.MONTH);
@@ -88,6 +97,19 @@ const SubscriptionDetailPage = () => {
     loaderData,
   );
   const subscription = data?.subscription;
+  const {
+    data: logsData,
+    isLoading: isLogsLoading,
+    isError: isLogsError,
+    error: logsError,
+  } = useAdminSubscriptionLogsQuery(id);
+  const {
+    data: selectedLogData,
+    isLoading: isSelectedLogLoading,
+  } = useAdminSubscriptionLogDetailQuery(
+    selectedLogId ?? undefined,
+    activityLogDrawerOpen && Boolean(selectedLogId),
+  );
 
   const {
     data: planOptionsData,
@@ -114,7 +136,7 @@ const SubscriptionDetailPage = () => {
         },
       ),
     onSuccess: async () => {
-      await invalidateSubscriptionQueries(queryClient, id);
+      await invalidateSubscriptionDetailQueries(queryClient, id, selectedLogId ?? undefined);
       toast.success("Plan change scheduled");
       setPlanDrawerOpen(false);
     },
@@ -137,7 +159,7 @@ const SubscriptionDetailPage = () => {
         },
       ),
     onSuccess: async () => {
-      await invalidateSubscriptionQueries(queryClient, id);
+      await invalidateSubscriptionDetailQueries(queryClient, id, selectedLogId ?? undefined);
       toast.success("Subscription paused");
     },
     onError: (mutationError) => {
@@ -159,7 +181,7 @@ const SubscriptionDetailPage = () => {
         },
       ),
     onSuccess: async () => {
-      await invalidateSubscriptionQueries(queryClient, id);
+      await invalidateSubscriptionDetailQueries(queryClient, id, selectedLogId ?? undefined);
       toast.success("Subscription resumed");
     },
     onError: (mutationError) => {
@@ -181,7 +203,7 @@ const SubscriptionDetailPage = () => {
         },
       ),
     onSuccess: async () => {
-      await invalidateSubscriptionQueries(queryClient, id);
+      await invalidateSubscriptionDetailQueries(queryClient, id, selectedLogId ?? undefined);
       toast.success("Subscription cancelled");
     },
     onError: (mutationError) => {
@@ -203,7 +225,7 @@ const SubscriptionDetailPage = () => {
         },
       ),
     onSuccess: async () => {
-      await invalidateSubscriptionQueries(queryClient, id);
+      await invalidateSubscriptionDetailQueries(queryClient, id, selectedLogId ?? undefined);
       toast.success("Shipping address updated");
       setShippingDrawerOpen(false);
     },
@@ -587,6 +609,98 @@ const SubscriptionDetailPage = () => {
         </div>
       </Container>
 
+      <Container className="divide-y p-0">
+        <div className="px-6 py-4">
+          <Heading level="h2">Activity Log</Heading>
+        </div>
+        <div className="px-6 py-4">
+          {isLogsLoading ? (
+            <div className="flex items-center gap-x-2 text-ui-fg-subtle">
+              <Spinner className="animate-spin" />
+              <Text size="small" leading="compact" className="text-ui-fg-subtle">
+                Loading activity log...
+              </Text>
+            </div>
+          ) : isLogsError ? (
+            <Alert variant="error">
+              {logsError instanceof Error
+                ? logsError.message
+                : "Failed to load activity log."}
+            </Alert>
+          ) : logsData?.subscription_logs?.length ? (
+            <div className="flex flex-col gap-y-3">
+              {logsData.subscription_logs.map((log) => (
+                <button
+                  key={log.id}
+                  type="button"
+                  className="w-full rounded-lg border border-ui-border-base bg-ui-bg-base px-4 py-3 text-left transition-colors hover:bg-ui-bg-subtle"
+                  onClick={() => {
+                    setSelectedLogId(log.id);
+                    setActivityLogDrawerOpen(true);
+                  }}
+                >
+                  <div className="flex flex-col gap-y-3 md:flex-row md:items-start md:justify-between">
+                    <div className="flex min-w-0 flex-col gap-y-2">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <StatusBadge
+                          color={getActivityEventColor(log.event_type)}
+                          className="text-nowrap"
+                        >
+                          {formatActivityEventType(log.event_type)}
+                        </StatusBadge>
+                        <StatusBadge
+                          color={getActivityActorColor(log.actor_type)}
+                          className="text-nowrap"
+                        >
+                          {formatActivityActorType(log.actor_type)}
+                        </StatusBadge>
+                        {log.actor_id ? (
+                          <Text
+                            size="small"
+                            leading="compact"
+                            className="text-ui-fg-subtle"
+                          >
+                            {log.actor_id}
+                          </Text>
+                        ) : null}
+                      </div>
+                      <div className="flex flex-col gap-y-0.5">
+                        <Text size="small" leading="compact" weight="plus">
+                          {log.change_summary || log.reason || "No summary"}
+                        </Text>
+                        <Text
+                          size="small"
+                          leading="compact"
+                          className="text-ui-fg-subtle"
+                        >
+                          {log.reason || formatActivityDomain(log.event_type)}
+                        </Text>
+                      </div>
+                    </div>
+                    <div className="flex flex-col gap-y-1 md:items-end">
+                      <Text size="small" leading="compact" weight="plus">
+                        {formatDateTime(log.created_at)}
+                      </Text>
+                      <Text
+                        size="small"
+                        leading="compact"
+                        className="text-ui-fg-subtle"
+                      >
+                        {log.subscription.reference}
+                      </Text>
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          ) : (
+            <Text size="small" leading="compact" className="text-ui-fg-subtle">
+              No activity log entries are available for this subscription yet.
+            </Text>
+          )}
+        </div>
+      </Container>
+
       <Drawer open={planDrawerOpen} onOpenChange={setPlanDrawerOpen}>
         <Drawer.Content>
           <Drawer.Header>
@@ -841,6 +955,46 @@ const SubscriptionDetailPage = () => {
           </Drawer.Footer>
         </Drawer.Content>
       </Drawer>
+
+      <Drawer
+        open={activityLogDrawerOpen}
+        onOpenChange={(open) => {
+          setActivityLogDrawerOpen(open);
+
+          if (!open) {
+            setSelectedLogId(null);
+          }
+        }}
+      >
+        <Drawer.Content>
+          <Drawer.Header>
+            <Drawer.Title>Activity Log Event</Drawer.Title>
+          </Drawer.Header>
+          <Drawer.Body className="flex flex-1 flex-col gap-y-6 overflow-y-auto p-4">
+            {isSelectedLogLoading ? (
+              <div className="flex items-center gap-x-2 text-ui-fg-subtle">
+                <Spinner className="animate-spin" />
+                <Text size="small" leading="compact" className="text-ui-fg-subtle">
+                  Loading activity event...
+                </Text>
+              </div>
+            ) : selectedLogData?.subscription_log ? (
+              <ActivityLogDetailContent log={selectedLogData.subscription_log} />
+            ) : (
+              <Alert variant="error">Failed to load activity event details.</Alert>
+            )}
+          </Drawer.Body>
+          <Drawer.Footer>
+            <div className="flex items-center justify-end gap-x-2">
+              <Drawer.Close asChild>
+                <Button size="small" variant="secondary">
+                  Close
+                </Button>
+              </Drawer.Close>
+            </div>
+          </Drawer.Footer>
+        </Drawer.Content>
+      </Drawer>
     </div>
   );
 };
@@ -879,6 +1033,81 @@ const DetailRow = ({ label, value }: { label: string; value: ReactNode }) => {
       ) : (
         value
       )}
+    </div>
+  );
+};
+
+const ActivityLogDetailContent = ({ log }: { log: ActivityLogAdminDetail }) => {
+  return (
+    <div className="flex flex-col gap-y-6">
+      <DetailBlock
+        title="Overview"
+        rows={[
+          {
+            label: "Event",
+            value: (
+              <StatusBadge color={getActivityEventColor(log.event_type)}>
+                {formatActivityEventType(log.event_type)}
+              </StatusBadge>
+            ),
+          },
+          {
+            label: "Actor",
+            value: `${formatActivityActorType(log.actor_type)}${
+              log.actor_id ? ` · ${log.actor_id}` : ""
+            }`,
+          },
+          { label: "Created", value: formatDateTime(log.created_at) },
+          { label: "Reason", value: log.reason || "-" },
+          { label: "Summary", value: log.change_summary || "-" },
+        ]}
+      />
+      <DetailBlock
+        title="Subscription snapshot"
+        rows={[
+          { label: "Reference", value: log.subscription.reference },
+          { label: "Customer", value: log.subscription.customer_name },
+          { label: "Product", value: log.subscription.product_title },
+          { label: "Variant", value: log.subscription.variant_title },
+        ]}
+      />
+      <DetailBlock
+        title="Changed fields"
+        rows={
+          log.changed_fields.length
+            ? log.changed_fields.map((field) => ({
+                label: field.field,
+                value: `${formatUnknown(field.before)} → ${formatUnknown(
+                  field.after,
+                )}`,
+              }))
+            : [{ label: "Changed fields", value: "No changed fields captured" }]
+        }
+      />
+      <JsonBlock title="Previous state" value={log.previous_state} />
+      <JsonBlock title="New state" value={log.new_state} />
+      <JsonBlock title="Metadata" value={log.metadata} />
+    </div>
+  );
+};
+
+const JsonBlock = ({
+  title,
+  value,
+}: {
+  title: string;
+  value: Record<string, unknown> | null;
+}) => {
+  return (
+    <div className="rounded-lg border p-4">
+      <Text size="small" leading="compact" weight="plus">
+        {title}
+      </Text>
+      <div className="mt-4">
+        <pre className="overflow-x-auto whitespace-pre-wrap break-words text-[12px] leading-5 text-ui-fg-subtle">
+          {value ? JSON.stringify(value, null, 2) : "No data"}
+        </pre>
+      </div>
     </div>
   );
 };
@@ -976,24 +1205,6 @@ function getSubscriptionActionPromptConfig(action: SubscriptionActionType) {
   }
 }
 
-async function invalidateSubscriptionQueries(
-  queryClient: QueryClient,
-  id?: string,
-) {
-  await Promise.all([
-    queryClient.invalidateQueries({
-      queryKey: adminSubscriptionsQueryKeys.all,
-    }),
-    ...(id
-      ? [
-          queryClient.invalidateQueries({
-            queryKey: adminSubscriptionsQueryKeys.detail(id),
-          }),
-        ]
-      : []),
-  ]);
-}
-
 function getShippingAddressFormState(
   address: SubscriptionAdminShippingAddress,
 ): ShippingAddressFormState {
@@ -1030,6 +1241,99 @@ function normalizeOptionalString(value: string) {
   const normalized = value.trim();
 
   return normalized ? normalized : null;
+}
+
+function getActivityEventColor(eventType: string) {
+  switch (eventType) {
+    case "renewal.failed":
+    case "dunning.unrecovered":
+    case "subscription.canceled":
+    case "cancellation.finalized":
+      return "red" as const;
+    case "renewal.succeeded":
+    case "dunning.recovered":
+      return "green" as const;
+    case "renewal.force_requested":
+    case "dunning.retry_executed":
+    case "dunning.retry_schedule_updated":
+    case "cancellation.offer_applied":
+      return "orange" as const;
+    case "subscription.paused":
+    case "subscription.plan_change_scheduled":
+    case "cancellation.recommendation_generated":
+      return "blue" as const;
+    default:
+      return "grey" as const;
+  }
+}
+
+function formatActivityEventType(value: string) {
+  return (
+    value
+      .split(".")
+      .at(-1)
+      ?.split("_")
+      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+      .join(" ") ?? value
+  );
+}
+
+function formatActivityDomain(value: string) {
+  if (value.startsWith("subscription.")) {
+    return "Subscriptions";
+  }
+
+  if (value.startsWith("renewal.")) {
+    return "Renewals";
+  }
+
+  if (value.startsWith("dunning.")) {
+    return "Dunning";
+  }
+
+  if (value.startsWith("cancellation.")) {
+    return "Cancellation & Retention";
+  }
+
+  return "Activity";
+}
+
+function formatActivityActorType(value: ActivityLogAdminActorType) {
+  switch (value) {
+    case ActivityLogAdminActorType.USER:
+      return "Admin";
+    case ActivityLogAdminActorType.SYSTEM:
+      return "System";
+    case ActivityLogAdminActorType.SCHEDULER:
+      return "Scheduler";
+  }
+}
+
+function getActivityActorColor(value: ActivityLogAdminActorType) {
+  switch (value) {
+    case ActivityLogAdminActorType.USER:
+      return "blue" as const;
+    case ActivityLogAdminActorType.SYSTEM:
+      return "grey" as const;
+    case ActivityLogAdminActorType.SCHEDULER:
+      return "orange" as const;
+  }
+}
+
+function formatUnknown(value: unknown) {
+  if (value === null || value === undefined) {
+    return "-";
+  }
+
+  if (typeof value === "string") {
+    return value;
+  }
+
+  if (typeof value === "number" || typeof value === "boolean") {
+    return String(value);
+  }
+
+  return JSON.stringify(value);
 }
 
 export const handle = {

@@ -3,7 +3,7 @@ import {
   DataTablePaginationState,
   DataTableSortingState,
 } from "@medusajs/ui"
-import { keepPreviousData, useQuery } from "@tanstack/react-query"
+import { keepPreviousData, QueryClient, useQuery } from "@tanstack/react-query"
 import { sdk } from "../../lib/client"
 import {
   SubscriptionAdminListResponse,
@@ -11,6 +11,10 @@ import {
   SubscriptionAdminStatus,
 } from "../../types/subscription"
 import { HttpTypes } from "@medusajs/framework/types"
+import {
+  ActivityLogAdminDetailResponse,
+  ActivityLogAdminListResponse,
+} from "../../types/activity-log"
 
 type NextRenewalFilterValue =
   | "overdue"
@@ -28,6 +32,10 @@ type UseAdminSubscriptionsDisplayQueryInput = {
 export const adminSubscriptionsQueryKeys = {
   all: ["admin-subscriptions"] as const,
   detail: (id: string) => [...adminSubscriptionsQueryKeys.all, "detail", id] as const,
+  detailLogs: (id: string) =>
+    [...adminSubscriptionsQueryKeys.all, "detail-logs", id] as const,
+  logDetail: (logId: string) =>
+    [...adminSubscriptionsQueryKeys.all, "log-detail", logId] as const,
   planOptions: (productId: string) =>
     [...adminSubscriptionsQueryKeys.all, "plan-options", productId] as const,
   display: (params: {
@@ -139,6 +147,35 @@ export function useAdminSubscriptionDetailQuery(
   })
 }
 
+export function useAdminSubscriptionLogsQuery(id?: string) {
+  return useQuery<ActivityLogAdminListResponse>({
+    queryKey: adminSubscriptionsQueryKeys.detailLogs(id ?? ""),
+    queryFn: () =>
+      sdk.client.fetch(`/admin/subscriptions/${id}/logs`, {
+        query: {
+          limit: 20,
+          offset: 0,
+          order: "created_at",
+          direction: "desc",
+        },
+      }),
+    enabled: Boolean(id),
+  })
+}
+
+export function useAdminSubscriptionLogDetailQuery(
+  logId?: string,
+  enabled = false,
+  initialData?: ActivityLogAdminDetailResponse
+) {
+  return useQuery<ActivityLogAdminDetailResponse>({
+    queryKey: adminSubscriptionsQueryKeys.logDetail(logId ?? ""),
+    queryFn: () => sdk.client.fetch(`/admin/subscription-logs/${logId}`),
+    enabled: enabled && Boolean(logId),
+    initialData,
+  })
+}
+
 export function useAdminSubscriptionPlanOptionsQuery(
   productId?: string,
   enabled = false
@@ -152,6 +189,35 @@ export function useAdminSubscriptionPlanOptionsQuery(
       }),
     enabled: enabled && Boolean(productId),
   })
+}
+
+export async function invalidateSubscriptionDetailQueries(
+  queryClient: QueryClient,
+  id?: string,
+  logId?: string
+) {
+  await Promise.all([
+    queryClient.invalidateQueries({
+      queryKey: adminSubscriptionsQueryKeys.all,
+    }),
+    ...(id
+      ? [
+          queryClient.invalidateQueries({
+            queryKey: adminSubscriptionsQueryKeys.detail(id),
+          }),
+          queryClient.invalidateQueries({
+            queryKey: adminSubscriptionsQueryKeys.detailLogs(id),
+          }),
+        ]
+      : []),
+    ...(logId
+      ? [
+          queryClient.invalidateQueries({
+            queryKey: adminSubscriptionsQueryKeys.logDetail(logId),
+          }),
+        ]
+      : []),
+  ])
 }
 
 function getNextRenewalRange(value?: NextRenewalFilterValue) {
