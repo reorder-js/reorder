@@ -218,6 +218,7 @@ Shape:
 - `currency_code` is only populated for currency-based metrics.
 - `precision` tells the Admin UI how to format the value.
 - the response always includes all supported KPI keys for MVP, even when some values are `null`
+- `MRR` and `LTV` may resolve to `null` when the selected dataset doesn't have a single valid currency context or when the revenue snapshot is incomplete for MVP calculation
 
 ### Common Errors
 
@@ -312,6 +313,8 @@ Shape:
 - `bucket_start` and `bucket_end` define the exact time window for each point
 - points are ordered ascending by `bucket_start`
 - series may contain `value = null` when the bucket exists but the metric cannot be computed
+- bucket semantics use `UTC` in MVP
+- `MRR` and `LTV` series may contain `value = null` for buckets where no valid single-currency revenue snapshot is available
 
 ### Common Errors
 
@@ -384,6 +387,7 @@ Shape:
 - `rows` represent the export-ready flattened dataset
 - for `csv`, the server still returns export metadata and flattened rows under the same logical contract
 - a future async-export implementation may replace this route contract with a workflow-backed export transaction
+- `MRR` and `LTV` export cells may be `null` when the underlying bucket does not have a valid single-currency revenue basis
 
 ### Common Errors
 

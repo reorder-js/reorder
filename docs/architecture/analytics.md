@@ -113,6 +113,139 @@ For MVP, the primary source mapping is:
   - primary source: derived by `Analytics`
   - built from source facts owned by `Subscriptions`, `Renewals`, and possibly `Cancellation & Retention`, depending on the final business definition
 
+## Business Definitions and Calculation Semantics
+
+The `Analytics` area uses explicit MVP business definitions rather than inferred reporting logic.
+
+This keeps the reporting layer stable and makes later implementation tradeoffs visible.
+
+### Active Subscription Semantics
+
+For analytics purposes, `active` means:
+- `subscription.status = active`
+
+This means:
+- `paused` subscriptions are not part of the active recurring base
+- `past_due` subscriptions are not part of the active recurring base
+- `cancelled` subscriptions are not part of the active recurring base
+
+`active_subscriptions_count` is therefore the count of subscriptions whose current lifecycle state is exactly `active`.
+
+### MRR Semantics
+
+For MVP, `MRR` means:
+- the monthly-normalized recurring value of active subscriptions
+
+However, the current plugin does not yet persist a complete recurring monetary snapshot directly on the subscription aggregate.
+
+Current runtime state:
+- `Subscriptions` own cadence and lifecycle state
+- `subscription.pricing_snapshot` stores discount context, not a full recurring charge amount
+- renewal execution flows can resolve `order.total`
+- renewal execution flows can resolve `cart.currency_code`
+
+Because of that, the canonical recurring monetary input for `MRR` in MVP must come from:
+- analytics-owned derived monetary snapshots built from renewal and order facts
+
+This means:
+- `Subscriptions` remain the owner of active-base and cadence semantics
+- `Analytics` owns the derived recurring monetary read model used for reporting
+
+If no valid monetary snapshot exists for a subscription, that subscription does not contribute to `MRR`.
+
+### Churn Rate Semantics
+
+For MVP, `churn_rate` means:
+- canceled subscriptions in the reporting period divided by the active subscription base for the same period
+
+Numerator:
+- subscriptions whose final cancellation outcome is `canceled`
+- bucket assignment uses `finalized_at`
+- if `finalized_at` is missing, fallback may use `cancellation_effective_at`
+
+Denominator:
+- average daily active subscription base for the same reporting period
+- derived from daily analytics snapshots sourced from `Subscriptions`
+
+This means:
+- `retained` is not churn
+- `paused` is not churn
+- only final canceled outcomes contribute to churn
+
+### LTV Semantics
+
+For MVP, `LTV` means:
+- `MRR / churn_rate`
+
+Where:
+- `churn_rate` is treated as a ratio in calculation, not as a formatted percentage string
+
+If:
+- `MRR` is unavailable
+- or `churn_rate <= 0`
+
+then:
+- `LTV = null`
+
+This is an intentional MVP definition and not a full customer-ledger lifetime value model.
+
+### Date Range Semantics
+
+Analytics date ranges follow these rules:
+- `date_from` is inclusive
+- `date_to` is inclusive
+- KPI calculations operate on facts within the selected reporting period
+- trend calculations operate on normalized bucket windows within the selected reporting period
+
+### Bucket Semantics
+
+Supported reporting buckets:
+- `day`
+- `week`
+- `month`
+
+Bucket rules:
+- `day` is one calendar day
+- `week` is Monday through Sunday
+- `month` is the calendar month
+
+Each point is defined by:
+- `bucket_start`
+- `bucket_end`
+
+and represents the aggregate result for that exact bucket window.
+
+### Timezone Semantics
+
+For MVP, the canonical analytics timezone is:
+- `UTC`
+
+This means:
+- daily snapshots are generated in `UTC`
+- day, week, and month bucket boundaries are computed in `UTC`
+- Admin formatting may be localized later, but reporting semantics remain `UTC`
+
+### Rounding Semantics
+
+The reporting layer keeps working precision during computation and rounds only at the response boundary.
+
+MVP display precision:
+- `MRR`: `2`
+- `churn_rate`: `2`
+- `LTV`: `2`
+- `active_subscriptions_count`: `0`
+
+### Currency Semantics
+
+MVP analytics assume one reporting currency per result set unless explicit normalization is introduced later.
+
+This means:
+- `MRR` and `LTV` are only valid when the underlying analytics revenue snapshot resolves to one currency context
+- mixed-currency aggregation without normalization is not supported
+- when the currency context is ambiguous, `MRR` and `LTV` should resolve to `null` rather than producing a misleading total
+
+`churn_rate` and `active_subscriptions_count` are currency-independent.
+
 ## Direct Source Reads vs Daily Snapshots
 
 The `Analytics` area distinguishes between:
