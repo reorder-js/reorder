@@ -187,6 +187,43 @@ medusaIntegrationTestRunner({
         expect(finalDetailResponse.data.subscription.status).toEqual(
           "cancelled"
         )
+
+        const activityLogListResponse = await api.get(
+          `/admin/subscription-logs?limit=20&offset=0&q=${subscription.reference}`,
+          {
+            headers,
+          }
+        )
+
+        expect(activityLogListResponse.status).toEqual(200)
+        expect(activityLogListResponse.data.subscription_logs.length).toBeGreaterThan(0)
+
+        const latestLog = activityLogListResponse.data.subscription_logs[0]
+
+        expect(latestLog.subscription_id).toEqual(subscription.id)
+
+        const activityLogDetailResponse = await api.get(
+          `/admin/subscription-logs/${latestLog.id}`,
+          { headers }
+        )
+
+        expect(activityLogDetailResponse.status).toEqual(200)
+        expect(activityLogDetailResponse.data.subscription_log).toMatchObject({
+          id: latestLog.id,
+          subscription_id: subscription.id,
+        })
+
+        const subscriptionTimelineResponse = await api.get(
+          `/admin/subscriptions/${subscription.id}/logs?limit=20&offset=0`,
+          { headers }
+        )
+
+        expect(subscriptionTimelineResponse.status).toEqual(200)
+        expect(
+          subscriptionTimelineResponse.data.subscription_logs.some(
+            (record: { id: string }) => record.id === latestLog.id
+          )
+        ).toEqual(true)
       })
     })
   },
