@@ -131,6 +131,24 @@ describe("normalizeActivityLogEvent", () => {
     ).toBe("dunning.retry_executed:dunning:dunning_123:3")
   })
 
+  it("changes dedupe key when qualifier changes", () => {
+    expect(
+      buildActivityLogDedupeKey(
+        ActivityLogEventType.SUBSCRIPTION_PAUSED,
+        "subscription",
+        "sub_123",
+        "2026-04-01T10:00:00.000Z"
+      )
+    ).not.toBe(
+      buildActivityLogDedupeKey(
+        ActivityLogEventType.SUBSCRIPTION_PAUSED,
+        "subscription",
+        "sub_123",
+        "2026-04-01T11:00:00.000Z"
+      )
+    )
+  })
+
   it("returns null changed_fields when state did not effectively change", () => {
     const normalized = normalizeActivityLogEvent({
       subscription_id: "sub_123",
@@ -152,5 +170,55 @@ describe("normalizeActivityLogEvent", () => {
     })
 
     expect(normalized.changed_fields).toBeNull()
+  })
+
+  it("serializes dates in state and metadata while redacting nested sensitive fields", () => {
+    const normalized = normalizeActivityLogEvent({
+      subscription_id: "sub_123",
+      event_type: ActivityLogEventType.RENEWAL_SUCCEEDED,
+      actor_type: ActivityLogActorType.SCHEDULER,
+      display: {
+        subscription_reference: "SUB-123",
+      },
+      previous_state: {
+        processed_at: new Date("2026-04-01T10:00:00.000Z"),
+        payment_context: {
+          session_id: "hidden",
+        },
+      },
+      new_state: {
+        processed_at: new Date("2026-04-01T10:05:00.000Z"),
+        order: {
+          id: "order_123",
+          payment_reference: "secret_payment",
+        },
+      },
+      metadata: {
+        order_id: "order_123",
+        scheduled_for: new Date("2026-04-01T10:00:00.000Z"),
+        provider_response: {
+          unsafe: true,
+        },
+      },
+      dedupe: {
+        scope: "renewal",
+        target_id: "renewal_123",
+        qualifier: "success",
+      },
+    })
+
+    expect(normalized.previous_state).toEqual({
+      processed_at: "2026-04-01T10:00:00.000Z",
+    })
+    expect(normalized.new_state).toEqual({
+      processed_at: "2026-04-01T10:05:00.000Z",
+      order: {
+        id: "order_123",
+      },
+    })
+    expect(normalized.metadata).toEqual({
+      order_id: "order_123",
+      scheduled_for: "2026-04-01T10:00:00.000Z",
+    })
   })
 })

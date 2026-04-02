@@ -108,6 +108,11 @@ moduleIntegrationTestRunner<ActivityLogModuleService>({
         } as any)
 
         expect(records).toHaveLength(1)
+        expect(records[0]).toMatchObject({
+          subscription_id: "sub_002",
+          event_type: ActivityLogEventType.RENEWAL_FAILED,
+          dedupe_key: logEvent.dedupe_key,
+        })
       })
 
       it("deletes only records created by the current execution during compensation", async () => {
@@ -178,6 +183,66 @@ moduleIntegrationTestRunner<ActivityLogModuleService>({
         } as any)
 
         expect(records).toHaveLength(1)
+      })
+
+      it("persists normalized payload fields without leaking sensitive data", async () => {
+        const logEvent = normalizeActivityLogEvent({
+          subscription_id: "sub_005",
+          customer_id: "cus_005",
+          event_type: ActivityLogEventType.SUBSCRIPTION_SHIPPING_ADDRESS_UPDATED,
+          actor_type: ActivityLogActorType.USER,
+          actor_id: "user_005",
+          display: {
+            subscription_reference: "SUB-005",
+            customer_name: "Jane Doe",
+          },
+          previous_state: {
+            city: "Warsaw",
+            address_1: "Hidden Street 1",
+          },
+          new_state: {
+            city: "Krakow",
+            postal_code: "30-001",
+            country_code: "PL",
+          },
+          metadata: {
+            source: "admin",
+            provider_payload: {
+              unsafe: true,
+            },
+          },
+          dedupe: {
+            scope: "subscription",
+            target_id: "sub_005",
+            qualifier: "shipping-change",
+          },
+        })
+
+        await createSubscriptionLogEventStepHandler(
+          { log_event: logEvent },
+          stepContext as any
+        )
+
+        const records = await service.listSubscriptionLogs({
+          dedupe_key: logEvent.dedupe_key,
+        } as any)
+
+        expect(records).toHaveLength(1)
+        expect(records[0]).toMatchObject({
+          subscription_id: "sub_005",
+          customer_id: "cus_005",
+          actor_id: "user_005",
+          previous_state: {
+            city: "Warsaw",
+          },
+          new_state: {
+            city: "Krakow",
+            country_code: "PL",
+          },
+          metadata: {
+            source: "admin",
+          },
+        })
       })
     })
   },

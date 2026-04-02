@@ -24,6 +24,12 @@ import {
   SubscriptionFrequencyInterval,
   SubscriptionStatus,
 } from "../../src/modules/subscription/types"
+import { ACTIVITY_LOG_MODULE } from "../../src/modules/activity-log"
+import type ActivityLogModuleService from "../../src/modules/activity-log/service"
+import {
+  ActivityLogActorType,
+  ActivityLogEventType,
+} from "../../src/modules/activity-log/types"
 
 medusaIntegrationTestRunner({
   medusaConfigFile: path.resolve(process.cwd(), "integration-tests"),
@@ -73,6 +79,8 @@ medusaIntegrationTestRunner({
 
       it("pauses and resumes a subscription", async () => {
         const container = getContainer()
+        const activityLogModule =
+          container.resolve<ActivityLogModuleService>(ACTIVITY_LOG_MODULE)
         const subscription = await createSubscriptionSeed(container, {
           reference: "SUB-WF-001",
           status: SubscriptionStatus.ACTIVE,
@@ -91,6 +99,35 @@ medusaIntegrationTestRunner({
           SubscriptionStatus.PAUSED
         )
 
+        const pausedLogs = await activityLogModule.listSubscriptionLogs({
+          subscription_id: subscription.id,
+          event_type: ActivityLogEventType.SUBSCRIPTION_PAUSED,
+        } as any)
+
+        expect(pausedLogs).toHaveLength(1)
+        expect(pausedLogs[0]).toMatchObject({
+          subscription_id: subscription.id,
+          event_type: ActivityLogEventType.SUBSCRIPTION_PAUSED,
+          actor_type: ActivityLogActorType.USER,
+          actor_id: null,
+          reason: "manual test",
+          metadata: expect.objectContaining({
+            source: "admin",
+          }),
+        })
+        expect(pausedLogs[0].dedupe_key).toContain(
+          ActivityLogEventType.SUBSCRIPTION_PAUSED
+        )
+        expect(pausedLogs[0].changed_fields).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              field: "status",
+              before: SubscriptionStatus.ACTIVE,
+              after: SubscriptionStatus.PAUSED,
+            }),
+          ])
+        )
+
         const { result: resumedResult } = await resumeSubscriptionWorkflow(
           container
         ).run({
@@ -102,6 +139,31 @@ medusaIntegrationTestRunner({
 
         expect(resumedResult.subscription.status).toEqual(
           SubscriptionStatus.ACTIVE
+        )
+
+        const resumedLogs = await activityLogModule.listSubscriptionLogs({
+          subscription_id: subscription.id,
+          event_type: ActivityLogEventType.SUBSCRIPTION_RESUMED,
+        } as any)
+
+        expect(resumedLogs).toHaveLength(1)
+        expect(resumedLogs[0]).toMatchObject({
+          subscription_id: subscription.id,
+          event_type: ActivityLogEventType.SUBSCRIPTION_RESUMED,
+          actor_type: ActivityLogActorType.USER,
+          actor_id: null,
+          metadata: expect.objectContaining({
+            source: "admin",
+          }),
+        })
+        expect(resumedLogs[0].changed_fields).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              field: "status",
+              before: SubscriptionStatus.PAUSED,
+              after: SubscriptionStatus.ACTIVE,
+            }),
+          ])
         )
       })
 
@@ -125,6 +187,8 @@ medusaIntegrationTestRunner({
 
       it("cancels a subscription", async () => {
         const container = getContainer()
+        const activityLogModule =
+          container.resolve<ActivityLogModuleService>(ACTIVITY_LOG_MODULE)
         const subscription = await createSubscriptionSeed(container, {
           reference: "SUB-WF-003",
           status: SubscriptionStatus.ACTIVE,
@@ -141,10 +205,32 @@ medusaIntegrationTestRunner({
           SubscriptionStatus.CANCELLED
         )
         expect(result.subscription.cancelled_at).toBeTruthy()
+
+        const logs = await activityLogModule.listSubscriptionLogs({
+          subscription_id: subscription.id,
+          event_type: ActivityLogEventType.SUBSCRIPTION_CANCELED,
+        } as any)
+
+        expect(logs).toHaveLength(1)
+        expect(logs[0]).toMatchObject({
+          subscription_id: subscription.id,
+          event_type: ActivityLogEventType.SUBSCRIPTION_CANCELED,
+          actor_type: ActivityLogActorType.USER,
+          metadata: expect.objectContaining({
+            source: "admin",
+          }),
+        })
+        expect(logs[0].new_state).toEqual(
+          expect.objectContaining({
+            status: SubscriptionStatus.CANCELLED,
+          })
+        )
       })
 
       it("schedules a plan change with a real variant", async () => {
         const container = getContainer()
+        const activityLogModule =
+          container.resolve<ActivityLogModuleService>(ACTIVITY_LOG_MODULE)
         const { product, variant } = await createProductWithVariant(container)
         await createPlanOfferSeed(container, {
           name: "PLAN-SUB-WF-004",
@@ -181,10 +267,36 @@ medusaIntegrationTestRunner({
           variant_id: variant.id,
           frequency_value: 2,
         })
+
+        const logs = await activityLogModule.listSubscriptionLogs({
+          subscription_id: subscription.id,
+          event_type: ActivityLogEventType.SUBSCRIPTION_PLAN_CHANGE_SCHEDULED,
+        } as any)
+
+        expect(logs).toHaveLength(1)
+        expect(logs[0]).toMatchObject({
+          subscription_id: subscription.id,
+          event_type: ActivityLogEventType.SUBSCRIPTION_PLAN_CHANGE_SCHEDULED,
+          actor_type: ActivityLogActorType.USER,
+          actor_id: "admin_test",
+          metadata: {
+            source: "admin",
+            effective_at: null,
+          },
+        })
+        expect(logs[0].changed_fields).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              field: "pending_update_data",
+            }),
+          ])
+        )
       })
 
       it("updates shipping address", async () => {
         const container = getContainer()
+        const activityLogModule =
+          container.resolve<ActivityLogModuleService>(ACTIVITY_LOG_MODULE)
         const subscription = await createSubscriptionSeed(container, {
           reference: "SUB-WF-005",
         })
@@ -208,6 +320,32 @@ medusaIntegrationTestRunner({
         })
 
         expect(result.subscription.shipping_address.city).toEqual("Krakow")
+
+        const logs = await activityLogModule.listSubscriptionLogs({
+          subscription_id: subscription.id,
+          event_type: ActivityLogEventType.SUBSCRIPTION_SHIPPING_ADDRESS_UPDATED,
+        } as any)
+
+        expect(logs).toHaveLength(1)
+        expect(logs[0]).toMatchObject({
+          subscription_id: subscription.id,
+          event_type: ActivityLogEventType.SUBSCRIPTION_SHIPPING_ADDRESS_UPDATED,
+          actor_type: ActivityLogActorType.USER,
+          actor_id: null,
+          metadata: expect.objectContaining({
+            source: "admin",
+          }),
+          previous_state: expect.objectContaining({
+            city: "Warszawa",
+          }),
+          new_state: expect.objectContaining({
+            city: "Krakow",
+            country_code: "PL",
+          }),
+        })
+        expect(logs[0].new_state).not.toHaveProperty("address_1")
+        expect(logs[0].new_state).not.toHaveProperty("postal_code")
+        expect(logs[0].new_state).not.toHaveProperty("phone")
       })
     })
   },
