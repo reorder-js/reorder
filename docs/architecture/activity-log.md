@@ -538,6 +538,31 @@ This follows the same practical boundary already used in:
 
 Those areas persist scalar identifiers and use query-time enrichment rather than cross-module ownership at the SQL level.
 
+## Current Renewal Emission Scope
+
+The current `Renewals` integration emits `Activity Log` events only for final business-significant outcomes and operator decisions.
+
+Implemented renewal events:
+- `renewal.approval_approved`
+- `renewal.approval_rejected`
+- `renewal.force_requested`
+- `renewal.succeeded`
+- `renewal.failed`
+
+Emission boundaries:
+- approval decisions are emitted from the approval workflows
+- manual force-run is emitted only after the force request passes domain validation
+- renewal execution emits only the final `succeeded` or `failed` outcome
+
+The following remain outside `Activity Log` and stay in renewal observability only:
+- workflow lock acquisition and release
+- attempt creation and attempt-processing internals
+- payment-session and payment-provider internals
+- structured scheduler and force-run diagnostics
+- blocked execution cases such as `already_processing` and `duplicate_execution`
+
+This keeps the renewal activity stream operator-readable while preserving detailed operational tracing in `src/modules/renewal/utils/observability.ts`.
+
 ## Summary
 
 The agreed boundary for `Activity Log` is:

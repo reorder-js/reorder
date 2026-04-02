@@ -21,6 +21,12 @@ import {
   RenewalAttemptStatus,
   RenewalCycleStatus,
 } from "../../src/modules/renewal/types"
+import { ACTIVITY_LOG_MODULE } from "../../src/modules/activity-log"
+import type ActivityLogModuleService from "../../src/modules/activity-log/service"
+import {
+  ActivityLogActorType,
+  ActivityLogEventType,
+} from "../../src/modules/activity-log/types"
 import { RENEWAL_MODULE } from "../../src/modules/renewal"
 import type RenewalModuleService from "../../src/modules/renewal/service"
 import { SUBSCRIPTION_MODULE } from "../../src/modules/subscription"
@@ -158,6 +164,8 @@ medusaIntegrationTestRunner({
 
       it("processes a renewal successfully when skip_next_cycle is enabled", async () => {
         const container = getContainer()
+        const activityLogModule =
+          container.resolve<ActivityLogModuleService>(ACTIVITY_LOG_MODULE)
         const subscriptionModule =
           container.resolve<SubscriptionModuleService>(SUBSCRIPTION_MODULE)
         const renewalModule =
@@ -209,6 +217,18 @@ medusaIntegrationTestRunner({
         expect(new Date(nextCycle!.scheduled_for).toISOString()).toEqual(
           updatedSubscription.next_renewal_at!.toISOString()
         )
+
+        const activityLogs = await activityLogModule.listSubscriptionLogs({
+          subscription_id: subscription.id,
+          event_type: ActivityLogEventType.RENEWAL_SUCCEEDED,
+        } as any)
+
+        expect(activityLogs).toHaveLength(1)
+        expect(activityLogs[0]).toMatchObject({
+          subscription_id: subscription.id,
+          event_type: ActivityLogEventType.RENEWAL_SUCCEEDED,
+          actor_type: ActivityLogActorType.SCHEDULER,
+        })
       })
 
       it("ensures a single upcoming renewal cycle idempotently", async () => {
@@ -419,6 +439,8 @@ medusaIntegrationTestRunner({
 
       it("marks a renewal as failed when order creation prerequisites are missing", async () => {
         const container = getContainer()
+        const activityLogModule =
+          container.resolve<ActivityLogModuleService>(ACTIVITY_LOG_MODULE)
         const renewalModule =
           container.resolve<RenewalModuleService>(RENEWAL_MODULE)
 
@@ -453,10 +475,24 @@ medusaIntegrationTestRunner({
         expect(attempts).toHaveLength(1)
         expect(attempts[0].status).toEqual(RenewalAttemptStatus.FAILED)
         expect(attempts[0].error_message).toContain("cart_id")
+
+        const activityLogs = await activityLogModule.listSubscriptionLogs({
+          subscription_id: subscription.id,
+          event_type: ActivityLogEventType.RENEWAL_FAILED,
+        } as any)
+
+        expect(activityLogs).toHaveLength(1)
+        expect(activityLogs[0]).toMatchObject({
+          subscription_id: subscription.id,
+          event_type: ActivityLogEventType.RENEWAL_FAILED,
+          actor_type: ActivityLogActorType.SCHEDULER,
+        })
       })
 
       it("supports retry after a failed renewal once the subscription becomes eligible", async () => {
         const container = getContainer()
+        const activityLogModule =
+          container.resolve<ActivityLogModuleService>(ACTIVITY_LOG_MODULE)
         const subscriptionModule =
           container.resolve<SubscriptionModuleService>(SUBSCRIPTION_MODULE)
         const renewalModule =
@@ -505,6 +541,19 @@ medusaIntegrationTestRunner({
         expect(attempts).toHaveLength(2)
         expect(attempts[0].status).toEqual(RenewalAttemptStatus.FAILED)
         expect(attempts[1].status).toEqual(RenewalAttemptStatus.SUCCEEDED)
+
+        const forceLogs = await activityLogModule.listSubscriptionLogs({
+          subscription_id: subscription.id,
+          event_type: ActivityLogEventType.RENEWAL_FORCE_REQUESTED,
+        } as any)
+
+        expect(forceLogs).toHaveLength(1)
+        expect(forceLogs[0]).toMatchObject({
+          subscription_id: subscription.id,
+          event_type: ActivityLogEventType.RENEWAL_FORCE_REQUESTED,
+          actor_type: ActivityLogActorType.USER,
+          actor_id: "admin_retry",
+        })
       })
 
       it("blocks duplicate execution after a successful renewal", async () => {
@@ -539,6 +588,8 @@ medusaIntegrationTestRunner({
 
       it("blocks processing and force-run while renewal is already processing", async () => {
         const container = getContainer()
+        const activityLogModule =
+          container.resolve<ActivityLogModuleService>(ACTIVITY_LOG_MODULE)
         const subscription = await createSubscriptionSeed(container, {
           reference: "SUB-REN-LOCK-001",
           skip_next_cycle: true,
@@ -569,10 +620,19 @@ medusaIntegrationTestRunner({
         ).rejects.toMatchObject({
           message: expect.stringContaining("already processing"),
         })
+
+        const forceLogs = await activityLogModule.listSubscriptionLogs({
+          subscription_id: subscription.id,
+          event_type: ActivityLogEventType.RENEWAL_FORCE_REQUESTED,
+        } as any)
+
+        expect(forceLogs).toHaveLength(0)
       })
 
       it("handles approval required, approved, and rejected transitions", async () => {
         const container = getContainer()
+        const activityLogModule =
+          container.resolve<ActivityLogModuleService>(ACTIVITY_LOG_MODULE)
         const renewalModule =
           container.resolve<RenewalModuleService>(RENEWAL_MODULE)
         const subscriptionModule =
@@ -647,6 +707,19 @@ medusaIntegrationTestRunner({
           RenewalApprovalStatus.APPROVED
         )
 
+        const approvedLogs = await activityLogModule.listSubscriptionLogs({
+          subscription_id: approvedSubscription.id,
+          event_type: ActivityLogEventType.RENEWAL_APPROVAL_APPROVED,
+        } as any)
+
+        expect(approvedLogs).toHaveLength(1)
+        expect(approvedLogs[0]).toMatchObject({
+          subscription_id: approvedSubscription.id,
+          event_type: ActivityLogEventType.RENEWAL_APPROVAL_APPROVED,
+          actor_type: ActivityLogActorType.USER,
+          actor_id: "admin_approved",
+        })
+
         const rejectedSubscription = await createSubscriptionSeed(container, {
           reference: "SUB-REN-APPROVAL-002",
           skip_next_cycle: true,
@@ -671,6 +744,19 @@ medusaIntegrationTestRunner({
         expect(processedRejectedCycle.approval_status).toEqual(
           RenewalApprovalStatus.REJECTED
         )
+
+        const rejectedLogs = await activityLogModule.listSubscriptionLogs({
+          subscription_id: rejectedSubscription.id,
+          event_type: ActivityLogEventType.RENEWAL_APPROVAL_REJECTED,
+        } as any)
+
+        expect(rejectedLogs).toHaveLength(1)
+        expect(rejectedLogs[0]).toMatchObject({
+          subscription_id: rejectedSubscription.id,
+          event_type: ActivityLogEventType.RENEWAL_APPROVAL_REJECTED,
+          actor_type: ActivityLogActorType.USER,
+          actor_id: "admin_rejected",
+        })
 
         await expect(
           forceRenewalCycleWorkflow(container).run({

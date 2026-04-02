@@ -9,6 +9,7 @@ import { renewalErrors } from "../../modules/renewal/utils/errors"
 
 export type RenewalCycleApprovalRecord = {
   id: string
+  subscription_id: string
   status: RenewalCycleStatus
   approval_required: boolean
   approval_status: RenewalApprovalStatus | null

@@ -23,6 +23,11 @@ import {
   isAlertableRenewalFailure,
   logRenewalEvent,
 } from "../../modules/renewal/utils/observability"
+import { normalizeActivityLogEvent } from "../../modules/activity-log/utils/normalize-log-event"
+import {
+  ActivityLogActorType,
+  ActivityLogEventType,
+} from "../../modules/activity-log/types"
 import { resolveProductSubscriptionConfig } from "../../modules/plan-offer/utils/effective-config"
 import { SUBSCRIPTION_MODULE } from "../../modules/subscription"
 import SubscriptionModuleService from "../../modules/subscription/service"
@@ -33,6 +38,8 @@ import {
 } from "../../modules/subscription/types"
 import { subscriptionErrors } from "../../modules/subscription/utils/errors"
 import { startDunningWorkflow } from "../start-dunning"
+import { persistSubscriptionLogEvent } from "./create-subscription-log-event"
+import { toISOStringOrNull } from "../utils/date-output"
 
 type CartRecord = {
   id: string
@@ -64,6 +71,7 @@ type PaymentRecord = {
 
 type SubscriptionRecord = {
   id: string
+  reference: string
   status: SubscriptionStatus
   customer_id: string
   cart_id: string | null
@@ -137,6 +145,12 @@ type PaymentQualifiedRenewalError = Error & {
   dunning_payment_failure_source?: PaymentQualifiedFailureSource
   dunning_payment_error_code?: string | null
   dunning_renewal_order_id?: string | null
+}
+
+function getRenewalActivityLogActorType(triggerType: "scheduler" | "manual") {
+  return triggerType === "manual"
+    ? ActivityLogActorType.USER
+    : ActivityLogActorType.SCHEDULER
 }
 
 function addCadence(
@@ -811,6 +825,51 @@ export const processRenewalCycleStep = createStep(
         },
       })
 
+      await persistSubscriptionLogEvent(container, normalizeActivityLogEvent({
+        subscription_id: subscription.id,
+        customer_id: subscription.customer_id,
+        event_type: ActivityLogEventType.RENEWAL_SUCCEEDED,
+        actor_type: getRenewalActivityLogActorType(input.trigger_type),
+        actor_id: input.triggered_by ?? null,
+        display: {
+          subscription_reference: subscription.reference,
+          customer_name: subscription.customer_snapshot?.full_name ?? null,
+          product_title: subscription.product_snapshot.product_title ?? null,
+          variant_title:
+            appliedPendingChanges?.variant_title ??
+            subscription.product_snapshot.variant_title ??
+            null,
+        },
+        previous_state: {
+          status: cycle.status,
+          attempt_count: cycle.attempt_count,
+          processed_at: toISOStringOrNull(cycle.processed_at),
+          generated_order_id: cycle.generated_order_id,
+          last_error: cycle.last_error,
+        },
+        new_state: {
+          status: updatedCycle.status,
+          attempt_count: updatedCycle.attempt_count,
+          processed_at: toISOStringOrNull(updatedCycle.processed_at),
+          generated_order_id: updatedCycle.generated_order_id,
+          last_error: updatedCycle.last_error,
+          applied_pending_update_data: appliedPendingChanges,
+        },
+        metadata: {
+          source: input.trigger_type === "manual" ? "admin" : "scheduler",
+          renewal_cycle_id: cycle.id,
+          order_id: generatedOrderId,
+          trigger_type: input.trigger_type,
+          scheduled_for: toISOStringOrNull(cycle.scheduled_for),
+        },
+        correlation_id: correlationId,
+        dedupe: {
+          scope: "renewal",
+          target_id: cycle.id,
+          qualifier: toISOStringOrNull(updatedCycle.processed_at),
+        },
+      }))
+
       return new StepResponse({
         renewal_cycle: updatedCycle,
         subscription_id: subscription.id,
@@ -839,6 +898,53 @@ export const processRenewalCycleStep = createStep(
         generated_order_id: paymentFailure?.renewal_order_id ?? null,
         last_error: message,
       })
+
+      await persistSubscriptionLogEvent(container, normalizeActivityLogEvent({
+        subscription_id: subscription.id,
+        customer_id: subscription.customer_id,
+        event_type: ActivityLogEventType.RENEWAL_FAILED,
+        actor_type: getRenewalActivityLogActorType(input.trigger_type),
+        actor_id: input.triggered_by ?? null,
+        display: {
+          subscription_reference: subscription.reference,
+          customer_name: subscription.customer_snapshot?.full_name ?? null,
+          product_title: subscription.product_snapshot.product_title ?? null,
+          variant_title:
+            appliedPendingChanges?.variant_title ??
+            subscription.product_snapshot.variant_title ??
+            null,
+        },
+        previous_state: {
+          status: cycle.status,
+          attempt_count: cycle.attempt_count,
+          processed_at: toISOStringOrNull(cycle.processed_at),
+          generated_order_id: cycle.generated_order_id,
+          last_error: cycle.last_error,
+        },
+        new_state: {
+          status: RenewalCycleStatus.FAILED,
+          attempt_count: attemptNo,
+          processed_at: toISOStringOrNull(finishedAt),
+          generated_order_id: paymentFailure?.renewal_order_id ?? null,
+          last_error: message,
+          applied_pending_update_data: appliedPendingChanges,
+        },
+        reason: input.reason ?? null,
+        metadata: {
+          source: input.trigger_type === "manual" ? "admin" : "scheduler",
+          renewal_cycle_id: cycle.id,
+          order_id: paymentFailure?.renewal_order_id ?? null,
+          trigger_type: input.trigger_type,
+          reason_code: failureKind,
+          scheduled_for: toISOStringOrNull(cycle.scheduled_for),
+        },
+        correlation_id: correlationId,
+        dedupe: {
+          scope: "renewal",
+          target_id: cycle.id,
+          qualifier: toISOStringOrNull(finishedAt),
+        },
+      }))
 
       if (paymentFailure) {
         try {

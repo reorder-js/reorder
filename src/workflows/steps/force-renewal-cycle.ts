@@ -1,6 +1,8 @@
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 import { RENEWAL_MODULE } from "../../modules/renewal"
 import RenewalModuleService from "../../modules/renewal/service"
+import { SUBSCRIPTION_MODULE } from "../../modules/subscription"
+import SubscriptionModuleService from "../../modules/subscription/service"
 import {
   RenewalApprovalStatus,
   RenewalCycleStatus,
@@ -13,7 +15,13 @@ import {
   isAlertableRenewalFailure,
   logRenewalEvent,
 } from "../../modules/renewal/utils/observability"
+import { normalizeActivityLogEvent } from "../../modules/activity-log/utils/normalize-log-event"
+import {
+  ActivityLogActorType,
+  ActivityLogEventType,
+} from "../../modules/activity-log/types"
 import { processRenewalCycleWorkflow } from "../process-renewal-cycle"
+import { persistSubscriptionLogEvent } from "./create-subscription-log-event"
 
 export type ForceRenewalCycleStepInput = {
   renewal_cycle_id: string
@@ -22,12 +30,26 @@ export type ForceRenewalCycleStepInput = {
   correlation_id?: string | null
 }
 
+type ForceRenewalSubscriptionDisplayRecord = {
+  reference: string
+  customer_id: string
+  customer_snapshot: {
+    full_name?: string | null
+  } | null
+  product_snapshot: {
+    product_title?: string | null
+    variant_title?: string | null
+  } | null
+}
+
 export const forceRenewalCycleStep = createStep(
   "force-renewal-cycle",
   async function (input: ForceRenewalCycleStepInput, { container }) {
     const logger = container.resolve("logger")
     const renewalModule =
-      container.resolve<RenewalModuleService>(RENEWAL_MODULE)
+      container.resolve(RENEWAL_MODULE) as RenewalModuleService
+    const subscriptionModule =
+      container.resolve(SUBSCRIPTION_MODULE) as SubscriptionModuleService
     const correlationId =
       input.correlation_id ?? createRenewalCorrelationId("renewal-force")
 
@@ -38,6 +60,9 @@ export const forceRenewalCycleStep = createStep(
     } catch {
       throw renewalErrors.notFound("RenewalCycle", input.renewal_cycle_id)
     }
+    const subscription = (await subscriptionModule.retrieveSubscription(
+      cycle.subscription_id
+    )) as unknown as ForceRenewalSubscriptionDisplayRecord
 
     logRenewalEvent(logger, "info", {
       event: "renewal.force",
@@ -77,6 +102,32 @@ export const forceRenewalCycleStep = createStep(
           `Renewal '${cycle.id}' requires approved changes before it can be force-run`
         )
       }
+
+      await persistSubscriptionLogEvent(container, normalizeActivityLogEvent({
+        subscription_id: cycle.subscription_id,
+        customer_id: subscription.customer_id ?? null,
+        event_type: ActivityLogEventType.RENEWAL_FORCE_REQUESTED,
+        actor_type: ActivityLogActorType.USER,
+        actor_id: input.triggered_by ?? null,
+        display: {
+          subscription_reference: subscription.reference,
+          customer_name: subscription.customer_snapshot?.full_name ?? null,
+          product_title: subscription.product_snapshot?.product_title ?? null,
+          variant_title: subscription.product_snapshot?.variant_title ?? null,
+        },
+        reason: input.reason ?? null,
+        metadata: {
+          source: "admin",
+          renewal_cycle_id: cycle.id,
+          trigger_type: "manual",
+        },
+        correlation_id: correlationId,
+        dedupe: {
+          scope: "renewal",
+          target_id: cycle.id,
+          qualifier: correlationId,
+        },
+      }))
 
       await processRenewalCycleWorkflow(container).run({
         input: {

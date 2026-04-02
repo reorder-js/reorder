@@ -44,39 +44,57 @@ function isDuplicateDedupeKeyError(error: unknown) {
   return false
 }
 
-export async function createSubscriptionLogEventStepHandler(
-  input: CreateSubscriptionLogEventStepInput,
-  { container }: { container: { resolve(key: string): unknown } }
-) {
+export async function persistSubscriptionLogEvent(
+  container: { resolve(key: string): unknown },
+  logEvent: NormalizedActivityLogEvent
+): Promise<{
+  record: SubscriptionLogRecord
+  action: CreateSubscriptionLogEventCompensation["action"]
+}> {
   const activityLogModule =
     container.resolve(ACTIVITY_LOG_MODULE) as ActivityLogModuleService
 
-  let created: SubscriptionLogRecord
-
   try {
-    created = (await activityLogModule.createSubscriptionLogs(
-      input.log_event as any
+    const created = (await activityLogModule.createSubscriptionLogs(
+      logEvent as any
     )) as SubscriptionLogRecord
+
+    return {
+      record: created,
+      action: "created",
+    }
   } catch (error) {
     if (!isDuplicateDedupeKeyError(error)) {
       throw error
     }
 
-    return new StepResponse<
-      SubscriptionLogRecord,
-      CreateSubscriptionLogEventCompensation
-    >(input.log_event as SubscriptionLogRecord, {
+    return {
+      record: logEvent as SubscriptionLogRecord,
       action: "existing",
-    })
+    }
   }
+}
+
+export async function createSubscriptionLogEventStepHandler(
+  input: CreateSubscriptionLogEventStepInput,
+  { container }: { container: { resolve(key: string): unknown } }
+) {
+  const result = await persistSubscriptionLogEvent(container, input.log_event)
 
   return new StepResponse<
     SubscriptionLogRecord,
     CreateSubscriptionLogEventCompensation
-  >(created, {
-    action: "created",
-    subscription_log_id: created.id,
-  })
+  >(
+    result.record,
+    result.action === "created"
+      ? {
+          action: "created",
+          subscription_log_id: result.record.id,
+        }
+      : {
+          action: "existing",
+        }
+  )
 }
 
 export async function compensateCreateSubscriptionLogEventStep(
