@@ -6,10 +6,17 @@ import {
   SubscriptionStatus,
 } from "../../modules/subscription/types"
 import { subscriptionErrors } from "../../modules/subscription/utils/errors"
+import {
+  asSubscriptionUpdateInput,
+  asSubscriptionWorkflowRecord,
+  SubscriptionWorkflowRecord,
+  SubscriptionWorkflowStepResult,
+} from "./pause-subscription"
 
 export type UpdateSubscriptionShippingAddressStepInput =
   SubscriptionShippingAddress & {
     id: string
+    triggered_by?: string | null
   }
 
 export const updateSubscriptionShippingAddressStep = createStep(
@@ -39,7 +46,9 @@ export const updateSubscriptionShippingAddressStep = createStep(
 
     if (!input.country_code.trim()) {
       throw subscriptionErrors.invalidData("country_code is required")
-  }
+    }
+
+    const updatedAt = new Date().toISOString()
 
     const updated = await subscriptionModuleService.updateSubscriptions({
       id: input.id,
@@ -55,11 +64,24 @@ export const updateSubscriptionShippingAddressStep = createStep(
         country_code: input.country_code,
         phone: input.phone,
       },
+      metadata: {
+        ...(subscription.metadata ?? {}),
+        shipping_address_update_context: {
+          triggered_by: input.triggered_by ?? null,
+          updated_at: updatedAt,
+        },
+      },
     })
 
-    return new StepResponse(updated, subscription)
+    return new StepResponse<SubscriptionWorkflowStepResult, SubscriptionWorkflowRecord>(
+      {
+        current: asSubscriptionWorkflowRecord(updated),
+        previous: asSubscriptionWorkflowRecord(subscription),
+      },
+      asSubscriptionWorkflowRecord(subscription)
+    )
   },
-  async function (subscription, { container }) {
+  async function (subscription: SubscriptionWorkflowRecord, { container }) {
     if (!subscription) {
       return
     }
@@ -67,6 +89,8 @@ export const updateSubscriptionShippingAddressStep = createStep(
     const subscriptionModuleService: SubscriptionModuleService =
       container.resolve(SUBSCRIPTION_MODULE)
 
-    await subscriptionModuleService.updateSubscriptions(subscription)
+    await subscriptionModuleService.updateSubscriptions(
+      asSubscriptionUpdateInput(subscription)
+    )
   }
 )

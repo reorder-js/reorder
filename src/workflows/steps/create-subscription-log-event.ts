@@ -25,15 +25,23 @@ type CreateSubscriptionLogEventCompensation =
       action: "existing"
     }
 
-async function findByDedupeKey(
-  activityLogModule: ActivityLogModuleService,
-  dedupeKey: string
-) {
-  const records = (await activityLogModule.listSubscriptionLogs({
-    dedupe_key: dedupeKey,
-  } as any)) as SubscriptionLogRecord[]
+function isDuplicateDedupeKeyError(error: unknown) {
+  if (!error || typeof error !== "object") {
+    return false
+  }
 
-  return records[0] ?? null
+  const code = "code" in error ? error.code : undefined
+  const message = "message" in error ? error.message : undefined
+
+  if (code === "23505") {
+    return true
+  }
+
+  if (typeof message === "string" && message.includes("dedupe_key")) {
+    return true
+  }
+
+  return false
 }
 
 export async function createSubscriptionLogEventStepHandler(
@@ -43,23 +51,24 @@ export async function createSubscriptionLogEventStepHandler(
   const activityLogModule =
     container.resolve(ACTIVITY_LOG_MODULE) as ActivityLogModuleService
 
-  const existing = await findByDedupeKey(
-    activityLogModule,
-    input.log_event.dedupe_key
-  )
+  let created: SubscriptionLogRecord
 
-  if (existing) {
+  try {
+    created = (await activityLogModule.createSubscriptionLogs(
+      input.log_event as any
+    )) as SubscriptionLogRecord
+  } catch (error) {
+    if (!isDuplicateDedupeKeyError(error)) {
+      throw error
+    }
+
     return new StepResponse<
       SubscriptionLogRecord,
       CreateSubscriptionLogEventCompensation
-    >(existing, {
+    >(input.log_event as SubscriptionLogRecord, {
       action: "existing",
     })
   }
-
-  const created = (await activityLogModule.createSubscriptionLogs(
-    input.log_event as any
-  )) as SubscriptionLogRecord
 
   return new StepResponse<
     SubscriptionLogRecord,

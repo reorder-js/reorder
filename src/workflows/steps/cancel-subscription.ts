@@ -3,11 +3,18 @@ import { SUBSCRIPTION_MODULE } from "../../modules/subscription"
 import SubscriptionModuleService from "../../modules/subscription/service"
 import { SubscriptionStatus } from "../../modules/subscription/types"
 import { subscriptionErrors } from "../../modules/subscription/utils/errors"
+import {
+  asSubscriptionUpdateInput,
+  asSubscriptionWorkflowRecord,
+  SubscriptionWorkflowRecord,
+  SubscriptionWorkflowStepResult,
+} from "./pause-subscription"
 
 export type CancelSubscriptionStepInput = {
   id: string
   reason?: string
   effective_at?: "immediately" | "end_of_cycle"
+  triggered_by?: string | null
 }
 
 export const cancelSubscriptionStep = createStep(
@@ -50,13 +57,20 @@ export const cancelSubscriptionStep = createStep(
           reason: input.reason ?? null,
           effective_at: input.effective_at ?? "immediately",
           cancelled_at: cancelledAt.toISOString(),
+          triggered_by: input.triggered_by ?? null,
         },
       },
     })
 
-    return new StepResponse(updated, subscription)
+    return new StepResponse<SubscriptionWorkflowStepResult, SubscriptionWorkflowRecord>(
+      {
+        current: asSubscriptionWorkflowRecord(updated),
+        previous: asSubscriptionWorkflowRecord(subscription),
+      },
+      asSubscriptionWorkflowRecord(subscription)
+    )
   },
-  async function (subscription, { container }) {
+  async function (subscription: SubscriptionWorkflowRecord, { container }) {
     if (!subscription) {
       return
     }
@@ -64,6 +78,8 @@ export const cancelSubscriptionStep = createStep(
     const subscriptionModuleService: SubscriptionModuleService =
       container.resolve(SUBSCRIPTION_MODULE)
 
-    await subscriptionModuleService.updateSubscriptions(subscription)
+    await subscriptionModuleService.updateSubscriptions(
+      asSubscriptionUpdateInput(subscription)
+    )
   }
 )

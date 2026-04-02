@@ -13,6 +13,7 @@ export const POST = async (
   await pauseSubscriptionWorkflow(req.scope).run({
     input: {
       id: req.params.id,
+      triggered_by: req.auth_context.actor_id,
       ...req.validatedBody,
     },
   })

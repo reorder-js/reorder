@@ -5,6 +5,12 @@ import { SUBSCRIPTION_MODULE } from "../../modules/subscription"
 import SubscriptionModuleService from "../../modules/subscription/service"
 import { SubscriptionFrequencyInterval, SubscriptionStatus } from "../../modules/subscription/types"
 import { subscriptionErrors } from "../../modules/subscription/utils/errors"
+import {
+  asSubscriptionUpdateInput,
+  asSubscriptionWorkflowRecord,
+  SubscriptionWorkflowRecord,
+  SubscriptionWorkflowStepResult,
+} from "./pause-subscription"
 
 export type ScheduleSubscriptionPlanChangeStepInput = {
   id: string
@@ -117,9 +123,15 @@ export const scheduleSubscriptionPlanChangeStep = createStep(
       },
     })
 
-    return new StepResponse(updated, subscription)
+    return new StepResponse<SubscriptionWorkflowStepResult, SubscriptionWorkflowRecord>(
+      {
+        current: asSubscriptionWorkflowRecord(updated),
+        previous: asSubscriptionWorkflowRecord(subscription),
+      },
+      asSubscriptionWorkflowRecord(subscription)
+    )
   },
-  async function (subscription, { container }) {
+  async function (subscription: SubscriptionWorkflowRecord, { container }) {
     if (!subscription) {
       return
     }
@@ -127,6 +139,8 @@ export const scheduleSubscriptionPlanChangeStep = createStep(
     const subscriptionModuleService: SubscriptionModuleService =
       container.resolve(SUBSCRIPTION_MODULE)
 
-    await subscriptionModuleService.updateSubscriptions(subscription)
+    await subscriptionModuleService.updateSubscriptions(
+      asSubscriptionUpdateInput(subscription)
+    )
   }
 )

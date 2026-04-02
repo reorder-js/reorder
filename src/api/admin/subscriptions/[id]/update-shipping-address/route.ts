@@ -13,6 +13,7 @@ export const POST = async (
   await updateSubscriptionShippingAddressWorkflow(req.scope).run({
     input: {
       id: req.params.id,
+      triggered_by: req.auth_context.actor_id,
       first_name: req.validatedBody.first_name,
       last_name: req.validatedBody.last_name,
       company: req.validatedBody.company ?? null,
