@@ -83,5 +83,6 @@ export type AnalyticsExportAdminResponse = {
   generated_at: string
   file_name: string
   content_type: string
+  columns: string[]
   rows: Array<Record<string, string | number | null>>
 }

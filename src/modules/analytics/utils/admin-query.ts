@@ -773,6 +773,14 @@ export async function getAdminAnalyticsExport(
     buildTrendSeries(buckets, AnalyticsMetricKey.ACTIVE_SUBSCRIPTIONS_COUNT),
   ]
   const rowCount = series[0]?.points.length ?? 0
+  const columns = [
+    "bucket_start",
+    "bucket_end",
+    "mrr",
+    "churn_rate",
+    "ltv",
+    "active_subscriptions_count",
+  ]
   const exportRows: Array<Record<string, string | number | null>> = []
 
   for (let index = 0; index < rowCount; index += 1) {
@@ -810,6 +818,7 @@ export async function getAdminAnalyticsExport(
     file_name: `subscription-analytics-${new Date().toISOString().slice(0, 10)}.${normalized.format}`,
     content_type:
       normalized.format === "csv" ? "text/csv" : "application/json",
+    columns,
     rows: exportRows,
   }
 }

@@ -3,6 +3,8 @@ import { keepPreviousData, useQuery } from "@tanstack/react-query"
 import { sdk } from "../../../lib/client"
 import type {
   AdminAnalyticsFilters,
+  AnalyticsExportAdminResponse,
+  AnalyticsExportFormat,
   AnalyticsKpisAdminResponse,
   AnalyticsTrendsAdminResponse,
 } from "../../../types/analytics"
@@ -68,6 +70,39 @@ export function useAdminAnalyticsProductsQuery() {
   })
 }
 
+export async function exportAdminAnalytics(
+  filters: AdminAnalyticsFilters,
+  format: AnalyticsExportFormat
+) {
+  const response = await sdk.client.fetch<AnalyticsExportAdminResponse>(
+    "/admin/subscription-analytics/export",
+    {
+      query: {
+        ...getAdminAnalyticsQueryInput(filters),
+        format,
+      },
+    }
+  )
+
+  const content =
+    format === "csv"
+      ? toCsv(response.columns, response.rows)
+      : JSON.stringify(
+          {
+            generated_at: response.generated_at,
+            filters: response.filters,
+            columns: response.columns,
+            rows: response.rows,
+          },
+          null,
+          2
+        )
+
+  downloadFile(content, response.file_name, response.content_type)
+
+  return response
+}
+
 function toUtcStartOfDay(value: string) {
   const [year, month, day] = value.split("-").map(Number)
 
@@ -86,4 +121,52 @@ function toUtcEndOfDay(value: string) {
   }
 
   return new Date(Date.UTC(year, month - 1, day, 23, 59, 59, 999)).toISOString()
+}
+
+function toCsv(
+  columns: string[],
+  rows: Array<Record<string, string | number | null>>
+) {
+  const lines = [
+    columns.join(","),
+    ...rows.map((row) =>
+      columns
+        .map((column) => escapeCsvValue(row[column] ?? null))
+        .join(",")
+    ),
+  ]
+
+  return lines.join("\n")
+}
+
+function escapeCsvValue(value: string | number | null) {
+  if (value === null) {
+    return ""
+  }
+
+  const normalized = String(value)
+
+  if (
+    normalized.includes(",") ||
+    normalized.includes("\"") ||
+    normalized.includes("\n")
+  ) {
+    return `"${normalized.replace(/"/g, "\"\"")}"`
+  }
+
+  return normalized
+}
+
+function downloadFile(content: string, fileName: string, contentType: string) {
+  const blob = new Blob([content], { type: contentType })
+  const url = URL.createObjectURL(blob)
+  const anchor = document.createElement("a")
+
+  anchor.href = url
+  anchor.download = fileName
+  document.body.appendChild(anchor)
+  anchor.click()
+  anchor.remove()
+
+  URL.revokeObjectURL(url)
 }

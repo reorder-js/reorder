@@ -9,10 +9,13 @@ import {
   Input,
   Select,
   Text,
+  toast,
 } from "@medusajs/ui"
+import { useMutation } from "@tanstack/react-query"
 import { useMemo, useState } from "react"
 import { Link } from "react-router-dom"
 import {
+  type AnalyticsExportFormat,
   AnalyticsGroupBy,
   AnalyticsMetricKey,
   type AdminAnalyticsFilters,
@@ -22,6 +25,7 @@ import {
   type AnalyticsTrendSeries,
 } from "../../../types/analytics"
 import {
+  exportAdminAnalytics,
   useAdminAnalyticsKpisQuery,
   useAdminAnalyticsProductsQuery,
   useAdminAnalyticsTrendsQuery,
@@ -75,6 +79,20 @@ const AnalyticsPage = () => {
   const [selectedMetric, setSelectedMetric] = useState<AnalyticsMetricKey>(
     AnalyticsMetricKey.MRR
   )
+  const exportMutation = useMutation({
+    mutationFn: (format: AnalyticsExportFormat) =>
+      exportAdminAnalytics(filters, format),
+    onSuccess: (_response, format) => {
+      toast.success(
+        `Analytics ${format.toUpperCase()} export downloaded`
+      )
+    },
+    onError: (error) => {
+      toast.error(
+        error instanceof Error ? error.message : "Failed to export analytics"
+      )
+    },
+  })
 
   const {
     data: kpisData,
@@ -138,9 +156,42 @@ const AnalyticsPage = () => {
             the analytics snapshot model.
           </Text>
         </div>
-        <Button asChild size="small" variant="secondary" type="button">
-          <Link to="/subscriptions">View Subscriptions</Link>
-        </Button>
+        <div className="flex items-center gap-2">
+          <DropdownMenu>
+            <DropdownMenu.Trigger asChild>
+              <Button
+                size="small"
+                variant="secondary"
+                type="button"
+                isLoading={exportMutation.isPending}
+                disabled={exportMutation.isPending}
+              >
+                Export
+              </Button>
+            </DropdownMenu.Trigger>
+            <DropdownMenu.Content align="end">
+              <DropdownMenu.Item
+                disabled={exportMutation.isPending}
+                onClick={() => {
+                  exportMutation.mutate("csv")
+                }}
+              >
+                Export CSV
+              </DropdownMenu.Item>
+              <DropdownMenu.Item
+                disabled={exportMutation.isPending}
+                onClick={() => {
+                  exportMutation.mutate("json")
+                }}
+              >
+                Export JSON
+              </DropdownMenu.Item>
+            </DropdownMenu.Content>
+          </DropdownMenu>
+          <Button asChild size="small" variant="secondary" type="button">
+            <Link to="/subscriptions">View Subscriptions</Link>
+          </Button>
+        </div>
       </div>
 
       <div className="flex flex-col gap-4 px-6 py-4">
