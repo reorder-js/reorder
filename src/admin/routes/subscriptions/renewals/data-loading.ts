@@ -9,6 +9,7 @@ import {
   useQuery,
 } from "@tanstack/react-query";
 import { sdk } from "../../../lib/client";
+import { invalidateAdminActivityLogQueries } from "../activity-log/data-loading";
 import {
   RenewalCycleAdminDetailResponse,
   RenewalApprovalStatus,
@@ -141,7 +142,8 @@ export function useAdminRenewalDetailQuery(
 
 export async function invalidateAdminRenewalsQueries(
   queryClient: QueryClient,
-  id?: string
+  id?: string,
+  subscriptionId?: string
 ) {
   await Promise.all([
     queryClient.invalidateQueries({
@@ -152,6 +154,9 @@ export async function invalidateAdminRenewalsQueries(
           queryKey: adminRenewalsQueryKeys.detail(id),
         })
       : Promise.resolve(),
+    invalidateAdminActivityLogQueries(queryClient, {
+      subscriptionId,
+    }),
   ]);
 }
 

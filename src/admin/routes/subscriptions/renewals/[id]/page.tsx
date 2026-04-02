@@ -70,7 +70,11 @@ const RenewalDetailPage = () => {
         }
       ),
     onSuccess: async () => {
-      await invalidateAdminRenewalsQueries(queryClient, id);
+      await invalidateAdminRenewalsQueries(
+        queryClient,
+        id,
+        renewal?.subscription.subscription_id
+      );
       toast.success("Renewal forced");
     },
     onError: (mutationError) => {
@@ -88,7 +92,11 @@ const RenewalDetailPage = () => {
         }
       ),
     onSuccess: async () => {
-      await invalidateAdminRenewalsQueries(queryClient, id);
+      await invalidateAdminRenewalsQueries(
+        queryClient,
+        id,
+        renewal?.subscription.subscription_id
+      );
       toast.success("Pending changes approved");
       setDecisionDrawerOpen(false);
       setDecisionReason("");
@@ -115,7 +123,11 @@ const RenewalDetailPage = () => {
         }
       ),
     onSuccess: async () => {
-      await invalidateAdminRenewalsQueries(queryClient, id);
+      await invalidateAdminRenewalsQueries(
+        queryClient,
+        id,
+        renewal?.subscription.subscription_id
+      );
       toast.success("Pending changes rejected");
       setDecisionDrawerOpen(false);
       setDecisionReason("");

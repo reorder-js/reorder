@@ -5,6 +5,7 @@ import {
 } from "@medusajs/ui"
 import { keepPreviousData, QueryClient, useQuery } from "@tanstack/react-query"
 import { sdk } from "../../lib/client"
+import { invalidateAdminActivityLogQueries } from "./activity-log/data-loading"
 import {
   SubscriptionAdminListResponse,
   SubscriptionAdminDetailResponse,
@@ -160,6 +161,7 @@ export function useAdminSubscriptionLogsQuery(id?: string) {
         },
       }),
     enabled: Boolean(id),
+    placeholderData: keepPreviousData,
   })
 }
 
@@ -191,7 +193,7 @@ export function useAdminSubscriptionPlanOptionsQuery(
   })
 }
 
-export async function invalidateSubscriptionDetailQueries(
+export async function invalidateAdminSubscriptionsQueries(
   queryClient: QueryClient,
   id?: string,
   logId?: string
@@ -217,7 +219,19 @@ export async function invalidateSubscriptionDetailQueries(
           }),
         ]
       : []),
+    invalidateAdminActivityLogQueries(queryClient, {
+      id: logId,
+      subscriptionId: id,
+    }),
   ])
+}
+
+export async function invalidateSubscriptionDetailQueries(
+  queryClient: QueryClient,
+  id?: string,
+  logId?: string
+) {
+  await invalidateAdminSubscriptionsQueries(queryClient, id, logId)
 }
 
 function getNextRenewalRange(value?: NextRenewalFilterValue) {

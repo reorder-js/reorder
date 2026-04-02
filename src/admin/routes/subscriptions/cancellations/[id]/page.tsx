@@ -151,7 +151,11 @@ const CancellationDetailPage = () => {
         }
       ),
     onSuccess: async () => {
-      await invalidateAdminCancellationQueries(queryClient, id)
+      await invalidateAdminCancellationQueries(
+        queryClient,
+        id,
+        cancellation?.subscription.subscription_id
+      )
       toast.success("Recommendation updated")
     },
     onError: (mutationError) => {
@@ -169,7 +173,11 @@ const CancellationDetailPage = () => {
         }
       ),
     onSuccess: async () => {
-      await invalidateAdminCancellationQueries(queryClient, id)
+      await invalidateAdminCancellationQueries(
+        queryClient,
+        id,
+        cancellation?.subscription.subscription_id
+      )
       toast.success("Retention offer applied")
       closeDrawer()
     },
@@ -193,7 +201,11 @@ const CancellationDetailPage = () => {
         }
       ),
     onSuccess: async () => {
-      await invalidateAdminCancellationQueries(queryClient, id)
+      await invalidateAdminCancellationQueries(
+        queryClient,
+        id,
+        cancellation?.subscription.subscription_id
+      )
       toast.success("Cancellation finalized")
       closeDrawer()
     },
@@ -217,7 +229,11 @@ const CancellationDetailPage = () => {
         }
       ),
     onSuccess: async () => {
-      await invalidateAdminCancellationQueries(queryClient, id)
+      await invalidateAdminCancellationQueries(
+        queryClient,
+        id,
+        cancellation?.subscription.subscription_id
+      )
       toast.success("Reason updated")
       closeDrawer()
     },

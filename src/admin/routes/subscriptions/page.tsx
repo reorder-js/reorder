@@ -28,7 +28,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  adminSubscriptionsQueryKeys,
+  invalidateAdminSubscriptionsQueries,
   useAdminSubscriptionsDisplayQuery,
 } from "./data-loading";
 import { sdk } from "../../lib/client";
@@ -274,10 +274,8 @@ const SubscriptionsPage = () => {
           body: {},
         },
       ),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({
-        queryKey: adminSubscriptionsQueryKeys.all,
-      });
+    onSuccess: async (_data, subscriptionId) => {
+      await invalidateAdminSubscriptionsQueries(queryClient, subscriptionId);
       toast.success("Subscription paused");
     },
     onError: (error) => {
@@ -296,10 +294,8 @@ const SubscriptionsPage = () => {
           body: {},
         },
       ),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({
-        queryKey: adminSubscriptionsQueryKeys.all,
-      });
+    onSuccess: async (_data, subscriptionId) => {
+      await invalidateAdminSubscriptionsQueries(queryClient, subscriptionId);
       toast.success("Subscription resumed");
     },
     onError: (error) => {
@@ -318,10 +314,8 @@ const SubscriptionsPage = () => {
           body: {},
         },
       ),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({
-        queryKey: adminSubscriptionsQueryKeys.all,
-      });
+    onSuccess: async (_data, subscriptionId) => {
+      await invalidateAdminSubscriptionsQueries(queryClient, subscriptionId);
       toast.success("Subscription cancelled");
     },
     onError: (error) => {

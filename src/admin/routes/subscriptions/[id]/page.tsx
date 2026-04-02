@@ -22,7 +22,7 @@ import {
   TriangleRightMini,
   Trash,
 } from "@medusajs/icons";
-import { QueryClient, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ReactNode, useEffect, useMemo, useState } from "react";
 import {
   LoaderFunctionArgs,

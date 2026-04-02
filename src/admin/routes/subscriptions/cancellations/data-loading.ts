@@ -9,6 +9,7 @@ import {
   useQuery,
 } from "@tanstack/react-query"
 import { sdk } from "../../../lib/client"
+import { invalidateAdminActivityLogQueries } from "../activity-log/data-loading"
 import {
   CancellationCaseAdminDetailResponse,
   CancellationCaseAdminListResponse,
@@ -165,7 +166,8 @@ export function useAdminCancellationActionFormQuery(
 
 export async function invalidateAdminCancellationQueries(
   queryClient: QueryClient,
-  id?: string
+  id?: string,
+  subscriptionId?: string
 ) {
   await Promise.all([
     queryClient.invalidateQueries({
@@ -183,6 +185,9 @@ export async function invalidateAdminCancellationQueries(
       : Promise.resolve(),
     queryClient.invalidateQueries({
       queryKey: adminCancellationsQueryKeys.analytics,
+    }),
+    invalidateAdminActivityLogQueries(queryClient, {
+      subscriptionId,
     }),
   ])
 }

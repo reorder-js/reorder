@@ -134,18 +134,34 @@ export function useAdminActivityLogDetailQuery(
 
 export async function invalidateAdminActivityLogQueries(
   queryClient: QueryClient,
-  id?: string
+  options?: {
+    id?: string
+    subscriptionId?: string
+  }
 ) {
-  await Promise.all([
+  const promises: Promise<unknown>[] = [
     queryClient.invalidateQueries({
       queryKey: adminActivityLogQueryKeys.all,
     }),
-    id
-      ? queryClient.invalidateQueries({
-          queryKey: adminActivityLogQueryKeys.detail(id),
-        })
-      : Promise.resolve(),
-  ])
+  ]
+
+  if (options?.id) {
+    promises.push(
+      queryClient.invalidateQueries({
+        queryKey: adminActivityLogQueryKeys.detail(options.id),
+      })
+    )
+  }
+
+  if (options?.subscriptionId) {
+    promises.push(
+      queryClient.invalidateQueries({
+        queryKey: ["admin-subscriptions", "detail-logs", options.subscriptionId],
+      })
+    )
+  }
+
+  await Promise.all(promises)
 }
 
 function toIsoDateTime(value: string) {

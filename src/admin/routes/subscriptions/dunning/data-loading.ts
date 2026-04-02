@@ -9,6 +9,7 @@ import {
   useQuery,
 } from "@tanstack/react-query"
 import { sdk } from "../../../lib/client"
+import { invalidateAdminActivityLogQueries } from "../activity-log/data-loading"
 import {
   DunningCaseAdminDetailResponse,
   DunningCaseAdminListResponse,
@@ -162,7 +163,8 @@ export function useAdminDunningRetryScheduleFormQuery(
 
 export async function invalidateAdminDunningQueries(
   queryClient: QueryClient,
-  id?: string
+  id?: string,
+  subscriptionId?: string
 ) {
   await Promise.all([
     queryClient.invalidateQueries({
@@ -178,6 +180,9 @@ export async function invalidateAdminDunningQueries(
           queryKey: adminDunningQueryKeys.retryScheduleForm(id),
         })
       : Promise.resolve(),
+    invalidateAdminActivityLogQueries(queryClient, {
+      subscriptionId,
+    }),
   ])
 }
 

@@ -79,7 +79,11 @@ const DunningDetailPage = () => {
         }
       ),
     onSuccess: async () => {
-      await invalidateAdminDunningQueries(queryClient, id)
+      await invalidateAdminDunningQueries(
+        queryClient,
+        id,
+        dunningCase?.subscription.subscription_id
+      )
       toast.success("Retry started")
     },
     onError: (mutationError) => {
@@ -97,7 +101,11 @@ const DunningDetailPage = () => {
         }
       ),
     onSuccess: async () => {
-      await invalidateAdminDunningQueries(queryClient, id)
+      await invalidateAdminDunningQueries(
+        queryClient,
+        id,
+        dunningCase?.subscription.subscription_id
+      )
       toast.success("Case marked as recovered")
       closeDrawer()
     },
@@ -121,7 +129,11 @@ const DunningDetailPage = () => {
         }
       ),
     onSuccess: async () => {
-      await invalidateAdminDunningQueries(queryClient, id)
+      await invalidateAdminDunningQueries(
+        queryClient,
+        id,
+        dunningCase?.subscription.subscription_id
+      )
       toast.success("Case marked as unrecovered")
       closeDrawer()
     },
@@ -145,7 +157,11 @@ const DunningDetailPage = () => {
         }
       ),
     onSuccess: async () => {
-      await invalidateAdminDunningQueries(queryClient, id)
+      await invalidateAdminDunningQueries(
+        queryClient,
+        id,
+        dunningCase?.subscription.subscription_id
+      )
       toast.success("Retry schedule updated")
       closeDrawer()
     },
