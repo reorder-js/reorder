@@ -66,6 +66,11 @@ const IDS = {
     "roe_seed_cancellation_discount_retained",
     "roe_seed_cancellation_pause_applied",
   ],
+  subscriptionLogs: [
+    "slog_seed_subscription_paused",
+    "slog_seed_renewal_succeeded",
+    "slog_seed_dunning_recovered",
+  ],
 } as const
 
 type QueryRecord = {
@@ -174,7 +179,15 @@ export default async function resetSubscriptionsTestData({
     "retention_offer_event",
     [...IDS.retentionOfferEvents]
   )
+  const subscriptionLogIds = await listSeedRecordIds(query, "subscription_log", [
+    ...IDS.subscriptionLogs,
+  ])
 
+  const deletedSubscriptionLogs = await deleteFromTable(
+    pgConnection,
+    "subscription_log",
+    subscriptionLogIds
+  )
   const deletedRetentionOfferEvents = await deleteFromTable(
     pgConnection,
     "retention_offer_event",
@@ -236,6 +249,6 @@ export default async function resetSubscriptionsTestData({
 
   logger.info("[subscriptions-test-data-reset] Reset completed.")
   logger.info(
-    `[subscriptions-test-data-reset] Removed plan_offers=${deletedPlanOffers} subscriptions=${deletedSubscriptions} renewal_cycles=${deletedRenewalCycles} renewal_attempts=${deletedRenewalAttempts + deletedRenewalAttemptsByCycle} dunning_cases=${deletedDunningCases} dunning_attempts=${deletedDunningAttempts + deletedDunningAttemptsByCase} cancellation_cases=${deletedCancellationCases} retention_offer_events=${deletedRetentionOfferEvents + deletedRetentionOfferEventsByCase}`
+    `[subscriptions-test-data-reset] Removed plan_offers=${deletedPlanOffers} subscriptions=${deletedSubscriptions} renewal_cycles=${deletedRenewalCycles} renewal_attempts=${deletedRenewalAttempts + deletedRenewalAttemptsByCycle} dunning_cases=${deletedDunningCases} dunning_attempts=${deletedDunningAttempts + deletedDunningAttemptsByCase} cancellation_cases=${deletedCancellationCases} retention_offer_events=${deletedRetentionOfferEvents + deletedRetentionOfferEventsByCase} subscription_logs=${deletedSubscriptionLogs}`
   )
 }

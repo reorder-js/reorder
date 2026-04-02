@@ -1,5 +1,11 @@
 import type { ExecArgs, MedusaContainer } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import { ACTIVITY_LOG_MODULE } from "../src/modules/activity-log"
+import type ActivityLogModuleService from "../src/modules/activity-log/service"
+import {
+  ActivityLogActorType,
+  ActivityLogEventType,
+} from "../src/modules/activity-log/types"
 import { CANCELLATION_MODULE } from "../src/modules/cancellation"
 import type CancellationModuleService from "../src/modules/cancellation/service"
 import {
@@ -136,6 +142,9 @@ const IDS = {
   cancellationOpenPaused: "cc_seed_cancellation_open_paused",
   retentionDiscountRetained: "roe_seed_cancellation_discount_retained",
   retentionPauseApplied: "roe_seed_cancellation_pause_applied",
+  logSubscriptionPaused: "slog_seed_subscription_paused",
+  logRenewalSucceeded: "slog_seed_renewal_succeeded",
+  logDunningRecovered: "slog_seed_dunning_recovered",
 } as const
 
 function addDays(date: Date, days: number) {
@@ -377,6 +386,18 @@ async function upsertRetentionOfferEvent(
   }
 }
 
+async function upsertSubscriptionLog(
+  service: ActivityLogModuleService,
+  input: Record<string, unknown>
+) {
+  try {
+    await service.retrieveSubscriptionLog(String(input.id))
+    return await service.updateSubscriptionLogs(input as any)
+  } catch {
+    return await service.createSubscriptionLogs(input as any)
+  }
+}
+
 function buildRetrySchedule(input?: Partial<DunningRetrySchedule>): DunningRetrySchedule {
   return {
     strategy: "fixed_intervals",
@@ -418,6 +439,8 @@ export default async function seedSubscriptionsTestData({
     container.resolve<DunningModuleService>(DUNNING_MODULE)
   const cancellationModule =
     container.resolve<CancellationModuleService>(CANCELLATION_MODULE)
+  const activityLogModule =
+    container.resolve<ActivityLogModuleService>(ACTIVITY_LOG_MODULE)
 
   logger.info("[subscriptions-test-data] Resolving products and existing offers")
 
@@ -1662,6 +1685,127 @@ export default async function seedSubscriptionsTestData({
     },
   })
 
+  await upsertSubscriptionLog(activityLogModule, {
+    id: IDS.logSubscriptionPaused,
+    subscription_id: IDS.subPaused,
+    customer_id: `cus_${IDS.subPaused}`,
+    event_type: ActivityLogEventType.SUBSCRIPTION_PAUSED,
+    actor_type: ActivityLogActorType.USER,
+    actor_id: "qa-seed-admin",
+    subscription_reference: "SUB-QA-REN-PAUSED",
+    customer_name: "QA SUB-QA-REN-PAUSED",
+    product_title: targets.success.product_title,
+    variant_title: targets.success.variant_title,
+    reason: "Seeded admin pause event for timeline and detail verification.",
+    dedupe_key: "seed:activity-log:subscription-paused",
+    previous_state: {
+      status: "active",
+      paused_at: null,
+    },
+    new_state: {
+      status: "paused",
+      paused_at: addDays(FIXED_TIME, -1).toISOString(),
+    },
+    changed_fields: [
+      {
+        field: "status",
+        before: "active",
+        after: "paused",
+      },
+      {
+        field: "paused_at",
+        before: null,
+        after: addDays(FIXED_TIME, -1).toISOString(),
+      },
+    ],
+    metadata: {
+      source: "seed-script",
+      seed_namespace: "subscriptions-test-data",
+    },
+  })
+
+  await upsertSubscriptionLog(activityLogModule, {
+    id: IDS.logRenewalSucceeded,
+    subscription_id: IDS.subSuccess,
+    customer_id: `cus_${IDS.subSuccess}`,
+    event_type: ActivityLogEventType.RENEWAL_SUCCEEDED,
+    actor_type: ActivityLogActorType.SCHEDULER,
+    actor_id: null,
+    subscription_reference: "SUB-QA-REN-SUCCESS",
+    customer_name: "QA SUB-QA-REN-SUCCESS",
+    product_title: targets.success.product_title,
+    variant_title: targets.success.variant_title,
+    reason: null,
+    dedupe_key: "seed:activity-log:renewal-succeeded",
+    previous_state: {
+      status: "scheduled",
+      processed_at: null,
+    },
+    new_state: {
+      status: "succeeded",
+      processed_at: FIXED_TIME.toISOString(),
+    },
+    changed_fields: [
+      {
+        field: "status",
+        before: "scheduled",
+        after: "succeeded",
+      },
+      {
+        field: "processed_at",
+        before: null,
+        after: FIXED_TIME.toISOString(),
+      },
+    ],
+    metadata: {
+      source: "seed-script",
+      seed_namespace: "subscriptions-test-data",
+      renewal_cycle_id: IDS.cycleSuccess,
+      scheduled_for: successScheduledFor.toISOString(),
+    },
+  })
+
+  await upsertSubscriptionLog(activityLogModule, {
+    id: IDS.logDunningRecovered,
+    subscription_id: IDS.subDunningRecovered,
+    customer_id: `cus_${IDS.subDunningRecovered}`,
+    event_type: ActivityLogEventType.DUNNING_RECOVERED,
+    actor_type: ActivityLogActorType.SYSTEM,
+    actor_id: "qa-seed-system",
+    subscription_reference: "SUB-QA-DUN-RECOVERED",
+    customer_name: "QA SUB-QA-DUN-RECOVERED",
+    product_title: targets.success.product_title,
+    variant_title: targets.success.variant_title,
+    reason: "Seeded recovery event to validate system-originated activity-log rows.",
+    dedupe_key: "seed:activity-log:dunning-recovered",
+    previous_state: {
+      status: "retry_scheduled",
+      attempt_count: 1,
+    },
+    new_state: {
+      status: "recovered",
+      attempt_count: 2,
+    },
+    changed_fields: [
+      {
+        field: "status",
+        before: "retry_scheduled",
+        after: "recovered",
+      },
+      {
+        field: "attempt_count",
+        before: 1,
+        after: 2,
+      },
+    ],
+    metadata: {
+      source: "seed-script",
+      seed_namespace: "subscriptions-test-data",
+      dunning_case_id: IDS.dunningRecovered,
+      reason_code: "automatic_retry_succeeded",
+    },
+  })
+
   const summary: SeedSummaryRow[] = [
     {
       scenario: "Renewal success without approval",
@@ -1799,6 +1943,27 @@ export default async function seedSubscriptionsTestData({
       cancellation_case_id: IDS.cancellationOpenPaused,
       notes:
         "Use to validate cancellation detail and decision-making when the subscription is already paused.",
+    },
+    {
+      scenario: "Activity Log: admin subscription pause",
+      subscription_reference: "SUB-QA-REN-PAUSED",
+      notes:
+        "Use on global Activity Log and subscription timeline to verify a user-triggered subscription event with before/after state.",
+    },
+    {
+      scenario: "Activity Log: scheduler renewal success",
+      subscription_reference: "SUB-QA-REN-SUCCESS",
+      renewal_cycle_id: IDS.cycleSuccess,
+      notes:
+        "Use to verify scheduler actor rendering and a compact renewal success payload in list, detail, and timeline.",
+    },
+    {
+      scenario: "Activity Log: system dunning recovery",
+      subscription_reference: "SUB-QA-DUN-RECOVERED",
+      renewal_cycle_id: IDS.cycleDunningRecovered,
+      dunning_case_id: IDS.dunningRecovered,
+      notes:
+        "Use to verify system-originated actor rendering and cross-domain dunning recovery context in the Activity Log.",
     },
   ]
 

@@ -8,6 +8,7 @@ It covers test data used across:
 - `Renewals`
 - `Dunning`
 - `Cancellation & Retention`
+- `Activity Log`
 
 The script is intentionally named and structured broadly so it can seed the operational QA surface for the full recurring-commerce workspace under `Subscriptions`.
 
@@ -27,9 +28,11 @@ Related runtime docs:
 - [Renewals Admin UI](../admin/renewals.md)
 - [Dunning Admin UI](../admin/dunning.md)
 - [Cancellations Admin UI](../admin/cancellations.md)
+- [Activity Log Admin UI](../admin/activity-log.md)
 - [Renewals Architecture](../architecture/renewals.md)
 - [Dunning Architecture](../architecture/dunning.md)
 - [Cancellation Architecture](../architecture/cancellation.md)
+- [Activity Log Architecture](../architecture/activity-log.md)
 
 ## Purpose
 
@@ -115,6 +118,7 @@ The script creates or updates:
 - multiple dunning attempts
 - multiple cancellation cases
 - multiple retention offer events
+- selected `Activity Log` entries for list, detail, and timeline QA
 
 The reset script removes the seeded records for the same areas:
 - seeded `Plan Offers`
@@ -125,6 +129,7 @@ The reset script removes the seeded records for the same areas:
 - seeded `DunningAttempt`
 - seeded `CancellationCase`
 - seeded `RetentionOfferEvent`
+- seeded `SubscriptionLog`
 
 The seed is designed to be idempotent:
 - it uses stable IDs
@@ -257,6 +262,49 @@ Implementation note:
 - the attempt timeline contains one failed attempt and one succeeded attempt
 
 ### 10. Dunning history: unrecovered
+
+### 11. Activity Log: admin subscription event
+
+Subscription reference:
+- `SUB-QA-REN-PAUSED`
+
+Purpose:
+- validate a user-triggered `subscription.paused` event in the global `Activity Log`
+- validate detail drawer `before / after`
+- validate per-subscription timeline rendering
+
+Implementation note:
+- one `subscription_log` row is seeded directly
+- the event uses `actor_type = user`
+- the payload contains a compact status transition and pause timestamp
+
+### 12. Activity Log: scheduler renewal event
+
+Subscription reference:
+- `SUB-QA-REN-SUCCESS`
+
+Purpose:
+- validate a scheduler-originated `renewal.succeeded` event
+- validate actor badge rendering and renewal-oriented detail payload
+
+Implementation note:
+- one `subscription_log` row is seeded directly
+- the event uses `actor_type = scheduler`
+- the payload references the seeded renewal cycle
+
+### 13. Activity Log: system dunning event
+
+Subscription reference:
+- `SUB-QA-DUN-RECOVERED`
+
+Purpose:
+- validate a system-originated `dunning.recovered` event
+- validate cross-domain timeline inspection from the subscription detail page
+
+Implementation note:
+- one `subscription_log` row is seeded directly
+- the event uses `actor_type = system`
+- the payload references the seeded dunning case and recovery reason code
 
 Subscription reference:
 - `SUB-QA-DUN-UNRECOVERED`
