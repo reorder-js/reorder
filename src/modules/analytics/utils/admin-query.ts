@@ -16,6 +16,15 @@ import {
   AnalyticsTrendSeries,
   AnalyticsTrendsAdminResponse,
 } from "../../../admin/types/analytics"
+import { ANALYTICS_METRICS_VERSION } from "../constants"
+import {
+  buildAnalyticsReadEventName,
+  createAnalyticsCorrelationId,
+  getAnalyticsReadLogLevel,
+  getAnalyticsErrorMessage,
+  isSlowAnalyticsRead,
+  logAnalyticsEvent,
+} from "./observability"
 
 type QueryLike = {
   graph(input: Record<string, unknown>): Promise<{
@@ -96,6 +105,14 @@ const METRIC_LABELS: Record<AnalyticsMetricKey, string> = {
 
 function getQuery(container: MedusaContainer) {
   return container.resolve<QueryLike>(ContainerRegistrationKeys.QUERY)
+}
+
+function getLogger(container: MedusaContainer) {
+  return container.resolve<{
+    info: (message: string) => void
+    warn: (message: string) => void
+    error: (message: string) => void
+  }>("logger")
 }
 
 function toUtcDayStart(value: Date | string) {
@@ -697,39 +714,89 @@ export async function getAdminAnalyticsKpis(
   container: MedusaContainer,
   input: ListAdminAnalyticsInput
 ): Promise<AnalyticsKpisAdminResponse> {
-  const snapshot = await buildAnalyticsSnapshot(container, input)
-  const currentSet = deriveKpiSet(snapshot.currentBuckets)
-  const previousSet = deriveKpiSet(snapshot.previousBuckets)
+  const logger = getLogger(container)
+  const correlationId = createAnalyticsCorrelationId("analytics-read-kpis")
+  const startedAt = Date.now()
 
-  return {
-    filters: snapshot.normalized.filters,
-    generated_at: new Date().toISOString(),
-    kpis: [
-      buildKpiValue(
-        AnalyticsMetricKey.MRR,
-        currentSet.mrr,
-        previousSet.mrr,
-        currentSet.mrr_currency_code
-      ),
-      buildKpiValue(
-        AnalyticsMetricKey.CHURN_RATE,
-        currentSet.churn_rate,
-        previousSet.churn_rate,
-        null
-      ),
-      buildKpiValue(
-        AnalyticsMetricKey.LTV,
-        currentSet.ltv,
-        previousSet.ltv,
-        currentSet.mrr_currency_code
-      ),
-      buildKpiValue(
-        AnalyticsMetricKey.ACTIVE_SUBSCRIPTIONS_COUNT,
-        currentSet.active_subscriptions_count,
-        previousSet.active_subscriptions_count,
-        null
-      ),
-    ],
+  try {
+    const snapshot = await buildAnalyticsSnapshot(container, input)
+    const currentSet = deriveKpiSet(snapshot.currentBuckets)
+    const previousSet = deriveKpiSet(snapshot.previousBuckets)
+    const response = {
+      filters: snapshot.normalized.filters,
+      metrics_version: ANALYTICS_METRICS_VERSION,
+      generated_at: new Date().toISOString(),
+      kpis: [
+        buildKpiValue(
+          AnalyticsMetricKey.MRR,
+          currentSet.mrr,
+          previousSet.mrr,
+          currentSet.mrr_currency_code
+        ),
+        buildKpiValue(
+          AnalyticsMetricKey.CHURN_RATE,
+          currentSet.churn_rate,
+          previousSet.churn_rate,
+          null
+        ),
+        buildKpiValue(
+          AnalyticsMetricKey.LTV,
+          currentSet.ltv,
+          previousSet.ltv,
+          currentSet.mrr_currency_code
+        ),
+        buildKpiValue(
+          AnalyticsMetricKey.ACTIVE_SUBSCRIPTIONS_COUNT,
+          currentSet.active_subscriptions_count,
+          previousSet.active_subscriptions_count,
+          null
+        ),
+      ],
+    } satisfies AnalyticsKpisAdminResponse
+    const durationMs = Date.now() - startedAt
+
+    logAnalyticsEvent(
+      logger,
+      getAnalyticsReadLogLevel({
+        duration_ms: durationMs,
+        failed: false,
+      }),
+      {
+        event: buildAnalyticsReadEventName("kpis"),
+        outcome: "completed",
+        correlation_id: correlationId,
+        metrics_version: ANALYTICS_METRICS_VERSION,
+        duration_ms: durationMs,
+        date_from: response.filters.date_from ?? undefined,
+        date_to: response.filters.date_to ?? undefined,
+        alertable: isSlowAnalyticsRead(durationMs),
+        message: isSlowAnalyticsRead(durationMs)
+          ? "Analytics KPI read completed slowly"
+          : "Analytics KPI read completed",
+        metadata: {
+          filters: response.filters,
+          bucket_count: snapshot.currentBuckets.length,
+          previous_bucket_count: snapshot.previousBuckets.length,
+          kpi_count: response.kpis.length,
+        },
+      }
+    )
+
+    return response
+  } catch (error) {
+    const durationMs = Date.now() - startedAt
+
+    logAnalyticsEvent(logger, "error", {
+      event: buildAnalyticsReadEventName("kpis"),
+      outcome: "failed",
+      correlation_id: correlationId,
+      metrics_version: ANALYTICS_METRICS_VERSION,
+      duration_ms: durationMs,
+      alertable: true,
+      message: getAnalyticsErrorMessage(error),
+    })
+
+    throw error
   }
 }
 
@@ -737,22 +804,72 @@ export async function getAdminAnalyticsTrends(
   container: MedusaContainer,
   input: ListAdminAnalyticsInput
 ): Promise<AnalyticsTrendsAdminResponse> {
-  const normalized = normalizeAnalyticsQueryInput(input)
-  const rows = await listMetricsDailyRows(container, normalized.filters)
-  const buckets = buildBucketSummaries(
-    buildDaySummaries(rows),
-    normalized.filters.group_by
-  )
+  const logger = getLogger(container)
+  const correlationId = createAnalyticsCorrelationId("analytics-read-trends")
+  const startedAt = Date.now()
 
-  return {
-    filters: normalized.filters,
-    generated_at: new Date().toISOString(),
-    series: [
-      buildTrendSeries(buckets, AnalyticsMetricKey.MRR),
-      buildTrendSeries(buckets, AnalyticsMetricKey.CHURN_RATE),
-      buildTrendSeries(buckets, AnalyticsMetricKey.LTV),
-      buildTrendSeries(buckets, AnalyticsMetricKey.ACTIVE_SUBSCRIPTIONS_COUNT),
-    ],
+  try {
+    const normalized = normalizeAnalyticsQueryInput(input)
+    const rows = await listMetricsDailyRows(container, normalized.filters)
+    const buckets = buildBucketSummaries(
+      buildDaySummaries(rows),
+      normalized.filters.group_by
+    )
+    const response = {
+      filters: normalized.filters,
+      metrics_version: ANALYTICS_METRICS_VERSION,
+      generated_at: new Date().toISOString(),
+      series: [
+        buildTrendSeries(buckets, AnalyticsMetricKey.MRR),
+        buildTrendSeries(buckets, AnalyticsMetricKey.CHURN_RATE),
+        buildTrendSeries(buckets, AnalyticsMetricKey.LTV),
+        buildTrendSeries(buckets, AnalyticsMetricKey.ACTIVE_SUBSCRIPTIONS_COUNT),
+      ],
+    } satisfies AnalyticsTrendsAdminResponse
+    const durationMs = Date.now() - startedAt
+
+    logAnalyticsEvent(
+      logger,
+      getAnalyticsReadLogLevel({
+        duration_ms: durationMs,
+        failed: false,
+      }),
+      {
+        event: buildAnalyticsReadEventName("trends"),
+        outcome: "completed",
+        correlation_id: correlationId,
+        metrics_version: ANALYTICS_METRICS_VERSION,
+        duration_ms: durationMs,
+        date_from: response.filters.date_from ?? undefined,
+        date_to: response.filters.date_to ?? undefined,
+        alertable: isSlowAnalyticsRead(durationMs),
+        message: isSlowAnalyticsRead(durationMs)
+          ? "Analytics trends read completed slowly"
+          : "Analytics trends read completed",
+        metadata: {
+          filters: response.filters,
+          row_count: rows.length,
+          bucket_count: buckets.length,
+          series_count: response.series.length,
+        },
+      }
+    )
+
+    return response
+  } catch (error) {
+    const durationMs = Date.now() - startedAt
+
+    logAnalyticsEvent(logger, "error", {
+      event: buildAnalyticsReadEventName("trends"),
+      outcome: "failed",
+      correlation_id: correlationId,
+      metrics_version: ANALYTICS_METRICS_VERSION,
+      duration_ms: durationMs,
+      alertable: true,
+      message: getAnalyticsErrorMessage(error),
+    })
+
+    throw error
   }
 }
 
@@ -760,65 +877,117 @@ export async function getAdminAnalyticsExport(
   container: MedusaContainer,
   input: ListAdminAnalyticsInput
 ): Promise<AnalyticsExportAdminResponse> {
-  const normalized = normalizeAnalyticsQueryInput(input)
-  const rows = await listMetricsDailyRows(container, normalized.filters)
-  const buckets = buildBucketSummaries(
-    buildDaySummaries(rows),
-    normalized.filters.group_by
-  )
-  const series = [
-    buildTrendSeries(buckets, AnalyticsMetricKey.MRR),
-    buildTrendSeries(buckets, AnalyticsMetricKey.CHURN_RATE),
-    buildTrendSeries(buckets, AnalyticsMetricKey.LTV),
-    buildTrendSeries(buckets, AnalyticsMetricKey.ACTIVE_SUBSCRIPTIONS_COUNT),
-  ]
-  const rowCount = series[0]?.points.length ?? 0
-  const columns = [
-    "bucket_start",
-    "bucket_end",
-    "mrr",
-    "churn_rate",
-    "ltv",
-    "active_subscriptions_count",
-  ]
-  const exportRows: Array<Record<string, string | number | null>> = []
+  const logger = getLogger(container)
+  const correlationId = createAnalyticsCorrelationId("analytics-read-export")
+  const startedAt = Date.now()
 
-  for (let index = 0; index < rowCount; index += 1) {
-    const mrrPoint =
-      series.find((seriesItem) => seriesItem.metric === AnalyticsMetricKey.MRR)
-        ?.points[index] ?? null
-    const churnPoint =
-      series.find(
-        (seriesItem) => seriesItem.metric === AnalyticsMetricKey.CHURN_RATE
-      )
-        ?.points[index] ?? null
-    const ltvPoint =
-      series.find((seriesItem) => seriesItem.metric === AnalyticsMetricKey.LTV)
-        ?.points[index] ?? null
-    const activePoint =
-      series.find(
-        (seriesItem) =>
-          seriesItem.metric === AnalyticsMetricKey.ACTIVE_SUBSCRIPTIONS_COUNT
-      )?.points[index] ?? null
+  try {
+    const normalized = normalizeAnalyticsQueryInput(input)
+    const rows = await listMetricsDailyRows(container, normalized.filters)
+    const buckets = buildBucketSummaries(
+      buildDaySummaries(rows),
+      normalized.filters.group_by
+    )
+    const series = [
+      buildTrendSeries(buckets, AnalyticsMetricKey.MRR),
+      buildTrendSeries(buckets, AnalyticsMetricKey.CHURN_RATE),
+      buildTrendSeries(buckets, AnalyticsMetricKey.LTV),
+      buildTrendSeries(buckets, AnalyticsMetricKey.ACTIVE_SUBSCRIPTIONS_COUNT),
+    ]
+    const rowCount = series[0]?.points.length ?? 0
+    const columns = [
+      "bucket_start",
+      "bucket_end",
+      "mrr",
+      "churn_rate",
+      "ltv",
+      "active_subscriptions_count",
+    ]
+    const exportRows: Array<Record<string, string | number | null>> = []
 
-    exportRows.push({
-      bucket_start: mrrPoint?.bucket_start ?? activePoint?.bucket_start ?? null,
-      bucket_end: mrrPoint?.bucket_end ?? activePoint?.bucket_end ?? null,
-      mrr: mrrPoint?.value ?? null,
-      churn_rate: churnPoint?.value ?? null,
-      ltv: ltvPoint?.value ?? null,
-      active_subscriptions_count: activePoint?.value ?? null,
+    for (let index = 0; index < rowCount; index += 1) {
+      const mrrPoint =
+        series.find((seriesItem) => seriesItem.metric === AnalyticsMetricKey.MRR)
+          ?.points[index] ?? null
+      const churnPoint =
+        series.find(
+          (seriesItem) => seriesItem.metric === AnalyticsMetricKey.CHURN_RATE
+        )
+          ?.points[index] ?? null
+      const ltvPoint =
+        series.find((seriesItem) => seriesItem.metric === AnalyticsMetricKey.LTV)
+          ?.points[index] ?? null
+      const activePoint =
+        series.find(
+          (seriesItem) =>
+            seriesItem.metric === AnalyticsMetricKey.ACTIVE_SUBSCRIPTIONS_COUNT
+        )?.points[index] ?? null
+
+      exportRows.push({
+        bucket_start: mrrPoint?.bucket_start ?? activePoint?.bucket_start ?? null,
+        bucket_end: mrrPoint?.bucket_end ?? activePoint?.bucket_end ?? null,
+        mrr: mrrPoint?.value ?? null,
+        churn_rate: churnPoint?.value ?? null,
+        ltv: ltvPoint?.value ?? null,
+        active_subscriptions_count: activePoint?.value ?? null,
+      })
+    }
+
+    const response = {
+      format: normalized.format,
+      filters: normalized.filters,
+      metrics_version: ANALYTICS_METRICS_VERSION,
+      generated_at: new Date().toISOString(),
+      file_name: `subscription-analytics-${new Date().toISOString().slice(0, 10)}.${normalized.format}`,
+      content_type:
+        normalized.format === "csv" ? "text/csv" : "application/json",
+      columns,
+      rows: exportRows,
+    } satisfies AnalyticsExportAdminResponse
+    const durationMs = Date.now() - startedAt
+
+    logAnalyticsEvent(
+      logger,
+      getAnalyticsReadLogLevel({
+        duration_ms: durationMs,
+        failed: false,
+      }),
+      {
+        event: buildAnalyticsReadEventName("export"),
+        outcome: "completed",
+        correlation_id: correlationId,
+        metrics_version: ANALYTICS_METRICS_VERSION,
+        duration_ms: durationMs,
+        date_from: response.filters.date_from ?? undefined,
+        date_to: response.filters.date_to ?? undefined,
+        alertable: isSlowAnalyticsRead(durationMs),
+        message: isSlowAnalyticsRead(durationMs)
+          ? "Analytics export read completed slowly"
+          : "Analytics export read completed",
+        metadata: {
+          filters: response.filters,
+          format: response.format,
+          row_count: response.rows.length,
+          bucket_count: buckets.length,
+          column_count: response.columns.length,
+        },
+      }
+    )
+
+    return response
+  } catch (error) {
+    const durationMs = Date.now() - startedAt
+
+    logAnalyticsEvent(logger, "error", {
+      event: buildAnalyticsReadEventName("export"),
+      outcome: "failed",
+      correlation_id: correlationId,
+      metrics_version: ANALYTICS_METRICS_VERSION,
+      duration_ms: durationMs,
+      alertable: true,
+      message: getAnalyticsErrorMessage(error),
     })
-  }
 
-  return {
-    format: normalized.format,
-    filters: normalized.filters,
-    generated_at: new Date().toISOString(),
-    file_name: `subscription-analytics-${new Date().toISOString().slice(0, 10)}.${normalized.format}`,
-    content_type:
-      normalized.format === "csv" ? "text/csv" : "application/json",
-    columns,
-    rows: exportRows,
+    throw error
   }
 }

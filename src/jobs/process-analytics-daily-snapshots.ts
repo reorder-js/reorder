@@ -3,10 +3,13 @@ import { Modules } from "@medusajs/framework/utils"
 import {
   classifyAnalyticsFailure,
   createAnalyticsCorrelationId,
+  getAnalyticsJobLogLevel,
   getAnalyticsErrorMessage,
   isAlertableAnalyticsFailure,
+  isSlowAnalyticsJob,
   logAnalyticsEvent,
 } from "../modules/analytics/utils/observability"
+import { ANALYTICS_METRICS_VERSION } from "../modules/analytics/constants"
 import { rebuildAnalyticsDailySnapshotsWorkflow } from "../workflows"
 
 const JOB_NAME = "process-analytics-daily-snapshots"
@@ -71,6 +74,7 @@ async function runJob(container: MedusaContainer) {
     job_name: JOB_NAME,
     outcome: "started",
     correlation_id: correlationId,
+    metrics_version: ANALYTICS_METRICS_VERSION,
     trigger_type: "scheduled",
     lookback_days: DEFAULT_LOOKBACK_DAYS,
     date_from: window.date_from.toISOString(),
@@ -88,34 +92,53 @@ async function runJob(container: MedusaContainer) {
       },
     })
 
-    logAnalyticsEvent(logger, result.blocked_days.length ? "warn" : "info", {
-      event: "analytics.job",
-      job_name: JOB_NAME,
-      outcome: "completed",
-      correlation_id: correlationId,
-      trigger_type: "scheduled",
-      duration_ms: Date.now() - startedAt,
-      lookback_days: DEFAULT_LOOKBACK_DAYS,
-      date_from: result.date_from,
-      date_to: result.date_to,
-      processed_days: result.processed_days,
-      processed_subscriptions: result.processed_subscriptions,
-      upserted_rows: result.upserted_rows,
-      blocked_count: result.blocked_days.length,
-      failure_count: result.failed_days.length,
-      skipped_rows: result.skipped_rows,
-      alertable: result.failed_days.length > 0,
-      message:
-        result.failed_days.length > 0
-          ? "Analytics daily snapshots completed with failures"
-          : result.blocked_days.length > 0
-            ? "Analytics daily snapshots completed with blocked days"
-            : "Analytics daily snapshots completed",
-      metadata: {
-        blocked_days: result.blocked_days,
-        failed_days: result.failed_days,
-      },
-    })
+    const durationMs = Date.now() - startedAt
+    const failedDaysCount = result.failed_days.length
+    const blockedDaysCount = result.blocked_days.length
+    const alertable =
+      failedDaysCount > 0 ||
+      blockedDaysCount > 0 ||
+      isSlowAnalyticsJob(durationMs)
+
+    logAnalyticsEvent(
+      logger,
+      getAnalyticsJobLogLevel({
+        duration_ms: durationMs,
+        failed_days_count: failedDaysCount,
+        blocked_days_count: blockedDaysCount,
+      }),
+      {
+        event: "analytics.job",
+        job_name: JOB_NAME,
+        outcome: "completed",
+        correlation_id: correlationId,
+        metrics_version: ANALYTICS_METRICS_VERSION,
+        trigger_type: "scheduled",
+        duration_ms: durationMs,
+        lookback_days: DEFAULT_LOOKBACK_DAYS,
+        date_from: result.date_from,
+        date_to: result.date_to,
+        processed_days: result.processed_days,
+        processed_subscriptions: result.processed_subscriptions,
+        upserted_rows: result.upserted_rows,
+        blocked_count: blockedDaysCount,
+        failure_count: failedDaysCount,
+        skipped_rows: result.skipped_rows,
+        alertable,
+        message:
+          failedDaysCount > 0
+            ? "Analytics daily snapshots completed with failures"
+            : blockedDaysCount > 0
+              ? "Analytics daily snapshots completed with blocked days"
+              : isSlowAnalyticsJob(durationMs)
+                ? "Analytics daily snapshots completed slowly"
+                : "Analytics daily snapshots completed",
+        metadata: {
+          blocked_days: result.blocked_days,
+          failed_days: result.failed_days,
+        },
+      }
+    )
   } catch (error) {
     const failureKind = classifyAnalyticsFailure(error)
 
@@ -127,6 +150,7 @@ async function runJob(container: MedusaContainer) {
         job_name: JOB_NAME,
         outcome: failureKind === "lock_timeout" ? "blocked" : "failed",
         correlation_id: correlationId,
+        metrics_version: ANALYTICS_METRICS_VERSION,
         trigger_type: "scheduled",
         duration_ms: Date.now() - startedAt,
         lookback_days: DEFAULT_LOOKBACK_DAYS,
@@ -166,6 +190,7 @@ export default async function processAnalyticsDailySnapshotsJob(
       job_name: JOB_NAME,
       outcome: failureKind === "lock_timeout" ? "blocked" : "failed",
       correlation_id: correlationId,
+      metrics_version: ANALYTICS_METRICS_VERSION,
       failure_kind: failureKind,
       alertable,
       message:

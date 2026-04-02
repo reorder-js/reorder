@@ -50,6 +50,7 @@ export type AnalyticsKpiSummary = AnalyticsMetricValue & {
 
 export type AnalyticsKpisAdminResponse = {
   filters: AdminAnalyticsFilters
+  metrics_version: string
   generated_at: string
   kpis: AnalyticsKpiSummary[]
 }
@@ -71,6 +72,7 @@ export type AnalyticsTrendSeries = {
 
 export type AnalyticsTrendsAdminResponse = {
   filters: AdminAnalyticsFilters
+  metrics_version: string
   generated_at: string
   series: AnalyticsTrendSeries[]
 }
@@ -80,6 +82,7 @@ export type AnalyticsExportFormat = "csv" | "json"
 export type AnalyticsExportAdminResponse = {
   format: AnalyticsExportFormat
   filters: AdminAnalyticsFilters
+  metrics_version: string
   generated_at: string
   file_name: string
   content_type: string

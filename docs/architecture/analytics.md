@@ -518,6 +518,187 @@ The recommended data flow is:
 1. source modules own the raw facts
 2. analytics pipeline reads those facts
 3. analytics module writes `subscription_metrics_daily`
+4. Admin read helpers aggregate snapshots into KPI, trends, and export payloads
+
+## Implemented Rebuild Pipeline
+
+The implemented analytics pipeline uses one shared rebuild workflow:
+- `rebuildAnalyticsDailySnapshotsWorkflow`
+
+This workflow is the only place that rebuilds daily analytics snapshots.
+
+It is reused by:
+- the scheduled analytics job
+- incremental follow-up runs after selected domain workflows
+- the manual Admin rebuild route
+
+### Trigger Types
+
+The workflow accepts:
+- `scheduled`
+- `incremental`
+- `manual`
+
+This trigger type is persisted in snapshot metadata and included in structured logs.
+
+### Range and Day Semantics
+
+The rebuild input is normalized to:
+- `date_from`
+- `date_to`
+- a list of normalized `UTC` days
+
+The workflow then processes the range:
+- day by day
+- batch by batch inside each day
+
+### Full Replacement Semantics
+
+For one day:
+- existing `subscription_metrics_daily` rows for that day are read
+- rows for that day are deleted
+- newly computed rows are inserted
+
+If insertion fails after deletion:
+- the workflow attempts to restore the deleted rows
+
+This gives the pipeline:
+- idempotent reruns
+- explicit day-level rebuild semantics
+- predictable snapshot replacement behavior
+
+## Incremental Updates
+
+The implemented MVP incremental path reuses the same shared rebuild workflow for small `UTC` ranges.
+
+The current trigger points are:
+- subscription resume
+- cancellation finalization
+- renewal processing that can affect the revenue snapshot
+
+Incremental rebuilds intentionally:
+- do not compute KPI values inline inside domain workflows
+- only trigger the shared analytics snapshot rebuild
+
+## Scheduled Job
+
+The implemented scheduled job is:
+- `process-analytics-daily-snapshots`
+
+Its behavior is:
+- runs daily
+- rebuilds `today` plus a small lookback window
+- uses a global job lock
+- emits structured summary logs
+
+The lookback window exists to provide a cheap self-healing mechanism for recent data changes.
+
+## Locking
+
+The implemented pipeline uses two levels of locking:
+
+- job-level locking
+  - prevents parallel scheduled job execution
+- range/day-level locking
+  - protects rebuild execution for the same range and the same individual day
+
+Blocked days are treated as:
+- operationally blocked work
+- not as fatal domain corruption
+
+They are surfaced in workflow and job summaries for later retry.
+
+## Data Quality Checks
+
+The rebuild pipeline includes runtime data quality checks after snapshot generation.
+
+Current MVP checks cover:
+- `MRR` spikes and drops beyond configured thresholds
+- `churn_rate` spikes beyond configured thresholds
+- empty snapshot days
+- incomplete snapshot days
+
+Quality findings:
+- do not fail a successful rebuild by themselves
+- are emitted as structured `analytics.quality` logs
+- are summarized in rebuild logs through warning and error counters
+
+## Metrics Versioning
+
+The analytics runtime uses a canonical metrics-definition constant:
+- `ANALYTICS_METRICS_VERSION`
+
+Current version:
+- `analytics-v1`
+
+This version is attached to:
+- snapshot `metadata`
+- KPI responses
+- trend responses
+- export responses
+- rebuild and quality logs
+
+The version must be bumped when the same source data could produce different analytical outputs because of a change to:
+- KPI formulas
+- active-state semantics
+- bucket semantics
+- currency semantics
+
+Pure refactors without output changes should not bump the version.
+
+## Implemented Read Model
+
+The implemented Admin read model lives in analytics query helpers and reads only from:
+- `subscription_metrics_daily`
+
+It does not recompute KPI values from live operational modules on each request.
+
+Implemented read surfaces:
+- KPI summary
+- trend series
+- export rows
+
+### KPI Semantics in the Implemented Read Layer
+
+The read layer currently computes:
+- `MRR`
+  - from the last bucket in the current window
+- `active_subscriptions_count`
+  - from the last bucket in the current window
+- `churn_rate`
+  - from total churn numerator divided by average daily active base across the window
+- `LTV`
+  - from `MRR / churn_rate`
+
+`MRR` and `LTV` may resolve to `null` when:
+- the result set is mixed-currency
+- no valid revenue basis exists
+- `churn_rate <= 0` for `LTV`
+
+## Observability and Performance
+
+The analytics runtime emits structured logs for:
+- `analytics.rebuild`
+- `analytics.job`
+- `analytics.quality`
+- `analytics.read.kpis`
+- `analytics.read.trends`
+- `analytics.read.export`
+
+The current observability payload includes:
+- `metrics_version`
+- `duration_ms`
+- date range summary
+- processed-day and processed-row summary where applicable
+- blocked and failed day counts where applicable
+- `alertable`
+
+Current MVP slow-execution thresholds are:
+- rebuild: `> 5000 ms`
+- scheduled job: `> 5000 ms`
+- read paths: `> 1000 ms`
+
+These thresholds affect log severity and `alertable` classification, but they do not change functional API behavior.
 4. Admin analytics routes read from the analytics snapshot layer
 
 This preserves:

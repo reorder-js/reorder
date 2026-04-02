@@ -93,6 +93,14 @@ function createContainer(rows: SubscriptionMetricsDailyRecord[]) {
         return { graph }
       }
 
+      if (key === "logger") {
+        return {
+          info: jest.fn(),
+          warn: jest.fn(),
+          error: jest.fn(),
+        }
+      }
+
       throw new Error(`Unexpected container key: ${key}`)
     }),
   } as unknown as MedusaContainer

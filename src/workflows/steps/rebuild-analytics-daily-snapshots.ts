@@ -5,9 +5,13 @@ import {
   ANALYTICS_MODULE,
 } from "../../modules/analytics"
 import AnalyticsModuleService from "../../modules/analytics/service"
+import { ANALYTICS_METRICS_VERSION } from "../../modules/analytics/constants"
+import { evaluateAnalyticsQualityForRange } from "../../modules/analytics/utils/data-quality"
 import {
+  getAnalyticsRebuildLogLevel,
   classifyAnalyticsFailure,
   getAnalyticsErrorMessage,
+  isSlowAnalyticsRebuild,
   logAnalyticsEvent,
 } from "../../modules/analytics/utils/observability"
 import {
@@ -122,6 +126,21 @@ type CreateSubscriptionMetricsDailyInput = Omit<
   SubscriptionMetricsDailyRecord,
   "id" | "created_at" | "updated_at" | "deleted_at"
 >
+
+type RebuildSingleDaySummary = {
+  processed_subscriptions: number
+  upserted_rows: number
+  skipped_rows: number
+  failed: boolean
+  quality_snapshot: {
+    metric_date: string
+    processed_subscriptions: number
+    snapshot_rows: number
+    active_subscriptions_count: number
+    churned_subscriptions_count: number
+    mrr_amount: number | null
+  }
+}
 
 function getQuery(container: MedusaContainer) {
   return container.resolve<QueryLike>(ContainerRegistrationKeys.QUERY)
@@ -550,6 +569,7 @@ async function rebuildSingleDay(
           churn_source: churnEvent ? "cancellation_case" : null,
         },
         metadata: {
+          metrics_version: ANALYTICS_METRICS_VERSION,
           trigger_type: input.trigger_type,
           correlation_id: input.correlation_id,
           reason: input.reason,
@@ -588,7 +608,26 @@ async function rebuildSingleDay(
       upserted_rows: rows.length,
       skipped_rows: 0,
       failed: false,
-    }
+      quality_snapshot: {
+        metric_date: dayStart.toISOString(),
+        processed_subscriptions: processedSubscriptions,
+        snapshot_rows: rows.length,
+        active_subscriptions_count: rows.reduce(
+          (sum, row) => sum + row.active_subscriptions_count,
+          0
+        ),
+        churned_subscriptions_count: rows.reduce(
+          (sum, row) => sum + row.churned_subscriptions_count,
+          0
+        ),
+        mrr_amount:
+          rows.length > 0
+            ? Number(
+                rows.reduce((sum, row) => sum + Number(row.mrr_amount ?? 0), 0).toFixed(2)
+              )
+            : null,
+      },
+    } satisfies RebuildSingleDaySummary
   } catch (error) {
     if (deletedExistingRows && previousRows.length) {
       try {
@@ -618,11 +657,13 @@ export const rebuildAnalyticsDailySnapshotsStep = createStep(
     let upsertedRows = 0
     const blockedDays: string[] = []
     const failedDays: string[] = []
+    const qualitySnapshots: RebuildSingleDaySummary["quality_snapshot"][] = []
 
     logAnalyticsEvent(logger, "info", {
       event: "analytics.rebuild",
       outcome: "started",
       correlation_id: input.correlation_id,
+      metrics_version: ANALYTICS_METRICS_VERSION,
       trigger_type: input.trigger_type,
       reason: input.reason,
       date_from: input.date_from,
@@ -659,6 +700,7 @@ export const rebuildAnalyticsDailySnapshotsStep = createStep(
 
               processedSubscriptions += summary.processed_subscriptions
               upsertedRows += summary.upserted_rows
+              qualitySnapshots.push(summary.quality_snapshot)
             } catch (error) {
               const failureKind = classifyAnalyticsFailure(error)
 
@@ -686,10 +728,71 @@ export const rebuildAnalyticsDailySnapshotsStep = createStep(
 
     const processedDays =
       input.normalized_days.length - failedDays.length - blockedDays.length
+    const quality = evaluateAnalyticsQualityForRange(qualitySnapshots)
+    const qualityErrorCount = quality.findings.filter(
+      (entry) => entry.severity === "error"
+    ).length
+    const qualityWarningCount = quality.findings.filter(
+      (entry) => entry.severity === "warn"
+    ).length
+
+    if (quality.findings.length) {
+      for (const finding of quality.findings) {
+        logAnalyticsEvent(
+          logger,
+          finding.severity === "error" ? "error" : "warn",
+          {
+            event: "analytics.quality",
+            outcome: "completed",
+            correlation_id: input.correlation_id,
+            metrics_version: ANALYTICS_METRICS_VERSION,
+            trigger_type: input.trigger_type,
+            reason: input.reason,
+            date_from: input.date_from,
+            date_to: input.date_to,
+            quality_issue_count: quality.finding_count,
+            quality_error_count: qualityErrorCount,
+            quality_warning_count: qualityWarningCount,
+            message: finding.message,
+            metadata: {
+              ...finding,
+            },
+          }
+        )
+      }
+    } else {
+      logAnalyticsEvent(logger, "info", {
+        event: "analytics.quality",
+        outcome: "completed",
+        correlation_id: input.correlation_id,
+        metrics_version: ANALYTICS_METRICS_VERSION,
+        trigger_type: input.trigger_type,
+        reason: input.reason,
+        date_from: input.date_from,
+        date_to: input.date_to,
+        quality_issue_count: 0,
+        quality_error_count: 0,
+        quality_warning_count: 0,
+        message: "Analytics quality checks completed without findings",
+      })
+    }
+
+    const durationMs = Date.now() - startedAt
+    const alertable =
+      failedDays.length > 0 ||
+      blockedDays.length > 0 ||
+      qualityErrorCount > 0 ||
+      isSlowAnalyticsRebuild(durationMs)
 
     logAnalyticsEvent(
       logger,
-      failedDays.length > 0 ? "error" : blockedDays.length > 0 ? "warn" : "info",
+      getAnalyticsRebuildLogLevel({
+        duration_ms: durationMs,
+        failed_days_count: failedDays.length,
+        blocked_days_count: blockedDays.length,
+        quality_error_count: qualityErrorCount,
+        quality_warning_count: qualityWarningCount,
+      }),
       {
         event: "analytics.rebuild",
         outcome:
@@ -699,9 +802,10 @@ export const rebuildAnalyticsDailySnapshotsStep = createStep(
               ? "blocked"
               : "completed",
         correlation_id: input.correlation_id,
+        metrics_version: ANALYTICS_METRICS_VERSION,
         trigger_type: input.trigger_type,
         reason: input.reason,
-        duration_ms: Date.now() - startedAt,
+        duration_ms: durationMs,
         date_from: input.date_from,
         date_to: input.date_to,
         processed_days: processedDays,
@@ -711,7 +815,10 @@ export const rebuildAnalyticsDailySnapshotsStep = createStep(
         failure_count: failedDays.length,
         blocked_days: blockedDays,
         failed_days: failedDays,
-        alertable: failedDays.length > 0,
+        quality_issue_count: quality.finding_count,
+        quality_error_count: qualityErrorCount,
+        quality_warning_count: qualityWarningCount,
+        alertable,
         failure_kind:
           failedDays.length > 0
             ? "unexpected_error"
@@ -725,6 +832,8 @@ export const rebuildAnalyticsDailySnapshotsStep = createStep(
               )
             : blockedDays.length > 0
               ? "Analytics rebuild completed with blocked days"
+              : isSlowAnalyticsRebuild(durationMs)
+                ? "Analytics rebuild completed slowly"
               : "Analytics rebuild completed",
       }
     )

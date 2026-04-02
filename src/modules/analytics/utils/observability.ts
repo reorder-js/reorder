@@ -7,6 +7,11 @@ type LoggerLike = {
 }
 
 type LogLevel = "info" | "warn" | "error"
+type AnalyticsReadKind = "kpis" | "trends" | "export"
+
+const SLOW_ANALYTICS_REBUILD_THRESHOLD_MS = 5_000
+const SLOW_ANALYTICS_JOB_THRESHOLD_MS = 5_000
+const SLOW_ANALYTICS_READ_THRESHOLD_MS = 1_000
 
 function getNestedMessage(value: unknown): string | null {
   if (!value) {
@@ -56,6 +61,7 @@ export type AnalyticsFailureKind =
 type AnalyticsLogPayload = {
   event: string
   correlation_id: string
+  metrics_version?: string
   duration_ms?: number
   processed_days?: number
   processed_subscriptions?: number
@@ -65,6 +71,9 @@ type AnalyticsLogPayload = {
   skipped_rows?: number
   failed_days?: string[]
   blocked_days?: string[]
+  quality_issue_count?: number
+  quality_error_count?: number
+  quality_warning_count?: number
   lookback_days?: number
   date_from?: string
   date_to?: string
@@ -116,6 +125,78 @@ export function classifyAnalyticsFailure(error: unknown): AnalyticsFailureKind {
 
 export function isAlertableAnalyticsFailure(kind: AnalyticsFailureKind) {
   return !["already_running", "lock_timeout"].includes(kind)
+}
+
+export function isSlowAnalyticsRebuild(durationMs: number) {
+  return durationMs > SLOW_ANALYTICS_REBUILD_THRESHOLD_MS
+}
+
+export function isSlowAnalyticsJob(durationMs: number) {
+  return durationMs > SLOW_ANALYTICS_JOB_THRESHOLD_MS
+}
+
+export function isSlowAnalyticsRead(durationMs: number) {
+  return durationMs > SLOW_ANALYTICS_READ_THRESHOLD_MS
+}
+
+export function getAnalyticsRebuildLogLevel(input: {
+  duration_ms: number
+  failed_days_count: number
+  blocked_days_count: number
+  quality_error_count: number
+  quality_warning_count: number
+}): LogLevel {
+  if (input.failed_days_count > 0 || input.quality_error_count > 0) {
+    return "error"
+  }
+
+  if (
+    input.blocked_days_count > 0 ||
+    input.quality_warning_count > 0 ||
+    isSlowAnalyticsRebuild(input.duration_ms)
+  ) {
+    return "warn"
+  }
+
+  return "info"
+}
+
+export function getAnalyticsJobLogLevel(input: {
+  duration_ms: number
+  failed_days_count: number
+  blocked_days_count: number
+}): LogLevel {
+  if (input.failed_days_count > 0) {
+    return "error"
+  }
+
+  if (
+    input.blocked_days_count > 0 ||
+    isSlowAnalyticsJob(input.duration_ms)
+  ) {
+    return "warn"
+  }
+
+  return "info"
+}
+
+export function getAnalyticsReadLogLevel(input: {
+  duration_ms: number
+  failed: boolean
+}): LogLevel {
+  if (input.failed) {
+    return "error"
+  }
+
+  if (isSlowAnalyticsRead(input.duration_ms)) {
+    return "warn"
+  }
+
+  return "info"
+}
+
+export function buildAnalyticsReadEventName(kind: AnalyticsReadKind) {
+  return `analytics.read.${kind}`
 }
 
 export function logAnalyticsEvent(
