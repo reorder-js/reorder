@@ -525,6 +525,232 @@ This preserves:
 - Medusa module isolation
 - predictable reporting behavior
 
+## Metrics Update Pipeline
+
+The `Analytics` area should use one shared recomputation pipeline for daily snapshot generation.
+
+The key architectural decision is:
+- one shared workflow owns recomputation semantics
+- scheduled execution, incremental updates, and rebuilds all delegate to that same workflow
+
+This keeps the reporting layer consistent and avoids divergent implementations of the same calculation logic.
+
+## Shared Rebuild Workflow
+
+The central recomputation entry point should be a workflow responsible for rebuilding analytics daily snapshots for a date range.
+
+Recommended workflow role:
+- normalize and validate the requested date range
+- iterate day by day
+- rebuild analytics facts for each day
+- persist idempotent daily snapshot rows
+- return a structured summary of the work performed
+
+Recommended logical input:
+- `date_from`
+- `date_to`
+- `trigger_type`
+  - `scheduled`
+  - `incremental`
+  - `manual`
+- `triggered_by`
+- `reason`
+- `correlation_id`
+
+Recommended logical output:
+- `processed_days`
+- `processed_subscriptions`
+- `upserted_rows`
+- `skipped_rows`
+- `failed_days`
+
+## Unit of Recalculation
+
+The primary recalculation unit should be:
+- a date range
+
+Within the workflow:
+- the range is normalized to `UTC` day boundaries
+- processing happens day by day
+- for each day, snapshot rows are rebuilt in batches
+
+This is preferred over:
+- computing isolated KPI values directly
+- recomputing the entire analytics dataset in one large pass
+
+The day is the natural atomic unit for the MVP reporting model.
+
+## Daily Scheduled Job
+
+The analytics area should expose a daily scheduled job that triggers the shared rebuild workflow.
+
+Recommended job responsibilities:
+- acquire a scheduler-level lock
+- determine the daily recomputation window
+- execute the rebuild workflow
+- emit operational logs and summary metrics
+
+The recommended daily execution model is:
+- recompute `today`
+- recompute a short lookback window for recent days
+
+Why the lookback window is recommended:
+- recent renewal, cancellation, or recovery changes may affect prior daily snapshots
+- a short rolling recomputation window helps self-heal recent inconsistencies
+- this reduces dependence on perfect event-driven incremental behavior
+
+## Incremental Updates
+
+The MVP analytics pipeline may support incremental updates, but they should not introduce a second computation path.
+
+Incremental updates should:
+- trigger the same shared rebuild workflow
+- target a small date range
+- remain optional and additive on top of the scheduled job
+
+Recommended incremental trigger points:
+- subscription resume
+- cancellation finalization
+- renewal execution that affects the monetary analytics basis
+
+The incremental path should not:
+- compute KPIs inline in API routes
+- bypass workflows
+- perform ad-hoc partial updates to analytics rows
+
+Instead, successful business workflows may trigger a small rebuild window through the shared analytics recomputation workflow.
+
+## Idempotency Semantics
+
+The pipeline must be idempotent at the day level.
+
+The recommended rule is:
+- each day is rebuilt as a full reporting replacement for that day
+
+This means:
+- rerunning the same day produces the same final snapshot state
+- the workflow replaces the prior snapshot result for the day
+- duplicate rows are not appended across retries or rebuilds
+
+This model is preferred over partial row patching because it simplifies:
+- correctness
+- rebuild semantics
+- retry safety
+
+## Locking Strategy
+
+The analytics pipeline should use locking at two levels.
+
+### Job-Level Lock
+
+A scheduler-level lock prevents concurrent full job executions.
+
+Recommended purpose:
+- block two worker instances from running the daily analytics job at the same time
+- make scheduler behavior operationally predictable
+
+### Day-Level Lock
+
+A per-day lock prevents concurrent recomputation of the same reporting day.
+
+Recommended purpose:
+- prevent overlap between scheduler-triggered recomputation and manual rebuilds
+- prevent overlap between scheduler-triggered recomputation and incremental event-driven updates
+- keep daily replacement semantics safe
+
+Recommended logical lock targets:
+- job lock
+- one lock per `metric_date`
+
+This is aligned with the plugin’s existing locking patterns in `Dunning`, `Cancellation`, and `Renewals`.
+
+## Batch Processing Strategy
+
+For each day:
+- qualifying subscriptions should be listed in batches
+- each batch should be transformed into analytics snapshot rows
+- rows should be persisted incrementally per batch
+
+This avoids:
+- loading the full subscription population into memory
+- creating one oversized transaction for the whole day
+
+The batch size is an operational tuning concern and should remain configurable at implementation time.
+
+## Backfill and Rebuild Semantics
+
+Manual rebuild and historical backfill should use the exact same recomputation workflow as the scheduler.
+
+This means:
+- no separate rebuild implementation
+- no special one-off backfill path
+- historical recomputation is only a wider date-range execution of the same workflow
+
+The recommended rebuild model is:
+- operator or internal trigger requests a date range
+- the shared workflow recalculates each day in the range
+- each affected day is replaced atomically from the analytics perspective
+
+This ensures that:
+- rebuilds stay consistent with daily execution
+- implementation complexity stays low
+- historical corrections don't require special-case logic
+
+## Failure Handling
+
+Failure handling should respect day-level reporting boundaries.
+
+Recommended semantics:
+- if a day fails to rebuild, that day is marked as failed in the workflow summary
+- failed days must be safe to retry
+- successful days remain valid and should not be rolled back by unrelated day failures
+
+Within a day, the implementation should aim for atomic replacement semantics from the reporting perspective.
+
+This means:
+- the system should avoid leaving a day in a half-rebuilt reporting state
+- the next retry should be able to rebuild the day deterministically
+
+## Observability and Operational Logging
+
+The analytics pipeline should follow the same operational pattern used by the existing scheduler-backed areas.
+
+Recommended log lifecycle:
+- `started`
+- `completed`
+- `blocked`
+- `failed`
+
+Recommended summary fields:
+- `processed_days`
+- `processed_subscriptions`
+- `upserted_rows`
+- `failed_days`
+- `duration_ms`
+- `trigger_type`
+- `correlation_id`
+
+This should make the analytics pipeline operationally comparable to:
+- `Renewals`
+- `Dunning`
+- `Cancellation & Retention`
+
+## MVP Pipeline Boundary
+
+For MVP, the analytics pipeline should include:
+- one shared rebuild workflow
+- one daily scheduled job with a short lookback window
+- scheduler-level locking
+- day-level locking
+- idempotent full day replacement semantics
+- optional incremental triggers for key business events
+
+For MVP, the analytics pipeline should not include:
+- a second independent incremental computation path
+- direct KPI computation in API handlers
+- partial patching of daily analytics rows as the primary update model
+- a separate backfill engine distinct from the shared rebuild workflow
+
 ## Reporting Boundary with Existing Modules
 
 ### Relation to `Subscriptions`

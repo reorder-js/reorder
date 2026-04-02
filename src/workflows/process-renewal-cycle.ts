@@ -5,10 +5,12 @@ import {
 } from "@medusajs/framework/workflows-sdk"
 import { acquireLockStep, releaseLockStep } from "@medusajs/medusa/core-flows"
 import { ensureNextRenewalCycleStep } from "./steps/ensure-next-renewal-cycle"
+import { rebuildAnalyticsDailySnapshotsWorkflow } from "./rebuild-analytics-daily-snapshots"
 import {
   ProcessRenewalCycleStepInput,
   processRenewalCycleStep,
 } from "./steps/process-renewal-cycle"
+import { buildAnalyticsIncrementalRebuildInput } from "./utils/analytics-incremental"
 
 export const processRenewalCycleWorkflow = createWorkflow(
   "process-renewal-cycle",
@@ -31,6 +33,17 @@ export const processRenewalCycleWorkflow = createWorkflow(
     })
 
     ensureNextRenewalCycleStep(ensureInput)
+    const incrementalAnalyticsInput = transform({ input }, function ({ input }) {
+      return buildAnalyticsIncrementalRebuildInput({
+        occurred_at: new Date(),
+        trigger_source: "renewal_processed",
+        correlation_id: input.correlation_id ?? null,
+        triggered_by: input.triggered_by ?? null,
+      })
+    })
+    rebuildAnalyticsDailySnapshotsWorkflow.runAsStep({
+      input: incrementalAnalyticsInput,
+    })
 
     releaseLockStep({
       key: lockKey,

@@ -1,0 +1,365 @@
+{
+  "namespaces": [
+    "public"
+  ],
+  "name": "public",
+  "tables": [
+    {
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
+        },
+        "metric_date": {
+          "name": "metric_date",
+          "type": "timestamptz",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "length": 6,
+          "mappedType": "datetime"
+        },
+        "subscription_id": {
+          "name": "subscription_id",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
+        },
+        "customer_id": {
+          "name": "customer_id",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
+        },
+        "product_id": {
+          "name": "product_id",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
+        },
+        "variant_id": {
+          "name": "variant_id",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "enumItems": [
+            "active",
+            "paused",
+            "cancelled",
+            "past_due"
+          ],
+          "mappedType": "enum"
+        },
+        "frequency_interval": {
+          "name": "frequency_interval",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "enumItems": [
+            "week",
+            "month",
+            "year"
+          ],
+          "mappedType": "enum"
+        },
+        "frequency_value": {
+          "name": "frequency_value",
+          "type": "integer",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "integer"
+        },
+        "currency_code": {
+          "name": "currency_code",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "text"
+        },
+        "is_active": {
+          "name": "is_active",
+          "type": "boolean",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "false",
+          "mappedType": "boolean"
+        },
+        "active_subscriptions_count": {
+          "name": "active_subscriptions_count",
+          "type": "integer",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "0",
+          "mappedType": "integer"
+        },
+        "mrr_amount": {
+          "name": "mrr_amount",
+          "type": "numeric",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "decimal"
+        },
+        "churned_subscriptions_count": {
+          "name": "churned_subscriptions_count",
+          "type": "integer",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "0",
+          "mappedType": "integer"
+        },
+        "churn_reason_category": {
+          "name": "churn_reason_category",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "enumItems": [
+            "price",
+            "product_fit",
+            "delivery",
+            "billing",
+            "temporary_pause",
+            "switched_competitor",
+            "other"
+          ],
+          "mappedType": "enum"
+        },
+        "source_snapshot": {
+          "name": "source_snapshot",
+          "type": "jsonb",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "json"
+        },
+        "metadata": {
+          "name": "metadata",
+          "type": "jsonb",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "json"
+        },
+        "raw_mrr_amount": {
+          "name": "raw_mrr_amount",
+          "type": "jsonb",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "json"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamptz",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "length": 6,
+          "default": "now()",
+          "mappedType": "datetime"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamptz",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "length": 6,
+          "default": "now()",
+          "mappedType": "datetime"
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "type": "timestamptz",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "length": 6,
+          "mappedType": "datetime"
+        }
+      },
+      "name": "subscription_metrics_daily",
+      "schema": "public",
+      "indexes": [
+        {
+          "keyName": "IDX_subscription_metrics_daily_deleted_at",
+          "columnNames": [],
+          "composite": false,
+          "constraint": false,
+          "primary": false,
+          "unique": false,
+          "expression": "CREATE INDEX IF NOT EXISTS \"IDX_subscription_metrics_daily_deleted_at\" ON \"subscription_metrics_daily\" (\"deleted_at\") WHERE deleted_at IS NULL"
+        },
+        {
+          "keyName": "IDX_subscription_metrics_daily_metric_date",
+          "columnNames": [],
+          "composite": false,
+          "constraint": false,
+          "primary": false,
+          "unique": false,
+          "expression": "CREATE INDEX IF NOT EXISTS \"IDX_subscription_metrics_daily_metric_date\" ON \"subscription_metrics_daily\" (\"metric_date\") WHERE deleted_at IS NULL"
+        },
+        {
+          "keyName": "IDX_subscription_metrics_daily_subscription_id",
+          "columnNames": [],
+          "composite": false,
+          "constraint": false,
+          "primary": false,
+          "unique": false,
+          "expression": "CREATE INDEX IF NOT EXISTS \"IDX_subscription_metrics_daily_subscription_id\" ON \"subscription_metrics_daily\" (\"subscription_id\") WHERE deleted_at IS NULL"
+        },
+        {
+          "keyName": "IDX_subscription_metrics_daily_product_id",
+          "columnNames": [],
+          "composite": false,
+          "constraint": false,
+          "primary": false,
+          "unique": false,
+          "expression": "CREATE INDEX IF NOT EXISTS \"IDX_subscription_metrics_daily_product_id\" ON \"subscription_metrics_daily\" (\"product_id\") WHERE deleted_at IS NULL"
+        },
+        {
+          "keyName": "IDX_subscription_metrics_daily_status",
+          "columnNames": [],
+          "composite": false,
+          "constraint": false,
+          "primary": false,
+          "unique": false,
+          "expression": "CREATE INDEX IF NOT EXISTS \"IDX_subscription_metrics_daily_status\" ON \"subscription_metrics_daily\" (\"status\") WHERE deleted_at IS NULL"
+        },
+        {
+          "keyName": "IDX_subscription_metrics_daily_currency_code",
+          "columnNames": [],
+          "composite": false,
+          "constraint": false,
+          "primary": false,
+          "unique": false,
+          "expression": "CREATE INDEX IF NOT EXISTS \"IDX_subscription_metrics_daily_currency_code\" ON \"subscription_metrics_daily\" (\"currency_code\") WHERE deleted_at IS NULL"
+        },
+        {
+          "keyName": "IDX_subscription_metrics_daily_frequency_interval",
+          "columnNames": [],
+          "composite": false,
+          "constraint": false,
+          "primary": false,
+          "unique": false,
+          "expression": "CREATE INDEX IF NOT EXISTS \"IDX_subscription_metrics_daily_frequency_interval\" ON \"subscription_metrics_daily\" (\"frequency_interval\") WHERE deleted_at IS NULL"
+        },
+        {
+          "keyName": "IDX_subscription_metrics_daily_frequency_value",
+          "columnNames": [],
+          "composite": false,
+          "constraint": false,
+          "primary": false,
+          "unique": false,
+          "expression": "CREATE INDEX IF NOT EXISTS \"IDX_subscription_metrics_daily_frequency_value\" ON \"subscription_metrics_daily\" (\"frequency_value\") WHERE deleted_at IS NULL"
+        },
+        {
+          "keyName": "IDX_subscription_metrics_daily_metric_date_status",
+          "columnNames": [],
+          "composite": false,
+          "constraint": false,
+          "primary": false,
+          "unique": false,
+          "expression": "CREATE INDEX IF NOT EXISTS \"IDX_subscription_metrics_daily_metric_date_status\" ON \"subscription_metrics_daily\" (\"metric_date\", \"status\") WHERE deleted_at IS NULL"
+        },
+        {
+          "keyName": "IDX_subscription_metrics_daily_metric_date_product_id",
+          "columnNames": [],
+          "composite": false,
+          "constraint": false,
+          "primary": false,
+          "unique": false,
+          "expression": "CREATE INDEX IF NOT EXISTS \"IDX_subscription_metrics_daily_metric_date_product_id\" ON \"subscription_metrics_daily\" (\"metric_date\", \"product_id\") WHERE deleted_at IS NULL"
+        },
+        {
+          "keyName": "IDX_subscription_metrics_daily_metric_date_frequency_interval_frequency_value",
+          "columnNames": [],
+          "composite": false,
+          "constraint": false,
+          "primary": false,
+          "unique": false,
+          "expression": "CREATE INDEX IF NOT EXISTS \"IDX_subscription_metrics_daily_metric_date_frequency_interval_frequency_value\" ON \"subscription_metrics_daily\" (\"metric_date\", \"frequency_interval\", \"frequency_value\") WHERE deleted_at IS NULL"
+        },
+        {
+          "keyName": "IDX_subscription_metrics_daily_metric_date_currency_code",
+          "columnNames": [],
+          "composite": false,
+          "constraint": false,
+          "primary": false,
+          "unique": false,
+          "expression": "CREATE INDEX IF NOT EXISTS \"IDX_subscription_metrics_daily_metric_date_currency_code\" ON \"subscription_metrics_daily\" (\"metric_date\", \"currency_code\") WHERE deleted_at IS NULL"
+        },
+        {
+          "keyName": "IDX_subscription_metrics_daily_metric_date_churn_reason_category",
+          "columnNames": [],
+          "composite": false,
+          "constraint": false,
+          "primary": false,
+          "unique": false,
+          "expression": "CREATE INDEX IF NOT EXISTS \"IDX_subscription_metrics_daily_metric_date_churn_reason_category\" ON \"subscription_metrics_daily\" (\"metric_date\", \"churn_reason_category\") WHERE deleted_at IS NULL"
+        },
+        {
+          "keyName": "subscription_metrics_daily_pkey",
+          "columnNames": [
+            "id"
+          ],
+          "composite": false,
+          "constraint": true,
+          "primary": true,
+          "unique": true
+        }
+      ],
+      "checks": [],
+      "foreignKeys": {},
+      "nativeEnums": {}
+    }
+  ],
+  "nativeEnums": {}
+}

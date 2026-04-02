@@ -14,7 +14,9 @@ import {
   ActivityLogActorType,
   ActivityLogEventType,
 } from "../modules/activity-log/types"
+import { rebuildAnalyticsDailySnapshotsWorkflow } from "./rebuild-analytics-daily-snapshots"
 import { toISOStringOrNull } from "./utils/date-output"
+import { buildAnalyticsIncrementalRebuildInput } from "./utils/analytics-incremental"
 
 export const resumeSubscriptionWorkflow = createWorkflow(
   "resume-subscription",
@@ -77,6 +79,20 @@ export const resumeSubscriptionWorkflow = createWorkflow(
       }
     })
     const renewal_cycle = ensureNextRenewalCycleStep(ensureInput)
+    const incrementalAnalyticsInput = transform(
+      { subscriptionChange, input },
+      function ({ subscriptionChange, input }) {
+        return buildAnalyticsIncrementalRebuildInput({
+          occurred_at: new Date(),
+          trigger_source: "resume_subscription",
+          correlation_id: null,
+          triggered_by: input.triggered_by ?? null,
+        })
+      }
+    )
+    rebuildAnalyticsDailySnapshotsWorkflow.runAsStep({
+      input: incrementalAnalyticsInput,
+    })
 
     return new WorkflowResponse({
       subscription: subscriptionChange.current,
