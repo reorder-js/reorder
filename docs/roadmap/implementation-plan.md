@@ -8,7 +8,7 @@ This document describes product direction, not a promise of delivery dates.
 
 ## Current Status
 
-The first four major areas of the plugin, `Subscriptions`, `Plans & Offers`, `Renewals`, and `Dunning`, are complete and tested.
+The first six major areas of the plugin, `Subscriptions`, `Plans & Offers`, `Renewals`, `Dunning`, `Cancellation & Retention`, and `Activity Log`, are complete and tested.
 
 Implemented today:
 - subscription domain model and storage
@@ -139,6 +139,35 @@ Deferred scope:
 
 This area now supports deliberate offboarding and retention decisions through workflow-backed Admin operations.
 
+### 6. Activity Log
+
+Status: `Completed`
+
+This area provides a cross-domain business audit trail for subscription operations.
+
+Implemented scope:
+- append-only `subscription_log` domain model and storage
+- workflow-backed event creation across `Subscriptions`, `Renewals`, `Dunning`, and `Cancellation & Retention`
+- centralized normalization, redaction, and idempotent write semantics
+- admin API routes for:
+  - global list
+  - event detail
+  - per-subscription timeline
+- Admin UI for:
+  - global activity-log page
+  - event detail drawer
+  - subscription detail timeline
+- backend tests for normalization, write semantics, and emitted event payloads
+- admin API and admin-flow integration coverage
+- operational documentation for retention, monitoring, and future extension boundaries
+
+Deferred scope:
+- archival or retention jobs
+- export tooling
+- saved filters and richer cross-linking
+
+This area now provides the operator-facing audit trail for subscription lifecycle events without taking ownership away from the underlying domain modules.
+
 ## Roadmap Principles
 
 The roadmap follows a few project-level principles:
@@ -193,3 +222,8 @@ If you want to contribute:
 - [Admin Dunning API](../api/admin-dunning.md)
 - [Admin Dunning UI](../admin/dunning.md)
 - [Dunning Testing](../testing/dunning.md)
+- [Activity Log Architecture](../architecture/activity-log.md)
+- [Admin Activity Log API](../api/admin-activity-log.md)
+- [Admin Activity Log UI](../admin/activity-log.md)
+- [Activity Log Testing](../testing/activity-log.md)
+- [Activity Log Roadmap](./activity-log.md)

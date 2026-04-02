@@ -8,6 +8,7 @@ At the moment, the following areas are implemented and tested:
 - `Renewals`
 - `Dunning`
 - `Cancellation & Retention`
+- `Activity Log`
 
 ## Current Status
 
@@ -44,10 +45,16 @@ Completed:
 - `Cancellation & Retention` admin flow integration coverage
 - smoke-level integration between `Cancellation & Retention`, `Subscriptions`, `Renewals`, and `Dunning`
 - `Cancellation & Retention` operational hardening for audit trail, structured logging, and scheduler summary metrics
+- `Activity Log` domain model and storage
+- `Activity Log` workflow-backed event creation across `Subscriptions`, `Renewals`, `Dunning`, and `Cancellation & Retention`
+- `Activity Log` admin API routes
+- `Activity Log` Admin UI: global list, event detail, and per-subscription timeline
+- `Activity Log` backend integration tests and admin flow integration coverage
+- `Activity Log` operational documentation for retention, monitoring, and roadmap boundaries
 
 In progress:
-- next implementation stages from the roadmap
 - dedicated analytics page and reporting views for `Cancellation & Retention`
+- future operational extensions for `Activity Log` such as archival or export
 
 ## Documentation Map
 
@@ -93,6 +100,10 @@ Runtime source-of-truth documents currently exist for:
   - `testing/cancellations.md`
 - `Activity Log`
   - `architecture/activity-log.md`
+  - `api/admin-activity-log.md`
+  - `admin/activity-log.md`
+  - `testing/activity-log.md`
+  - `roadmap/activity-log.md`
 
 ## Recommended Reading Order
 
@@ -105,9 +116,9 @@ For a new developer joining the project:
 
 ## Implemented Areas
 
-The currently implemented areas are `Subscriptions`, `Plans & Offers`, `Renewals`, `Dunning`, and `Cancellation & Retention`.
+The currently implemented areas are `Subscriptions`, `Plans & Offers`, `Renewals`, `Dunning`, `Cancellation & Retention`, and `Activity Log`.
 
-`Activity Log` currently has an architectural boundary document only. It is not yet implemented end-to-end.
+`Activity Log` is now implemented end-to-end as a business audit trail with Admin read APIs, a dedicated Admin page, and a subscription-level timeline.
 
 ### Subscriptions
 
@@ -171,6 +182,16 @@ This area includes:
 - integration with `Renewals` through renewal summary and renewal eligibility effects
 - integration with `Dunning` through active-case coexistence and linked dunning summary
 - operational hardening through audit trail, structured logs, and scheduler summary metrics
+
+### Activity Log
+
+This area includes:
+- append-only `subscription_log` storage and workflow-backed event creation
+- cross-domain business audit coverage for `Subscriptions`, `Renewals`, `Dunning`, and `Cancellation & Retention`
+- Admin list page with filtering, sorting, pagination, and event detail
+- per-subscription timeline on the subscription detail page
+- snapshot-first read model and Admin read API routes
+- backend coverage for normalization, event creation, API contracts, and admin flow integration
 
 ## Notes
 

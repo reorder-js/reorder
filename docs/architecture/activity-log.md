@@ -1,12 +1,16 @@
 # Activity Log Architecture
 
-This document describes the architectural boundary decided for the future `Activity Log` area in the `Reorder` plugin.
+This document describes the implemented architectural boundary for the `Activity Log` area in the `Reorder` plugin.
 
-It documents the source-of-truth and ownership rules agreed before implementation starts.
+It is the runtime source of truth for:
+- ownership and source-of-truth rules
+- event contract and taxonomy
+- write path and read path boundaries
+- retention and operational considerations
 
 ## Goal
 
-The `Activity Log` area is intended to provide a unified operator-facing audit trail for subscription-related business events across the plugin.
+The `Activity Log` area provides a unified operator-facing audit trail for subscription-related business events across the plugin.
 
 Its purpose is to:
 - show important lifecycle events for one subscription in one place
@@ -17,7 +21,7 @@ Its purpose is not to replace the source domain models that already own their ow
 
 ## Architectural Role
 
-`Activity Log` is planned as a dedicated append-only business audit layer.
+`Activity Log` is a dedicated append-only business audit layer.
 
 It should aggregate important subscription-related events emitted by:
 - `Subscriptions`
@@ -126,7 +130,7 @@ For `Activity Log`, this means:
 
 ## Event Record Contract
 
-The future `Activity Log` should store one append-only record per business-significant subscription event.
+`Activity Log` stores one append-only record per business-significant subscription event.
 
 The logical event contract is:
 - `id`
@@ -263,6 +267,145 @@ The `Activity Log` should use a stable, explicit taxonomy grouped by domain pref
 - `cancellation.offer_applied`
 - `cancellation.reason_updated`
 - `cancellation.finalized`
+
+## Physical Model
+
+The implemented storage model is `subscription_log`.
+
+It is owned by the dedicated `activity-log` module and remains append-only from the business point of view.
+
+The record persists:
+- core identity and filter fields
+- compact state summaries
+- structured `changed_fields`
+- limited metadata references
+- display snapshots for Admin read paths
+- `dedupe_key` for idempotent workflow-backed writes
+
+The model intentionally does not store:
+- full aggregate snapshots
+- full payment payloads
+- technical observability noise
+- deep linked read-model hydration
+
+## Write Path
+
+Business events are written from workflow-backed mutation paths.
+
+The implemented write path is:
+1. domain workflow mutates source-of-truth state
+2. workflow builds a normalized business audit payload
+3. `create-subscription-log-event` persists one append-only `subscription_log` record
+
+Normalization rules are centralized in the shared activity-log helper and cover:
+- compact `previous_state` and `new_state`
+- `changed_fields`
+- sensitive-data redaction
+- `metadata` allow-listing
+- deterministic `dedupe_key`
+
+Idempotency is enforced through:
+- deterministic `dedupe_key`
+- unique index protection
+- create-with-conflict-handling semantics in the central write step
+
+## Read Path
+
+The implemented read model is snapshot-first and optimized for Admin.
+
+Read paths currently supported:
+- global Admin list
+- detail for one event
+- timeline per subscription
+
+The global list and timeline read primarily from `subscription_log` itself.
+
+The detail view returns the full event payload from the same record:
+- `previous_state`
+- `new_state`
+- `changed_fields`
+- `metadata`
+
+The read model intentionally avoids heavy cross-module runtime enrichment for the base experience.
+
+This keeps the audit trail:
+- historically stable
+- fast to read
+- resilient to later changes in linked domain entities
+
+## Admin Boundary
+
+The Admin experience is intentionally split into two surfaces:
+- a dedicated `Activity Log` page for cross-subscription operations
+- an `Activity Log` section in the subscription detail page for per-subscription review
+
+Both surfaces use the same snapshot-first API contracts and the same underlying `subscription_log` records.
+
+The Admin UI does not define new business semantics.
+
+Its role is to expose:
+- filtering
+- sorting
+- pagination
+- detail drill-down
+- subscription timeline review
+
+## Retention Policy
+
+`Activity Log` is treated as a business audit trail, not as short-lived telemetry.
+
+The current retention policy for v1 is:
+- no automatic purge
+- no time-based cleanup job
+- no silent archival policy in the background
+
+Reasoning:
+- audit usefulness depends on historical continuity
+- the payload is intentionally compact
+- operational cleanup rules should be explicit and separately implemented if introduced later
+
+If a future retention requirement appears, it should be implemented as a dedicated maintenance capability with:
+- an explicit retention window
+- clear archival or purge semantics
+- separate documentation and rollout guidance
+
+## Monitoring and Performance
+
+Operationally, the following should be observed for `Activity Log`:
+- row growth in `subscription_log`
+- event volume per day and per week
+- response time for:
+  - `GET /admin/subscription-logs`
+  - `GET /admin/subscription-logs/:id`
+  - `GET /admin/subscriptions/:id/logs`
+- query behavior around:
+  - `subscription_id`
+  - `customer_id`
+  - `event_type`
+  - `created_at`
+
+Current operational assumptions:
+- the main list and timeline are paginated
+- the default sort is `created_at desc`
+- the current indexes are sufficient for the expected v1 workload
+
+Signals that should trigger review:
+- visible slowdown on global list queries
+- visible slowdown on subscription timeline queries
+- large increases in `subscription_log` volume caused by noisy event emission
+- pressure to broaden search or enrichment beyond the current snapshot-first model
+
+## Non-Goals
+
+The current `Activity Log` implementation does not aim to provide:
+- general-purpose telemetry
+- provider-level payment diagnostics
+- full historical snapshots of domain aggregates
+- automatic retention cleanup
+- export tooling
+- saved filters or user-level personalization
+
+Those areas are future enhancements, not part of the v1 architectural contract.
 
 ## Scope Decision for Plans & Offers
 
