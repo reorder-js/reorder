@@ -76,6 +76,7 @@ export type ListAdminAnalyticsInput = {
   frequency?: Array<string | AnalyticsFrequencyFilter>
   group_by?: AnalyticsGroupBy
   format?: AnalyticsExportFormat
+  timezone?: "UTC" | string | null
 }
 
 type ResolvedAnalyticsQueryInput = {
@@ -84,6 +85,8 @@ type ResolvedAnalyticsQueryInput = {
 }
 
 const DEFAULT_LOOKBACK_DAYS = 30
+const DEFAULT_ANALYTICS_TIMEZONE = "UTC"
+const MAX_ANALYTICS_WINDOW_DAYS = 731
 const METRIC_LABELS: Record<AnalyticsMetricKey, string> = {
   [AnalyticsMetricKey.MRR]: "MRR",
   [AnalyticsMetricKey.CHURN_RATE]: "Churn Rate",
@@ -251,6 +254,24 @@ function normalizeAnalyticsQueryInput(
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
       "Analytics 'date_from' must be less than or equal to 'date_to'"
+    )
+  }
+
+  const timezone = input.timezone ?? DEFAULT_ANALYTICS_TIMEZONE
+
+  if (timezone !== DEFAULT_ANALYTICS_TIMEZONE) {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      `Unsupported analytics timezone '${timezone}'. Only 'UTC' is supported in MVP`
+    )
+  }
+
+  const requestedWindowDays = diffDaysInclusive(resolvedFrom, resolvedTo)
+
+  if (requestedWindowDays > MAX_ANALYTICS_WINDOW_DAYS) {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      `Analytics query window can't exceed ${MAX_ANALYTICS_WINDOW_DAYS} days`
     )
   }
 

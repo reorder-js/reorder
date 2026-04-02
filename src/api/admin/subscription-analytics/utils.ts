@@ -16,6 +16,7 @@ export type GetAdminAnalyticsQuery = {
   product_id?: string[] | string | null
   frequency?: string[] | string | null
   group_by?: AnalyticsGroupBy | null
+  timezone?: "UTC" | null
 }
 
 export type GetAdminAnalyticsExportQuery = GetAdminAnalyticsQuery & {
@@ -40,6 +41,7 @@ export function normalizeAdminAnalyticsQuery(
     product_id: normalizeArrayFilter(query.product_id),
     frequency: normalizeArrayFilter(query.frequency),
     group_by: query.group_by ?? undefined,
+    timezone: query.timezone ?? undefined,
   }
 }
 
