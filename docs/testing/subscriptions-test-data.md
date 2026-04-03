@@ -10,6 +10,7 @@ It covers test data used across:
 - `Cancellation & Retention`
 - `Activity Log`
 - `Analytics`
+- `Settings`
 
 The script is intentionally named and structured broadly so it can seed the operational QA surface for the full recurring-commerce workspace under `Subscriptions`.
 
@@ -31,11 +32,13 @@ Related runtime docs:
 - [Cancellations Admin UI](../admin/cancellations.md)
 - [Activity Log Admin UI](../admin/activity-log.md)
 - [Analytics Admin UI](../admin/analytics.md)
+- [Subscription Settings Admin UI](../admin/subscription-settings.md)
 - [Renewals Architecture](../architecture/renewals.md)
 - [Dunning Architecture](../architecture/dunning.md)
 - [Cancellation Architecture](../architecture/cancellation.md)
 - [Activity Log Architecture](../architecture/activity-log.md)
 - [Analytics Architecture](../architecture/analytics.md)
+- [Settings Architecture](../architecture/settings.md)
 
 ## Purpose
 
@@ -73,10 +76,16 @@ Why the last requirement exists:
 If your store does not meet these requirements, the script exits with a readable error instead of creating partial data.
 
 The reset script does not create or delete products.
+The reset script does remove the seeded global `SubscriptionSettings` singleton if it was created by this QA seed.
 
 So even after a successful reset, the seed still requires:
 - products with variants to exist in the store
 - at least two products without existing `Plan Offers`
+
+`SubscriptionSettings` are a special case:
+- if no persisted singleton exists, the seed creates one for Settings QA
+- if the existing singleton was previously created by this seed, the seed updates it deterministically
+- if a non-seeded singleton already exists, the script keeps it untouched and skips the Settings-specific QA seed instead of failing or overwriting store configuration
 
 ## How to Run
 
@@ -113,6 +122,7 @@ npx medusa exec ../reorder/scripts/reset-subscriptions-test-data.ts
 ## What the Script Creates
 
 The script creates or updates:
+- one global `SubscriptionSettings` singleton for Settings QA
 - two `Plan Offers`
 - multiple test subscriptions
 - multiple renewal cycles
@@ -125,6 +135,7 @@ The script creates or updates:
 - deterministic `subscription_metrics_daily` rows for Analytics QA
 
 The reset script removes the seeded records for the same areas:
+- seeded `SubscriptionSettings`
 - seeded `Plan Offers`
 - seeded `Subscriptions`
 - seeded `RenewalCycle`
@@ -150,6 +161,28 @@ The reset is also deterministic:
 ## Current Scenarios
 
 The current version creates these QA scenarios:
+
+### 0. Settings global defaults
+
+Scope:
+- global `SubscriptionSettings` singleton
+
+Purpose:
+- validate the Settings page in `Settings -> Subscription Settings`
+- validate persisted singleton read state
+- validate save UX starting from a known non-default baseline
+- validate that new runtime operations pick up seeded global defaults
+
+Implementation note:
+- the seed creates a persisted singleton with:
+  - `default_trial_days = 14`
+  - `dunning_retry_intervals = [60, 180, 720]`
+  - `max_dunning_attempts = 3`
+  - `default_renewal_behavior = require_review_for_pending_changes`
+  - `default_cancellation_behavior = allow_direct_cancellation`
+- the seeded singleton includes `metadata.audit_log` and `metadata.last_update`
+- because Settings are global, the seed does not overwrite an existing non-seeded singleton
+- in that case the script logs a warning and skips the Settings-only QA scenario while still seeding the rest of the Subscriptions workspace
 
 ## Analytics QA Window
 
@@ -365,6 +398,19 @@ Implementation note:
 ## Recommended Analytics QA Checks
 
 Suggested manual checks after seeding:
+- open `Settings -> Subscription Settings`
+- if the seed created or updated the singleton:
+  - verify that the page loads a persisted singleton instead of fallback defaults
+  - verify:
+    - `default_trial_days = 14`
+    - retry intervals `60 / 180 / 720`
+    - `max_dunning_attempts = 3`
+    - renewal behavior `require_review_for_pending_changes`
+    - cancellation behavior `allow_direct_cancellation`
+  - confirm the page shows persisted metadata such as `version`, `updated_at`, and `updated_by`
+- if your store already had its own non-seeded global settings:
+  - expect the script to leave them untouched
+  - expect no Settings-specific QA override to be applied
 - open `Subscriptions -> Analytics` with the default Analytics QA window
 - verify that `MRR`, `Churn Rate`, `LTV`, and `Active Subscriptions` render without empty-state fallback
 - switch `group_by` between `day`, `week`, and `month`

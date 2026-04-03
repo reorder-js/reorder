@@ -4,6 +4,9 @@ import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 const SEED_NAMESPACE = "subscriptions-test-data"
 
 const IDS = {
+  settings: [
+    "set_seed_subscriptions_global",
+  ],
   planOffers: [
     "po_seed_subscriptions_success",
     "po_seed_subscriptions_blocked",
@@ -154,6 +157,9 @@ export default async function resetSubscriptionsTestData({
 
   logger.info("[subscriptions-test-data-reset] Resolving seeded records")
 
+  const settingsIds = await listSeedRecordIds(query, "subscription_settings", [
+    ...IDS.settings,
+  ])
   const planOfferIds = await listSeedRecordIds(query, "plan_offer", [
     ...IDS.planOffers,
   ])
@@ -201,6 +207,11 @@ export default async function resetSubscriptionsTestData({
     pgConnection,
     "subscription_log",
     subscriptionLogIds
+  )
+  const deletedSettings = await deleteFromTable(
+    pgConnection,
+    "subscription_settings",
+    settingsIds
   )
   const deletedAnalyticsSnapshots = await deleteFromTable(
     pgConnection,
@@ -268,6 +279,6 @@ export default async function resetSubscriptionsTestData({
 
   logger.info("[subscriptions-test-data-reset] Reset completed.")
   logger.info(
-    `[subscriptions-test-data-reset] Removed plan_offers=${deletedPlanOffers} subscriptions=${deletedSubscriptions} renewal_cycles=${deletedRenewalCycles} renewal_attempts=${deletedRenewalAttempts + deletedRenewalAttemptsByCycle} dunning_cases=${deletedDunningCases} dunning_attempts=${deletedDunningAttempts + deletedDunningAttemptsByCase} cancellation_cases=${deletedCancellationCases} retention_offer_events=${deletedRetentionOfferEvents + deletedRetentionOfferEventsByCase} subscription_logs=${deletedSubscriptionLogs} analytics_snapshots=${deletedAnalyticsSnapshots}`
+    `[subscriptions-test-data-reset] Removed settings=${deletedSettings} plan_offers=${deletedPlanOffers} subscriptions=${deletedSubscriptions} renewal_cycles=${deletedRenewalCycles} renewal_attempts=${deletedRenewalAttempts + deletedRenewalAttemptsByCycle} dunning_cases=${deletedDunningCases} dunning_attempts=${deletedDunningAttempts + deletedDunningAttemptsByCase} cancellation_cases=${deletedCancellationCases} retention_offer_events=${deletedRetentionOfferEvents + deletedRetentionOfferEventsByCase} subscription_logs=${deletedSubscriptionLogs} analytics_snapshots=${deletedAnalyticsSnapshots}`
   )
 }

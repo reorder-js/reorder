@@ -46,6 +46,12 @@ import {
   SubscriptionFrequencyInterval,
   SubscriptionStatus,
 } from "../src/modules/subscription/types"
+import { SETTINGS_MODULE } from "../src/modules/settings"
+import type SettingsModuleService from "../src/modules/settings/service"
+import {
+  SubscriptionCancellationBehavior,
+  SubscriptionRenewalBehavior,
+} from "../src/modules/settings/types"
 
 type ProductRecord = {
   id: string
@@ -149,6 +155,7 @@ const IDS = {
   logSubscriptionPaused: "slog_seed_subscription_paused",
   logRenewalSucceeded: "slog_seed_renewal_succeeded",
   logDunningRecovered: "slog_seed_dunning_recovered",
+  settingsGlobal: "set_seed_subscriptions_global",
 } as const
 
 function addDays(date: Date, days: number) {
@@ -414,6 +421,24 @@ async function upsertSubscriptionMetricsDaily(
   }
 }
 
+async function upsertSubscriptionSettings(
+  service: SettingsModuleService,
+  input: Record<string, unknown>
+) {
+  const [existing] = (await service.listSubscriptionSettings({
+    settings_key: "global",
+  } as any)) as Array<Record<string, any>>
+
+  if (existing) {
+    return await service.updateSubscriptionSettings({
+      id: existing.id,
+      ...input,
+    } as any)
+  }
+
+  return await service.createSubscriptionSettings(input as any)
+}
+
 function buildAnalyticsSnapshotId(subscriptionId: string, date: string) {
   return `smd_seed_${subscriptionId}_${date}`
 }
@@ -508,6 +533,21 @@ export default async function seedSubscriptionsTestData({
     container.resolve<ActivityLogModuleService>(ACTIVITY_LOG_MODULE)
   const analyticsModule =
     container.resolve<AnalyticsModuleService>(ANALYTICS_MODULE)
+  const settingsModule =
+    container.resolve<SettingsModuleService>(SETTINGS_MODULE)
+
+  const [existingSettings] = (await settingsModule.listSubscriptionSettings({
+    settings_key: "global",
+  } as any)) as Array<Record<string, any>>
+  const shouldSeedSettings =
+    !existingSettings ||
+    existingSettings.metadata?.seed_namespace === "subscriptions-test-data"
+
+  if (!shouldSeedSettings) {
+    logger.warn(
+      "[subscriptions-test-data] Skipping SubscriptionSettings seed because a non-seeded global singleton already exists."
+    )
+  }
 
   logger.info("[subscriptions-test-data] Resolving products and existing offers")
 
@@ -549,6 +589,92 @@ export default async function seedSubscriptionsTestData({
       scenario: "renewals-success",
     },
   })
+
+  if (shouldSeedSettings) {
+    await upsertSubscriptionSettings(settingsModule, {
+      id: existingSettings?.id ?? IDS.settingsGlobal,
+      settings_key: "global",
+      default_trial_days: 14,
+      dunning_retry_intervals: [60, 180, 720],
+      max_dunning_attempts: 3,
+      default_renewal_behavior:
+        SubscriptionRenewalBehavior.REQUIRE_REVIEW_FOR_PENDING_CHANGES,
+      default_cancellation_behavior:
+        SubscriptionCancellationBehavior.ALLOW_DIRECT_CANCELLATION,
+      version: 1,
+      updated_by: "qa-seed",
+      metadata: {
+        seed_namespace: "subscriptions-test-data",
+        scenario: "settings-global-defaults",
+        audit_log: [
+          {
+            action: "update_settings",
+            who: "qa-seed",
+            when: FIXED_TIME.toISOString(),
+            reason: "seed_settings_defaults",
+            previous_version: 0,
+            next_version: 1,
+            change_summary: [
+              {
+                field: "default_trial_days",
+                from: 0,
+                to: 14,
+              },
+              {
+                field: "dunning_retry_intervals",
+                from: [1440, 4320, 10080],
+                to: [60, 180, 720],
+              },
+              {
+                field: "default_renewal_behavior",
+                from: SubscriptionRenewalBehavior.PROCESS_IMMEDIATELY,
+                to:
+                  SubscriptionRenewalBehavior.REQUIRE_REVIEW_FOR_PENDING_CHANGES,
+              },
+              {
+                field: "default_cancellation_behavior",
+                from:
+                  SubscriptionCancellationBehavior.RECOMMEND_RETENTION_FIRST,
+                to: SubscriptionCancellationBehavior.ALLOW_DIRECT_CANCELLATION,
+              },
+            ],
+          },
+        ],
+        last_update: {
+          action: "update_settings",
+          who: "qa-seed",
+          when: FIXED_TIME.toISOString(),
+          reason: "seed_settings_defaults",
+          previous_version: 0,
+          next_version: 1,
+          change_summary: [
+            {
+              field: "default_trial_days",
+              from: 0,
+              to: 14,
+            },
+            {
+              field: "dunning_retry_intervals",
+              from: [1440, 4320, 10080],
+              to: [60, 180, 720],
+            },
+            {
+              field: "default_renewal_behavior",
+              from: SubscriptionRenewalBehavior.PROCESS_IMMEDIATELY,
+              to:
+                SubscriptionRenewalBehavior.REQUIRE_REVIEW_FOR_PENDING_CHANGES,
+            },
+            {
+              field: "default_cancellation_behavior",
+              from:
+                SubscriptionCancellationBehavior.RECOMMEND_RETENTION_FIRST,
+              to: SubscriptionCancellationBehavior.ALLOW_DIRECT_CANCELLATION,
+            },
+          ],
+        },
+      },
+    })
+  }
 
   await upsertPlanOffer(planOfferModule, {
     id: IDS.planOfferBlocked,
@@ -2028,6 +2154,16 @@ export default async function seedSubscriptionsTestData({
   }
 
   const summary: SeedSummaryRow[] = [
+    ...(shouldSeedSettings
+      ? [
+          {
+            scenario: "Settings global defaults",
+            subscription_reference: "GLOBAL",
+            notes:
+              "Use Settings > Subscription Settings to inspect a persisted singleton with trial_days=14, retry intervals [60,180,720], renewal review-by-default, and direct-cancel default.",
+          } satisfies SeedSummaryRow,
+        ]
+      : []),
     {
       scenario: "Renewal success without approval",
       subscription_reference: "SUB-QA-REN-SUCCESS",
