@@ -9,6 +9,7 @@ It covers test data used across:
 - `Dunning`
 - `Cancellation & Retention`
 - `Activity Log`
+- `Analytics`
 
 The script is intentionally named and structured broadly so it can seed the operational QA surface for the full recurring-commerce workspace under `Subscriptions`.
 
@@ -29,10 +30,12 @@ Related runtime docs:
 - [Dunning Admin UI](../admin/dunning.md)
 - [Cancellations Admin UI](../admin/cancellations.md)
 - [Activity Log Admin UI](../admin/activity-log.md)
+- [Analytics Admin UI](../admin/analytics.md)
 - [Renewals Architecture](../architecture/renewals.md)
 - [Dunning Architecture](../architecture/dunning.md)
 - [Cancellation Architecture](../architecture/cancellation.md)
 - [Activity Log Architecture](../architecture/activity-log.md)
+- [Analytics Architecture](../architecture/analytics.md)
 
 ## Purpose
 
@@ -119,6 +122,7 @@ The script creates or updates:
 - multiple cancellation cases
 - multiple retention offer events
 - selected `Activity Log` entries for list, detail, and timeline QA
+- deterministic `subscription_metrics_daily` rows for Analytics QA
 
 The reset script removes the seeded records for the same areas:
 - seeded `Plan Offers`
@@ -130,6 +134,7 @@ The reset script removes the seeded records for the same areas:
 - seeded `CancellationCase`
 - seeded `RetentionOfferEvent`
 - seeded `SubscriptionLog`
+- seeded `subscription_metrics_daily`
 
 The seed is designed to be idempotent:
 - it uses stable IDs
@@ -140,10 +145,27 @@ The reset is also deterministic:
 - it additionally checks `metadata.seed_namespace = "subscriptions-test-data"`
 - it removes records in child-to-parent order
 - it also removes child `renewal_attempt` and `dunning_attempt` records linked to seeded root records, even if those child rows were created later during manual QA or workflow execution
+- it also removes analytics snapshots created directly by the seed and snapshots linked to seeded subscriptions, so manual analytics rebuild runs can be cleaned up deterministically
 
 ## Current Scenarios
 
 The current version creates these QA scenarios:
+
+## Analytics QA Window
+
+For manual Analytics QA, the seeded snapshot window is:
+- `2026-04-06` to `2026-04-15`
+
+Recommended default filter:
+- `date_from = 2026-04-06T00:00:00.000Z`
+- `date_to = 2026-04-15T23:59:59.999Z`
+
+The Analytics data is intentionally snapshot-first.
+
+This means:
+- it is deterministic for manual QA
+- it does not depend on creating real store orders for every scenario
+- it is not intended to validate rebuild accuracy against real commerce totals
 
 ### 1. Renewal success without approval
 
@@ -258,6 +280,99 @@ Purpose:
 
 Implementation note:
 - the subscription is back in `active`
+
+## Analytics Scenarios
+
+The current seed also creates these Analytics-oriented QA scenarios:
+
+### 10. Analytics overview baseline
+
+Primary references:
+- `SUB-QA-REN-SUCCESS`
+- `SUB-QA-ANL-BI-MONTHLY`
+
+Purpose:
+- validate KPI cards
+- validate day / week / month trends
+- validate export against a deterministic active base
+
+Implementation note:
+- `SUB-QA-REN-SUCCESS` contributes a monthly active `USD` MRR baseline
+- `SUB-QA-ANL-BI-MONTHLY` contributes a second active `USD` baseline with cadence `month:2`
+- the snapshot window is `2026-04-06..2026-04-15`
+
+### 11. Analytics frequency comparison
+
+Subscription reference:
+- `SUB-QA-ANL-BI-MONTHLY`
+
+Purpose:
+- validate `frequency` filtering for `month:2`
+- validate KPI and trend isolation for a dedicated cadence slice
+
+Implementation note:
+- this subscription is created only to make Analytics cadence filtering deterministic
+- it is not meant to drive renewal-flow QA
+
+### 12. Analytics status segmentation
+
+Primary references:
+- `SUB-QA-REN-SUCCESS`
+- `SUB-QA-REN-PAUSED`
+- `SUB-QA-DUN-RETRY-SCHEDULED`
+- `SUB-QA-CAN-CANCELED-IMMEDIATE`
+
+Purpose:
+- validate `status` filtering in Analytics
+- confirm that only `active` rows contribute to `MRR` and `active_subscriptions_count`
+
+Implementation note:
+- the seeded snapshot window contains rows for:
+  - `active`
+  - `paused`
+  - `past_due`
+  - `cancelled`
+
+### 13. Analytics churn windows
+
+Primary references:
+- `SUB-QA-CAN-CANCELED-IMMEDIATE`
+- `SUB-QA-CAN-CANCELED-END-CYCLE`
+
+Purpose:
+- validate `churn_rate` trends
+- validate export rows on days with churn events
+- validate day buckets with cancellation-driven spikes
+
+Implementation note:
+- the seed creates two explicit churn days:
+  - `2026-04-10` with `billing`
+  - `2026-04-14` with `price`
+
+### 14. Analytics MRR anomaly day
+
+Primary reference:
+- `SUB-QA-REN-SUCCESS`
+
+Purpose:
+- validate a visible `MRR` spike in trends and export
+- support manual review of anomaly-oriented data patterns
+
+Implementation note:
+- `2026-04-12` contains an intentionally elevated `MRR` value for the baseline monthly subscription
+- this is meant for Analytics QA only
+
+## Recommended Analytics QA Checks
+
+Suggested manual checks after seeding:
+- open `Subscriptions -> Analytics` with the default Analytics QA window
+- verify that `MRR`, `Churn Rate`, `LTV`, and `Active Subscriptions` render without empty-state fallback
+- switch `group_by` between `day`, `week`, and `month`
+- filter by `status = active`
+- filter by `frequency = month:2`
+- export `CSV` and `JSON` with the active filters
+- inspect `2026-04-12` as the intentional `MRR` spike day
+- inspect `2026-04-10` and `2026-04-14` as the explicit churn days
 - the case is closed as `recovered`
 - the attempt timeline contains one failed attempt and one succeeded attempt
 

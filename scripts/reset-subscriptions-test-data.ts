@@ -20,6 +20,7 @@ const IDS = {
     "sub_seed_dunning_recovered",
     "sub_seed_dunning_unrecovered",
     "sub_seed_dunning_manual_override",
+    "sub_seed_analytics_bimonthly",
   ],
   renewalCycles: [
     "re_seed_subscriptions_success",
@@ -182,11 +183,29 @@ export default async function resetSubscriptionsTestData({
   const subscriptionLogIds = await listSeedRecordIds(query, "subscription_log", [
     ...IDS.subscriptionLogs,
   ])
+  const analyticsSnapshotIds = subscriptionIds.length
+    ? (
+        await query.graph({
+          entity: "subscription_metrics_daily",
+          fields: ["id", "metadata"],
+          filters: {
+            subscription_id: subscriptionIds,
+          },
+        })
+      ).data
+        ?.filter((record) => hasSeedNamespace(record as QueryRecord))
+        .map((record) => (record as QueryRecord).id) ?? []
+    : []
 
   const deletedSubscriptionLogs = await deleteFromTable(
     pgConnection,
     "subscription_log",
     subscriptionLogIds
+  )
+  const deletedAnalyticsSnapshots = await deleteFromTable(
+    pgConnection,
+    "subscription_metrics_daily",
+    analyticsSnapshotIds
   )
   const deletedRetentionOfferEvents = await deleteFromTable(
     pgConnection,
@@ -249,6 +268,6 @@ export default async function resetSubscriptionsTestData({
 
   logger.info("[subscriptions-test-data-reset] Reset completed.")
   logger.info(
-    `[subscriptions-test-data-reset] Removed plan_offers=${deletedPlanOffers} subscriptions=${deletedSubscriptions} renewal_cycles=${deletedRenewalCycles} renewal_attempts=${deletedRenewalAttempts + deletedRenewalAttemptsByCycle} dunning_cases=${deletedDunningCases} dunning_attempts=${deletedDunningAttempts + deletedDunningAttemptsByCase} cancellation_cases=${deletedCancellationCases} retention_offer_events=${deletedRetentionOfferEvents + deletedRetentionOfferEventsByCase} subscription_logs=${deletedSubscriptionLogs}`
+    `[subscriptions-test-data-reset] Removed plan_offers=${deletedPlanOffers} subscriptions=${deletedSubscriptions} renewal_cycles=${deletedRenewalCycles} renewal_attempts=${deletedRenewalAttempts + deletedRenewalAttemptsByCycle} dunning_cases=${deletedDunningCases} dunning_attempts=${deletedDunningAttempts + deletedDunningAttemptsByCase} cancellation_cases=${deletedCancellationCases} retention_offer_events=${deletedRetentionOfferEvents + deletedRetentionOfferEventsByCase} subscription_logs=${deletedSubscriptionLogs} analytics_snapshots=${deletedAnalyticsSnapshots}`
   )
 }

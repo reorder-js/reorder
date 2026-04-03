@@ -2,6 +2,9 @@ import type { ExecArgs, MedusaContainer } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { ACTIVITY_LOG_MODULE } from "../src/modules/activity-log"
 import type ActivityLogModuleService from "../src/modules/activity-log/service"
+import { ANALYTICS_MODULE } from "../src/modules/analytics"
+import { ANALYTICS_METRICS_VERSION } from "../src/modules/analytics/constants"
+import type AnalyticsModuleService from "../src/modules/analytics/service"
 import {
   ActivityLogActorType,
   ActivityLogEventType,
@@ -101,6 +104,7 @@ const IDS = {
   subCancellationCanceledEndCycle: "sub_seed_cancellation_canceled_end_cycle",
   subCancellationOpenPrice: "sub_seed_cancellation_open_price",
   subCancellationOpenPaused: "sub_seed_cancellation_open_paused",
+  subAnalyticsBiMonthly: "sub_seed_analytics_bimonthly",
   cycleSuccess: "re_seed_subscriptions_success",
   cyclePaused: "re_seed_subscriptions_paused",
   cycleCancelEffective: "re_seed_subscriptions_cancel_effective",
@@ -398,6 +402,67 @@ async function upsertSubscriptionLog(
   }
 }
 
+async function upsertSubscriptionMetricsDaily(
+  service: AnalyticsModuleService,
+  input: Record<string, unknown>
+) {
+  try {
+    await service.retrieveSubscriptionMetricsDaily(String(input.id))
+    return await service.updateSubscriptionMetricsDailies(input as any)
+  } catch {
+    return await service.createSubscriptionMetricsDailies(input as any)
+  }
+}
+
+function buildAnalyticsSnapshotId(subscriptionId: string, date: string) {
+  return `smd_seed_${subscriptionId}_${date}`
+}
+
+function buildAnalyticsSnapshotRecord(input: {
+  subscription_id: string
+  metric_date: string
+  customer_id: string
+  product_id: string
+  variant_id: string
+  status: SubscriptionStatus
+  frequency_interval: SubscriptionFrequencyInterval
+  frequency_value: number
+  currency_code: string | null
+  active_subscriptions_count: number
+  mrr_amount: number | null
+  churned_subscriptions_count: number
+  churn_reason_category: CancellationReasonCategory | null
+  scenario: string
+}) {
+  return {
+    id: buildAnalyticsSnapshotId(input.subscription_id, input.metric_date),
+    metric_date: new Date(`${input.metric_date}T00:00:00.000Z`),
+    subscription_id: input.subscription_id,
+    customer_id: input.customer_id,
+    product_id: input.product_id,
+    variant_id: input.variant_id,
+    status: input.status,
+    frequency_interval: input.frequency_interval,
+    frequency_value: input.frequency_value,
+    currency_code: input.currency_code,
+    is_active: input.active_subscriptions_count === 1,
+    active_subscriptions_count: input.active_subscriptions_count,
+    mrr_amount: input.mrr_amount,
+    churned_subscriptions_count: input.churned_subscriptions_count,
+    churn_reason_category: input.churn_reason_category,
+    source_snapshot: {
+      source: "seed-script",
+      scenario: input.scenario,
+      revenue_source: input.mrr_amount === null ? "seeded-unavailable" : "seeded-fixed-value",
+    },
+    metadata: {
+      seed_namespace: "subscriptions-test-data",
+      seed_scenario: input.scenario,
+      metrics_version: ANALYTICS_METRICS_VERSION,
+    },
+  }
+}
+
 function buildRetrySchedule(input?: Partial<DunningRetrySchedule>): DunningRetrySchedule {
   return {
     strategy: "fixed_intervals",
@@ -441,6 +506,8 @@ export default async function seedSubscriptionsTestData({
     container.resolve<CancellationModuleService>(CANCELLATION_MODULE)
   const activityLogModule =
     container.resolve<ActivityLogModuleService>(ACTIVITY_LOG_MODULE)
+  const analyticsModule =
+    container.resolve<AnalyticsModuleService>(ANALYTICS_MODULE)
 
   logger.info("[subscriptions-test-data] Resolving products and existing offers")
 
@@ -825,6 +892,21 @@ export default async function seedSubscriptionsTestData({
       skip_next_cycle: false,
       cart_id: "cart_seed_dunning_manual_override",
       payment_provider_id: "pp_stripe_stripe",
+    })
+  )
+
+  await upsertSubscription(
+    subscriptionModule,
+    buildSubscriptionRecord({
+      id: IDS.subAnalyticsBiMonthly,
+      reference: "SUB-QA-ANL-BI-MONTHLY",
+      target: targets.success,
+      status: SubscriptionStatus.ACTIVE,
+      frequency_interval: SubscriptionFrequencyInterval.MONTH,
+      frequency_value: 2,
+      next_renewal_at: addDays(FIXED_TIME, 18),
+      skip_next_cycle: false,
+      cart_id: "cart_seed_analytics_bimonthly",
     })
   )
 
@@ -1806,6 +1888,145 @@ export default async function seedSubscriptionsTestData({
     },
   })
 
+  const analyticsDates = [
+    "2026-04-06",
+    "2026-04-07",
+    "2026-04-08",
+    "2026-04-09",
+    "2026-04-10",
+    "2026-04-11",
+    "2026-04-12",
+    "2026-04-13",
+    "2026-04-14",
+    "2026-04-15",
+  ]
+
+  for (const date of analyticsDates) {
+    const successMrr = date === "2026-04-12" ? 260 : 120
+
+    await upsertSubscriptionMetricsDaily(
+      analyticsModule,
+      buildAnalyticsSnapshotRecord({
+        subscription_id: IDS.subSuccess,
+        metric_date: date,
+        customer_id: `cus_${IDS.subSuccess}`,
+        product_id: targets.success.product_id,
+        variant_id: targets.success.variant_id,
+        status: SubscriptionStatus.ACTIVE,
+        frequency_interval: SubscriptionFrequencyInterval.MONTH,
+        frequency_value: 1,
+        currency_code: "USD",
+        active_subscriptions_count: 1,
+        mrr_amount: successMrr,
+        churned_subscriptions_count: 0,
+        churn_reason_category: null,
+        scenario: "analytics-active-monthly-baseline",
+      })
+    )
+
+    await upsertSubscriptionMetricsDaily(
+      analyticsModule,
+      buildAnalyticsSnapshotRecord({
+        subscription_id: IDS.subAnalyticsBiMonthly,
+        metric_date: date,
+        customer_id: `cus_${IDS.subAnalyticsBiMonthly}`,
+        product_id: targets.success.product_id,
+        variant_id: targets.success.variant_id,
+        status: SubscriptionStatus.ACTIVE,
+        frequency_interval: SubscriptionFrequencyInterval.MONTH,
+        frequency_value: 2,
+        currency_code: "USD",
+        active_subscriptions_count: 1,
+        mrr_amount: 45,
+        churned_subscriptions_count: 0,
+        churn_reason_category: null,
+        scenario: "analytics-active-bimonthly-comparison",
+      })
+    )
+
+    await upsertSubscriptionMetricsDaily(
+      analyticsModule,
+      buildAnalyticsSnapshotRecord({
+        subscription_id: IDS.subPaused,
+        metric_date: date,
+        customer_id: `cus_${IDS.subPaused}`,
+        product_id: targets.success.product_id,
+        variant_id: targets.success.variant_id,
+        status: SubscriptionStatus.PAUSED,
+        frequency_interval: SubscriptionFrequencyInterval.MONTH,
+        frequency_value: 1,
+        currency_code: null,
+        active_subscriptions_count: 0,
+        mrr_amount: null,
+        churned_subscriptions_count: 0,
+        churn_reason_category: null,
+        scenario: "analytics-status-segmentation-paused",
+      })
+    )
+
+    await upsertSubscriptionMetricsDaily(
+      analyticsModule,
+      buildAnalyticsSnapshotRecord({
+        subscription_id: IDS.subDunningRetryScheduled,
+        metric_date: date,
+        customer_id: `cus_${IDS.subDunningRetryScheduled}`,
+        product_id: targets.success.product_id,
+        variant_id: targets.success.variant_id,
+        status: SubscriptionStatus.PAST_DUE,
+        frequency_interval: SubscriptionFrequencyInterval.MONTH,
+        frequency_value: 1,
+        currency_code: null,
+        active_subscriptions_count: 0,
+        mrr_amount: null,
+        churned_subscriptions_count: 0,
+        churn_reason_category: null,
+        scenario: "analytics-status-segmentation-past-due",
+      })
+    )
+
+    await upsertSubscriptionMetricsDaily(
+      analyticsModule,
+      buildAnalyticsSnapshotRecord({
+        subscription_id: IDS.subCancellationCanceledImmediate,
+        metric_date: date,
+        customer_id: `cus_${IDS.subCancellationCanceledImmediate}`,
+        product_id: targets.blocked.product_id,
+        variant_id: targets.blocked.variant_id,
+        status: SubscriptionStatus.CANCELLED,
+        frequency_interval: SubscriptionFrequencyInterval.MONTH,
+        frequency_value: 1,
+        currency_code: null,
+        active_subscriptions_count: 0,
+        mrr_amount: null,
+        churned_subscriptions_count: date === "2026-04-10" ? 1 : 0,
+        churn_reason_category:
+          date === "2026-04-10" ? CancellationReasonCategory.BILLING : null,
+        scenario: "analytics-churn-billing",
+      })
+    )
+
+    await upsertSubscriptionMetricsDaily(
+      analyticsModule,
+      buildAnalyticsSnapshotRecord({
+        subscription_id: IDS.subCancellationCanceledEndCycle,
+        metric_date: date,
+        customer_id: `cus_${IDS.subCancellationCanceledEndCycle}`,
+        product_id: targets.blocked.product_id,
+        variant_id: targets.blocked.variant_id,
+        status: SubscriptionStatus.CANCELLED,
+        frequency_interval: SubscriptionFrequencyInterval.MONTH,
+        frequency_value: 1,
+        currency_code: null,
+        active_subscriptions_count: 0,
+        mrr_amount: null,
+        churned_subscriptions_count: date === "2026-04-14" ? 1 : 0,
+        churn_reason_category:
+          date === "2026-04-14" ? CancellationReasonCategory.PRICE : null,
+        scenario: "analytics-churn-price",
+      })
+    )
+  }
+
   const summary: SeedSummaryRow[] = [
     {
       scenario: "Renewal success without approval",
@@ -1964,6 +2185,25 @@ export default async function seedSubscriptionsTestData({
       dunning_case_id: IDS.dunningRecovered,
       notes:
         "Use to verify system-originated actor rendering and cross-domain dunning recovery context in the Activity Log.",
+    },
+    {
+      scenario: "Analytics overview baseline",
+      subscription_reference: "SUB-QA-REN-SUCCESS",
+      notes:
+        "Use on Subscriptions > Analytics for 2026-04-06..2026-04-15. Baseline active monthly MRR plus one intentional spike on 2026-04-12.",
+    },
+    {
+      scenario: "Analytics frequency comparison",
+      subscription_reference: "SUB-QA-ANL-BI-MONTHLY",
+      notes:
+        "Use frequency filter month:2 to isolate a dedicated bi-monthly active subscription with deterministic USD contribution.",
+    },
+    {
+      scenario: "Analytics churn windows",
+      subscription_reference: "SUB-QA-CAN-CANCELED-IMMEDIATE",
+      cancellation_case_id: IDS.cancellationCanceledImmediate,
+      notes:
+        "Use Analytics for 2026-04-10 and 2026-04-14 to inspect churn spikes and exports with billing vs price churn days.",
     },
   ]
 
