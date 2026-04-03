@@ -13,9 +13,11 @@ import {
   Heading,
   Input,
   StatusBadge,
+  Table,
   Text,
   useDataTable,
 } from "@medusajs/ui"
+import { flexRender } from "@tanstack/react-table"
 import { useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import {
@@ -457,15 +459,83 @@ const CancellationsPage = () => {
           </div>
         </div>
 
-        <DataTable.Table
-          emptyState={{
-            empty: {
-              heading: "No cancellation cases",
-              description:
-                "No cancellation and retention cases match the current filters.",
-            },
-          }}
-        />
+        {table.getRowModel().rows.length ? (
+          <div className="overflow-x-auto border-y">
+            <Table className="relative isolate w-full">
+              <Table.Header className="border-t-0">
+                {table.getHeaderGroups().map((headerGroup) => (
+                  <Table.Row
+                    key={headerGroup.id}
+                    className="border-b-0 [&_th:last-of-type]:w-[1%] [&_th:last-of-type]:whitespace-nowrap"
+                  >
+                    {headerGroup.headers.map((header) => {
+                      const canSort = header.column.getCanSort()
+                      const sortHandler = header.column.getToggleSortingHandler()
+
+                      return (
+                        <Table.HeaderCell
+                          key={header.id}
+                          className="whitespace-nowrap"
+                        >
+                          {header.isPlaceholder ? null : canSort ? (
+                            <button
+                              type="button"
+                              onClick={sortHandler}
+                              className="group flex items-center gap-2 text-left"
+                            >
+                              {flexRender(
+                                header.column.columnDef.header,
+                                header.getContext()
+                              )}
+                            </button>
+                          ) : (
+                            flexRender(
+                              header.column.columnDef.header,
+                              header.getContext()
+                            )
+                          )}
+                        </Table.HeaderCell>
+                      )
+                    })}
+                  </Table.Row>
+                ))}
+              </Table.Header>
+              <Table.Body className="border-b-0">
+                {table.getRowModel().rows.map((row) => (
+                  <Table.Row
+                    key={row.id}
+                    className="group/row cursor-pointer"
+                    onClick={(event) => {
+                      event.preventDefault()
+                      navigate(`/subscriptions/cancellations/${row.id}`)
+                    }}
+                  >
+                    {row.getVisibleCells().map((cell) => (
+                      <Table.Cell
+                        key={cell.id}
+                        className="items-stretch truncate whitespace-nowrap"
+                      >
+                        {flexRender(
+                          cell.column.columnDef.cell,
+                          cell.getContext()
+                        )}
+                      </Table.Cell>
+                    ))}
+                  </Table.Row>
+                ))}
+              </Table.Body>
+            </Table>
+          </div>
+        ) : (
+          <div className="flex min-h-[250px] w-full flex-col items-center justify-center border-y px-6 py-4 text-center">
+            <Text size="base" weight="plus">
+              No cancellation cases
+            </Text>
+            <Text size="small" leading="compact" className="text-ui-fg-subtle">
+              No cancellation and retention cases match the current filters.
+            </Text>
+          </div>
+        )}
         <DataTable.Pagination />
       </DataTable>
     </Container>
