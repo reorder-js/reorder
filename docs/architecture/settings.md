@@ -235,3 +235,193 @@ This is the correct boundary because:
 - the record is global
 - the page is configuration-oriented, not queue- or record-oriented
 - it matches Medusa’s admin settings-page pattern
+
+## `SubscriptionSettings` Contract
+
+For MVP, the `SubscriptionSettings` record should expose this contract:
+
+- `default_trial_days: number`
+- `dunning_retry_intervals: number[]`
+- `max_dunning_attempts: number`
+- `default_renewal_behavior: SubscriptionRenewalBehavior`
+- `default_cancellation_behavior: SubscriptionCancellationBehavior`
+- `version: number`
+- `updated_by: string | null`
+- `updated_at: string`
+
+This contract is intended to be stable across:
+- the DB model
+- the settings service
+- the update workflow
+- the Admin API
+- the Admin form
+
+## Field Semantics
+
+### `default_trial_days`
+
+`default_trial_days` means:
+- the global default trial length in days
+
+Rules:
+- integer
+- `>= 0`
+- `0` means no default trial
+
+This value should be used only when:
+- a new operation needs a global trial default
+
+It must not:
+- retroactively rewrite trial values already persisted on existing subscriptions
+
+### `dunning_retry_intervals`
+
+`dunning_retry_intervals` means:
+- the default retry schedule for newly created dunning processes
+
+The canonical unit for MVP should be:
+- minutes
+
+This is preferred because the current dunning runtime already models retry intervals as numeric schedule values compatible with minute-based semantics.
+
+Rules:
+- array of positive integers
+- strictly increasing
+- no zero values
+- no negative values
+- no duplicate values
+
+Example:
+- `[1440, 4320, 10080]`
+
+This value should be used only when:
+- a new `DunningCase` or equivalent retry schedule is created
+
+It must not:
+- retroactively rewrite retry schedules already persisted on active dunning cases
+
+### `max_dunning_attempts`
+
+`max_dunning_attempts` means:
+- the maximum number of retry attempts allowed for newly created dunning processes
+
+Rules:
+- positive integer
+- should remain consistent with `dunning_retry_intervals`
+
+Recommended MVP rule:
+- `max_dunning_attempts === dunning_retry_intervals.length`
+
+This keeps the contract simple and removes ambiguity in how the retry schedule is interpreted.
+
+### `version`
+
+`version` means:
+- the monotonic version number of the singleton settings record
+
+It is intended for:
+- optimistic locking
+- update conflict detection
+- operational traceability
+
+Rules:
+- integer
+- incremented on every successful update
+
+This is not a feature version or product version.
+
+It is only the version of the settings record.
+
+### `updated_by`
+
+`updated_by` means:
+- the admin actor or system actor that last updated the settings
+
+Rules:
+- `string | null`
+- `null` is allowed for bootstrap or default initialization flows
+
+### `updated_at`
+
+`updated_at` means:
+- the timestamp of the last successful settings update
+
+It is the source of truth for:
+- operator-facing “last updated” information
+- audit correlation
+
+## `SubscriptionRenewalBehavior`
+
+For MVP, `default_renewal_behavior` should use this enum:
+
+- `process_immediately`
+- `require_review_for_pending_changes`
+
+### `process_immediately`
+
+Meaning:
+- when a renewal operation starts and no persisted renewal-specific decision overrides it, the system may treat the renewal as immediately processable from the perspective of global settings
+
+This does not mean:
+- bypassing workflow validations
+- bypassing offer-policy checks
+- bypassing approval rules already stored on a `RenewalCycle`
+
+It is only a global default behavior.
+
+### `require_review_for_pending_changes`
+
+Meaning:
+- when a renewal operation starts and there is reviewable change context such as `pending_update_data`, the system should default toward a review/approval path
+
+This does not mean:
+- rewriting approval state on an already created `RenewalCycle`
+- retroactively changing cycles already persisted in runtime state
+
+## `SubscriptionCancellationBehavior`
+
+For MVP, `default_cancellation_behavior` should use this enum:
+
+- `recommend_retention_first`
+- `allow_direct_cancellation`
+
+### `recommend_retention_first`
+
+Meaning:
+- when a new cancellation flow starts, the default operator/system posture is to begin with retention-oriented handling
+
+This may influence:
+- initial UI defaults
+- initial recommendation posture
+- default path selection at flow start
+
+This does not mean:
+- forcing the customer to accept retention
+- preventing final cancellation
+- rewriting an already open cancellation case
+
+### `allow_direct_cancellation`
+
+Meaning:
+- when a new cancellation flow starts, the system may allow a direct-cancellation path as the default posture
+
+This does not mean:
+- bypassing cancellation validations
+- auto-canceling without context
+- rewriting existing cancellation cases already in progress
+
+## Contract Boundary
+
+This contract should be interpreted as:
+- a global runtime policy contract
+- not a persisted per-process policy snapshot
+
+That means:
+- the settings record defines defaults for future operations
+- domain records keep ownership of already persisted operational decisions
+
+## Important MVP Note
+
+`default_renewal_behavior` is valid as a contract field for MVP, but it should only remain in the implemented settings surface if it can be cleanly wired into renewal runtime semantics later without artificial domain stretching.
+
+This must be validated when the runtime integration step is implemented.
