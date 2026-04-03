@@ -425,3 +425,135 @@ That means:
 `default_renewal_behavior` is valid as a contract field for MVP, but it should only remain in the implemented settings surface if it can be cleanly wired into renewal runtime semantics later without artificial domain stretching.
 
 This must be validated when the runtime integration step is implemented.
+
+## Source of Truth and Bootstrap
+
+For MVP, the `Settings` area should use a single runtime source of truth hierarchy:
+
+1. persisted database record
+2. fallback defaults only when the record does not exist
+
+This hierarchy must remain explicit and deterministic.
+
+## Primary Source of Truth
+
+The primary source of truth for `SubscriptionSettings` should be:
+- a singleton record stored in the database
+
+This database record should be treated as:
+- the canonical runtime configuration
+- the record used by Admin updates
+- the source used by workflows and jobs once it exists
+
+This is preferred because:
+- Admin users need runtime-editable configuration
+- settings should not require a deploy to change
+- the configuration should be auditable and versioned
+
+## Role of `env` and Static Config
+
+`env` or static config should not be treated as a second equal source of truth.
+
+For MVP, `env/config` may only be used as:
+- bootstrap fallback defaults
+
+This means:
+- if no settings record exists in the database, effective settings may be built from fallback defaults
+- if a settings record exists in the database, that record always wins
+
+After a record exists in the database:
+- `env/config` is no longer authoritative at runtime
+
+This avoids split-brain configuration behavior.
+
+## `GET` Behavior When Record Is Missing
+
+If no settings record exists yet:
+- `GET /admin/subscription-settings` should not return `404`
+
+Instead, it should return:
+- an effective settings payload
+- built from defaults and optional fallback config
+
+This gives Admin operators:
+- a usable settings page on first boot
+- predictable initial values
+- no special “missing record” error state
+
+At the contract level, the response should later distinguish between:
+- persisted settings
+- fallback effective settings
+
+Examples of acceptable future response metadata:
+- `is_persisted: boolean`
+- or `source: "database" | "fallback"`
+
+## Bootstrap Strategy
+
+For MVP, the singleton settings record should not be created by migration.
+
+Recommended strategy:
+- lazy-create on first update
+
+Reasons:
+- migrations are the wrong place for business defaults that may vary by environment
+- this keeps plugin installation simpler
+- fallback defaults remain usable even before the first write
+- there is no need to couple database schema creation with business-policy insertion
+
+This means:
+- the system can start without an existing `subscription_settings` row
+- Admin `GET` still works through fallback effective settings
+- the first successful `POST` creates the canonical singleton record
+
+## Effective Settings Semantics
+
+The system should distinguish between:
+- persisted settings
+- effective fallback settings
+
+### Persisted Settings
+
+Persisted settings mean:
+- a database record exists
+- it is authoritative
+- it carries real persisted `version`, `updated_by`, and `updated_at`
+
+### Effective Fallback Settings
+
+Effective fallback settings mean:
+- no database record exists yet
+- the system builds an effective payload from defaults and optional config
+- the payload is readable but not yet persisted
+
+Recommended MVP semantics for fallback payloads:
+- `version = 0`
+- `updated_by = null`
+- `updated_at = null`
+
+This keeps the contract honest and makes it clear that no persisted change has happened yet.
+
+## Precedence Rules
+
+The precedence rules for `SubscriptionSettings` should be:
+
+1. if a database record exists, use it
+2. if no database record exists, use effective fallback defaults
+3. an update creates or updates the database singleton
+4. after the singleton exists, fallback config no longer overrides runtime behavior
+
+These rules must remain stable across:
+- the settings service
+- the update workflow
+- Admin API behavior
+- runtime reads in domain workflows
+
+## Architectural Decision for MVP
+
+For MVP, the final source-of-truth and bootstrap decision is:
+
+- `subscription_settings` in DB is the primary runtime source
+- fallback defaults are allowed only before the singleton exists
+- `GET` returns effective settings, not `404`
+- the singleton is lazy-created on first update
+- once persisted, the database record becomes the only authoritative runtime source
