@@ -11,7 +11,9 @@ import { SUBSCRIPTION_MODULE } from "../../modules/subscription"
 import type SubscriptionModuleService from "../../modules/subscription/service"
 import { SubscriptionStatus } from "../../modules/subscription/types"
 import { subscriptionErrors } from "../../modules/subscription/utils/errors"
+import type { SubscriptionSettingsShape } from "../../modules/settings/utils/normalize-settings"
 import { CancellationSubscriptionDisplayRecord } from "./shared-cancellation-log"
+import { getEffectiveSubscriptionSettings } from "../utils/subscription-settings"
 
 const ACTIVE_CANCELLATION_CASE_STATUSES = new Set<CancellationCaseStatus>([
   CancellationCaseStatus.REQUESTED,
@@ -141,13 +143,24 @@ function validateSubscriptionEntryState(subscription: SubscriptionRecord) {
 function mergeCaseMetadata(
   existingMetadata: Record<string, unknown> | null,
   input: StartCancellationCaseStepInput,
-  entryContext: ReturnType<typeof normalizeEntryContext>
+  entryContext: ReturnType<typeof normalizeEntryContext>,
+  settings?: SubscriptionSettingsShape
 ) {
   const base = {
     ...(existingMetadata ?? {}),
     ...(input.metadata ?? {}),
     origin: "admin_cancel_intent",
     entry_context: entryContext,
+    ...(settings
+      ? {
+          settings_policy: {
+            default_cancellation_behavior:
+              settings.default_cancellation_behavior,
+            settings_version: settings.version,
+            is_persisted: settings.is_persisted,
+          },
+        }
+      : {}),
   }
 
   return appendCancellationManualAction(base, {
@@ -180,6 +193,7 @@ export const startCancellationCaseStep = createStep(
     validateSubscriptionEntryState(subscription)
 
     const entryContext = normalizeEntryContext(input)
+    const settings = await getEffectiveSubscriptionSettings(container)
 
     const subscriptionCases = (await cancellationModule.listCancellationCases({
       subscription_id: subscription.id,
@@ -233,7 +247,7 @@ export const startCancellationCaseStep = createStep(
       finalized_at: null,
       finalized_by: null,
       cancellation_effective_at: null,
-      metadata: mergeCaseMetadata(null, input, entryContext),
+      metadata: mergeCaseMetadata(null, input, entryContext, settings),
     } as any)) as CancellationCaseRecord
 
     return new StepResponse<

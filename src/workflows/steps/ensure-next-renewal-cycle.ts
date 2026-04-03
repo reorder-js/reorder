@@ -12,8 +12,10 @@ import {
   type UpcomingRenewalSubscriptionRecord,
   shouldSubscriptionHaveUpcomingRenewalCycle,
 } from "../../modules/renewal/utils/upcoming-cycle"
+import { SubscriptionRenewalBehavior } from "../../modules/settings/types"
 import { SUBSCRIPTION_MODULE } from "../../modules/subscription"
 import type SubscriptionModuleService from "../../modules/subscription/service"
+import { getEffectiveSubscriptionSettings } from "../utils/subscription-settings"
 
 export type EnsureNextRenewalCycleStepInput = {
   subscription_id: string
@@ -136,18 +138,30 @@ export const ensureNextRenewalCycleStep = createStep(
     }
 
     const scheduledFor = subscription.next_renewal_at!
-    const approvalState = deriveUpcomingRenewalApprovalState(
-      subscription,
-      scheduledFor
-    )
-
+    const settings = await getEffectiveSubscriptionSettings(container)
     const existingCycle = findUpcomingRenewalCycle(existingCycles, scheduledFor)
 
     if (!existingCycle) {
+      const createTimeBehavior = settings.is_persisted
+        ? settings.default_renewal_behavior
+        : SubscriptionRenewalBehavior.REQUIRE_REVIEW_FOR_PENDING_CHANGES
+
+      const approvalState = deriveUpcomingRenewalApprovalState(
+        subscription,
+        scheduledFor,
+        createTimeBehavior
+      )
       const created = await renewalModule.createRenewalCycles({
         subscription_id: subscription.id,
         scheduled_for: scheduledFor,
         status: RenewalCycleStatus.SCHEDULED,
+        metadata: {
+          settings_policy: {
+            default_renewal_behavior: createTimeBehavior,
+            settings_version: settings.version,
+            is_persisted: settings.is_persisted,
+          },
+        },
         ...approvalState,
       } as any)
 
@@ -167,6 +181,24 @@ export const ensureNextRenewalCycleStep = createStep(
       )
     }
 
+    const existingBehavior =
+      (
+        existingCycle.metadata?.settings_policy as
+          | {
+              default_renewal_behavior?: SubscriptionRenewalBehavior
+            }
+          | undefined
+      )?.default_renewal_behavior ??
+      (settings.is_persisted
+        ? settings.default_renewal_behavior
+        : SubscriptionRenewalBehavior.REQUIRE_REVIEW_FOR_PENDING_CHANGES)
+
+    const approvalState = deriveUpcomingRenewalApprovalState(
+      subscription,
+      scheduledFor,
+      existingBehavior
+    )
+
     if (
       existingCycle.status === RenewalCycleStatus.PROCESSING ||
       existingCycle.status === RenewalCycleStatus.SUCCEEDED
@@ -183,9 +215,50 @@ export const ensureNextRenewalCycleStep = createStep(
       )
     }
 
+    if (
+      existingCycle.approval_required === approvalState.approval_required &&
+      existingCycle.approval_status === approvalState.approval_status &&
+      existingCycle.approval_decided_at === approvalState.approval_decided_at &&
+      existingCycle.approval_decided_by === approvalState.approval_decided_by &&
+      existingCycle.approval_reason === approvalState.approval_reason
+    ) {
+      return new StepResponse<
+        EnsureNextRenewalCycleStepOutput,
+        EnsureNextRenewalCycleCompensation
+      >(
+        {
+          action: "noop",
+          subscription_id: subscription.id,
+          renewal_cycle_id: existingCycle.id,
+        }
+      )
+    }
+
     const updated = await renewalModule.updateRenewalCycles({
       id: existingCycle.id,
       ...approvalState,
+      metadata: {
+        ...(existingCycle.metadata ?? {}),
+        settings_policy: {
+          default_renewal_behavior: existingBehavior,
+          settings_version:
+            (
+              existingCycle.metadata?.settings_policy as
+                | {
+                    settings_version?: number
+                  }
+                | undefined
+            )?.settings_version ?? settings.version,
+          is_persisted:
+            (
+              existingCycle.metadata?.settings_policy as
+                | {
+                    is_persisted?: boolean
+                  }
+                | undefined
+            )?.is_persisted ?? settings.is_persisted,
+        },
+      },
     } as any)
 
     return new StepResponse<

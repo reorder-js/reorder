@@ -8,8 +8,6 @@ import {
 import { dunningErrors } from "../../modules/dunning/utils/errors"
 import {
   calculateNextRetryAt,
-  createDefaultDunningRetrySchedule,
-  DEFAULT_DUNNING_MAX_ATTEMPTS,
   validateDunningRetrySchedule,
 } from "../../modules/dunning/utils/retry-schedule"
 import { RENEWAL_MODULE } from "../../modules/renewal"
@@ -20,6 +18,8 @@ import { SUBSCRIPTION_MODULE } from "../../modules/subscription"
 import type SubscriptionModuleService from "../../modules/subscription/service"
 import { SubscriptionStatus } from "../../modules/subscription/types"
 import { subscriptionErrors } from "../../modules/subscription/utils/errors"
+import type { SubscriptionSettingsShape } from "../../modules/settings/utils/normalize-settings"
+import { getEffectiveSubscriptionSettings } from "../utils/subscription-settings"
 
 const ACTIVE_DUNNING_CASE_STATUSES = new Set<DunningCaseStatus>([
   DunningCaseStatus.OPEN,
@@ -150,9 +150,18 @@ function normalizeFailureTime(failedAt?: string | Date | null) {
   return normalized
 }
 
-function normalizeRetryPolicy(input: StartDunningStepInput) {
-  const schedule = input.retry_schedule ?? createDefaultDunningRetrySchedule()
-  const maxAttempts = input.max_attempts ?? DEFAULT_DUNNING_MAX_ATTEMPTS
+async function normalizeRetryPolicy(
+  container: { resolve(key: string): unknown },
+  input: StartDunningStepInput
+) {
+  const settings = await getEffectiveSubscriptionSettings(container)
+  const schedule = input.retry_schedule ?? {
+    strategy: "fixed_intervals" as const,
+    intervals: [...settings.dunning_retry_intervals],
+    timezone: "UTC" as const,
+    source: "default_policy" as const,
+  }
+  const maxAttempts = input.max_attempts ?? settings.max_dunning_attempts
 
   try {
     validateDunningRetrySchedule(schedule, maxAttempts)
@@ -162,16 +171,41 @@ function normalizeRetryPolicy(input: StartDunningStepInput) {
     )
   }
 
-  return { schedule, maxAttempts }
+  return { schedule, maxAttempts, settings }
 }
 
-function createDunningMetadata(input: StartDunningStepInput) {
+function baseDunningMetadata(input: StartDunningStepInput) {
   return {
     ...(input.metadata ?? {}),
     origin: "renewal_payment_failure",
     payment_failure_source: input.payment_failure_source,
     triggered_by: input.triggered_by ?? null,
     reason: input.reason ?? null,
+  }
+}
+
+function createDunningMetadata(
+  input: StartDunningStepInput,
+  settings: SubscriptionSettingsShape
+) {
+  return {
+    ...baseDunningMetadata(input),
+    settings_policy: {
+      dunning_retry_intervals: [...settings.dunning_retry_intervals],
+      max_dunning_attempts: settings.max_dunning_attempts,
+      settings_version: settings.version,
+      is_persisted: settings.is_persisted,
+    },
+  }
+}
+
+function mergeDunningMetadata(
+  existingMetadata: Record<string, unknown> | null,
+  input: StartDunningStepInput
+) {
+  return {
+    ...(existingMetadata ?? {}),
+    ...baseDunningMetadata(input),
   }
 }
 
@@ -252,7 +286,10 @@ export const startDunningStep = createStep(
       )
     }
 
-    const { schedule, maxAttempts } = normalizeRetryPolicy(input)
+    const { schedule, maxAttempts, settings } = await normalizeRetryPolicy(
+      container,
+      input
+    )
     const failureTime = normalizeFailureTime(input.failed_at)
     const defaultNextRetryAt = calculateNextRetryAt(schedule, 0, failureTime)
 
@@ -281,7 +318,7 @@ export const startDunningStep = createStep(
         recovered_at: null,
         closed_at: null,
         recovery_reason: null,
-        metadata: createDunningMetadata(input),
+        metadata: createDunningMetadata(input, settings),
       } as any)) as DunningCaseRecord
 
       if (previousSubscription) {
@@ -337,10 +374,7 @@ export const startDunningStep = createStep(
       last_payment_error_code:
         input.payment_error_code ?? existingCase.last_payment_error_code ?? null,
       last_payment_error_message: input.payment_error_message,
-      metadata: {
-        ...(existingCase.metadata ?? {}),
-        ...createDunningMetadata(input),
-      },
+      metadata: mergeDunningMetadata(existingCase.metadata, input),
     } as any)) as DunningCaseRecord
 
     if (previousSubscription) {

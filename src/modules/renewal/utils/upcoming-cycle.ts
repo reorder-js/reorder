@@ -2,6 +2,7 @@ import {
   RenewalApprovalStatus,
   RenewalCycleStatus,
 } from "../types"
+import { SubscriptionRenewalBehavior } from "../../settings/types"
 import { SubscriptionPendingUpdateData, SubscriptionStatus } from "../../subscription/types"
 
 export type UpcomingRenewalSubscriptionRecord = {
@@ -61,12 +62,17 @@ export function shouldSubscriptionHaveUpcomingRenewalCycle(
 
 export function deriveUpcomingRenewalApprovalState(
   subscription: UpcomingRenewalSubscriptionRecord,
-  scheduledFor: Date
+  scheduledFor: Date,
+  behavior = SubscriptionRenewalBehavior.REQUIRE_REVIEW_FOR_PENDING_CHANGES
 ) {
-  const requiresApproval = isPendingUpdateApplicable(
+  const pendingUpdateApplicable = isPendingUpdateApplicable(
     scheduledFor,
     subscription.pending_update_data
   )
+  const requiresApproval =
+    behavior ===
+      SubscriptionRenewalBehavior.REQUIRE_REVIEW_FOR_PENDING_CHANGES &&
+    pendingUpdateApplicable
 
   return {
     approval_required: requiresApproval,
