@@ -18,6 +18,47 @@ export type PostAdminSubscriptionSettingsBody = {
   reason?: string | null
 }
 
+function getNestedSettingsErrorMessage(error: unknown): string {
+  if (!error) {
+    return "Settings request failed"
+  }
+
+  if (typeof error === "string") {
+    return error
+  }
+
+  if (error instanceof Error) {
+    return (
+      error.message ||
+      getNestedSettingsErrorMessage((error as Error & { cause?: unknown }).cause)
+    )
+  }
+
+  if (typeof error === "object") {
+    const record = error as Record<string, unknown>
+    const candidates = [
+      record.message,
+      record.error,
+      record.details,
+      record.cause,
+      (record.response as Record<string, unknown> | undefined)?.data,
+      (record.response as Record<string, unknown> | undefined)?.message,
+      (record.data as Record<string, unknown> | undefined)?.message,
+      (record.body as Record<string, unknown> | undefined)?.message,
+    ]
+
+    for (const candidate of candidates) {
+      const nested = getNestedSettingsErrorMessage(candidate)
+
+      if (nested && nested !== "Settings request failed") {
+        return nested
+      }
+    }
+  }
+
+  return "Settings request failed"
+}
+
 function getSettingsModule(container: MedusaContainer) {
   return container.resolve<SettingsModuleService>(SETTINGS_MODULE)
 }
@@ -79,7 +120,7 @@ export function mapSubscriptionSettingsAdminRouteError(error: unknown) {
     }
   }
 
-  const message = error instanceof Error ? error.message : "Settings request failed"
+  const message = getNestedSettingsErrorMessage(error)
   const normalized = message.toLowerCase()
 
   if (
