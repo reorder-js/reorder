@@ -122,6 +122,33 @@ const defaultFormValues: SubscriptionSettingsFormValues = {
   default_cancellation_behavior: "recommend_retention_first",
 }
 
+function getChangedSections(
+  dirtyFields: Partial<Record<keyof SubscriptionSettingsFormValues, unknown>>
+) {
+  const sections: string[] = []
+
+  if (dirtyFields.default_trial_days) {
+    sections.push("Trial")
+  }
+
+  if (
+    dirtyFields.dunning_retry_intervals ||
+    dirtyFields.max_dunning_attempts
+  ) {
+    sections.push("Dunning")
+  }
+
+  if (dirtyFields.default_renewal_behavior) {
+    sections.push("Renewals")
+  }
+
+  if (dirtyFields.default_cancellation_behavior) {
+    sections.push("Cancellation")
+  }
+
+  return sections
+}
+
 const SubscriptionSettingsPage = () => {
   const queryClient = useQueryClient()
   const {
@@ -200,10 +227,23 @@ const SubscriptionSettingsPage = () => {
       toast.success("Subscription settings updated")
     },
     onError: (mutationError) => {
-      toast.error(
+      const message =
         mutationError instanceof Error
           ? mutationError.message
           : "Failed to update subscription settings"
+
+      if (
+        message.toLowerCase().includes("version") ||
+        message.toLowerCase().includes("conflict")
+      ) {
+        toast.error(
+          "Settings changed in another session. Refresh the page and try saving again."
+        )
+        return
+      }
+
+      toast.error(
+        message
       )
     },
   })
@@ -249,6 +289,10 @@ const SubscriptionSettingsPage = () => {
   }
 
   const currentSettings = data?.subscription_settings
+  const changedSections = getChangedSections(form.formState.dirtyFields)
+  const hasWideImpactChanges = changedSections.some((section) =>
+    ["Dunning", "Renewals", "Cancellation"].includes(section)
+  )
 
   return (
     <form onSubmit={handleSubmit}>
@@ -271,15 +315,37 @@ const SubscriptionSettingsPage = () => {
               Manage runtime defaults for trials, dunning, renewals, and
               cancellation flows.
             </Text>
+            <Text
+              size="small"
+              leading="compact"
+              className="mt-2 text-ui-fg-subtle"
+            >
+              Changes apply to future operations and newly created process
+              state. Existing active dunning, cancellation, and renewal
+              processes keep their persisted configuration.
+            </Text>
           </div>
-          <Button
-            size="small"
-            type="submit"
-            isLoading={saveMutation.isPending}
-            disabled={saveMutation.isPending || !form.formState.isDirty}
-          >
-            Save
-          </Button>
+          <div className="flex flex-col items-end gap-2">
+            <Button
+              size="small"
+              type="submit"
+              isLoading={saveMutation.isPending}
+              disabled={saveMutation.isPending || !form.formState.isDirty}
+            >
+              Save
+            </Button>
+            <Text
+              size="small"
+              leading="compact"
+              className="text-ui-fg-subtle"
+            >
+              {saveMutation.isPending
+                ? "Saving updated defaults…"
+                : form.formState.isDirty
+                  ? "Changes will apply after this save completes."
+                  : "No unsaved changes."}
+            </Text>
+          </div>
         </div>
 
         <div className="flex flex-col gap-4 px-6 py-4">
@@ -302,214 +368,243 @@ const SubscriptionSettingsPage = () => {
                       ).toLocaleString()}`
                     : "No persisted settings record exists yet."}
                 </Text>
+                <Text
+                  size="small"
+                  leading="compact"
+                  className="text-ui-fg-subtle"
+                >
+                  {currentSettings.updated_by
+                    ? `Updated by ${currentSettings.updated_by}`
+                    : "Updated by system bootstrap or no actor recorded."}
+                </Text>
               </div>
             </Alert>
           )}
 
-          <SettingsSection
-            title="Trial"
-            description="Configure the default trial period applied to future subscription operations."
-          >
-            <div className="flex flex-col gap-y-2">
-              <Label htmlFor="default_trial_days">Default trial days</Label>
-              <Input
-                id="default_trial_days"
-                type="number"
-                min={0}
-                step={1}
-                {...form.register("default_trial_days", {
-                  valueAsNumber: true,
-                })}
-              />
-              <FieldError message={form.formState.errors.default_trial_days?.message} />
-            </div>
-          </SettingsSection>
-
-          <SettingsSection
-            title="Dunning"
-            description="Define the retry schedule used when a new dunning case is created."
-          >
-            <div className="flex flex-col gap-3">
-              <div className="flex items-center justify-between">
-                <div className="flex flex-col">
-                  <Label>Retry intervals</Label>
-                  <Text
-                    size="small"
-                    leading="compact"
-                    className="text-ui-fg-subtle"
-                  >
-                    Values are stored in minutes and must be strictly increasing.
-                  </Text>
-                </div>
-                <Button
-                  size="small"
-                  variant="secondary"
-                  type="button"
-                  onClick={() => {
-                    const lastValue =
-                      fields[fields.length - 1]?.value ?? 10080
-
-                    append({ value: Number(lastValue) + 1440 })
-                  }}
-                >
-                  <PlusMini />
-                  Add interval
-                </Button>
+          {form.formState.isDirty && (
+            <Alert variant="warning">
+              <div className="flex flex-col gap-1">
+                <Text size="small" leading="compact" weight="plus">
+                  Unsaved changes in: {changedSections.join(", ")}
+                </Text>
+                <Text size="small" leading="compact">
+                  {hasWideImpactChanges
+                    ? "These changes affect defaults for future renewal, dunning, or cancellation operations. Existing active cases keep their persisted process state."
+                    : "These changes update global defaults for future subscription operations."}
+                </Text>
               </div>
+            </Alert>
+          )}
 
-              <div className="flex flex-col gap-3">
-                {fields.map((field, index) => (
-                  <div
-                    key={field.id}
-                    className="grid grid-cols-[1fr_auto] items-start gap-2"
-                  >
-                    <div className="flex flex-col gap-y-2">
-                      <Input
-                        type="number"
-                        min={1}
-                        step={1}
-                        {...form.register(
-                          `dunning_retry_intervals.${index}.value`,
-                          {
-                            valueAsNumber: true,
-                          }
-                        )}
-                      />
-                      <FieldError
-                        message={
-                          form.formState.errors.dunning_retry_intervals?.[index]
-                            ?.value?.message
-                        }
-                      />
-                    </div>
-                    <Button
-                      size="small"
-                      variant="secondary"
-                      type="button"
-                      disabled={fields.length === 1}
-                      onClick={() => remove(index)}
-                    >
-                      <Trash />
-                    </Button>
-                  </div>
-                ))}
-              </div>
-
+          <fieldset
+            disabled={saveMutation.isPending}
+            className="flex flex-col gap-4 disabled:cursor-not-allowed disabled:opacity-70"
+          >
+            <SettingsSection
+              title="Trial"
+              description="Configure the default trial period applied to future subscription operations."
+            >
               <div className="flex flex-col gap-y-2">
-                <Label htmlFor="max_dunning_attempts">Max dunning attempts</Label>
+                <Label htmlFor="default_trial_days">Default trial days</Label>
                 <Input
-                  id="max_dunning_attempts"
+                  id="default_trial_days"
                   type="number"
-                  min={1}
+                  min={0}
                   step={1}
-                  {...form.register("max_dunning_attempts", {
+                  {...form.register("default_trial_days", {
                     valueAsNumber: true,
                   })}
                 />
+                <FieldError message={form.formState.errors.default_trial_days?.message} />
+              </div>
+            </SettingsSection>
+
+            <SettingsSection
+              title="Dunning"
+              description="Define the retry schedule used when a new dunning case is created."
+            >
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex flex-col">
+                    <Label>Retry intervals</Label>
+                    <Text
+                      size="small"
+                      leading="compact"
+                      className="text-ui-fg-subtle"
+                    >
+                      Values are stored in minutes and must be strictly increasing.
+                    </Text>
+                  </div>
+                  <Button
+                    size="small"
+                    variant="secondary"
+                    type="button"
+                    onClick={() => {
+                      const lastValue =
+                        fields[fields.length - 1]?.value ?? 10080
+
+                      append({ value: Number(lastValue) + 1440 })
+                    }}
+                  >
+                    <PlusMini />
+                    Add interval
+                  </Button>
+                </div>
+
+                <div className="flex flex-col gap-3">
+                  {fields.map((field, index) => (
+                    <div
+                      key={field.id}
+                      className="grid grid-cols-[1fr_auto] items-start gap-2"
+                    >
+                      <div className="flex flex-col gap-y-2">
+                        <Input
+                          type="number"
+                          min={1}
+                          step={1}
+                          {...form.register(
+                            `dunning_retry_intervals.${index}.value`,
+                            {
+                              valueAsNumber: true,
+                            }
+                          )}
+                        />
+                        <FieldError
+                          message={
+                            form.formState.errors.dunning_retry_intervals?.[index]
+                              ?.value?.message
+                          }
+                        />
+                      </div>
+                      <Button
+                        size="small"
+                        variant="secondary"
+                        type="button"
+                        disabled={fields.length === 1}
+                        onClick={() => remove(index)}
+                      >
+                        <Trash />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="flex flex-col gap-y-2">
+                  <Label htmlFor="max_dunning_attempts">Max dunning attempts</Label>
+                  <Input
+                    id="max_dunning_attempts"
+                    type="number"
+                    min={1}
+                    step={1}
+                    {...form.register("max_dunning_attempts", {
+                      valueAsNumber: true,
+                    })}
+                  />
+                  <FieldError
+                    message={form.formState.errors.max_dunning_attempts?.message}
+                  />
+                </div>
+              </div>
+            </SettingsSection>
+
+            <SettingsSection
+              title="Renewals"
+              description="Choose the default behavior used when a new renewal cycle is created."
+            >
+              <div className="flex flex-col gap-y-2">
+                <Label htmlFor="default_renewal_behavior">
+                  Default renewal behavior
+                </Label>
+                <Controller
+                  control={form.control}
+                  name="default_renewal_behavior"
+                  render={({ field }) => (
+                    <Select
+                      value={field.value}
+                      onValueChange={field.onChange}
+                    >
+                      <Select.Trigger id="default_renewal_behavior">
+                        <Select.Value />
+                      </Select.Trigger>
+                      <Select.Content>
+                        {renewalBehaviorOptions.map((option) => (
+                          <Select.Item key={option.value} value={option.value}>
+                            {option.label}
+                          </Select.Item>
+                        ))}
+                      </Select.Content>
+                    </Select>
+                  )}
+                />
+                <Text
+                  size="small"
+                  leading="compact"
+                  className="text-ui-fg-subtle"
+                >
+                  {
+                    renewalBehaviorOptions.find(
+                      (option) =>
+                        option.value ===
+                        form.watch("default_renewal_behavior")
+                    )?.hint
+                  }
+                </Text>
                 <FieldError
-                  message={form.formState.errors.max_dunning_attempts?.message}
+                  message={form.formState.errors.default_renewal_behavior?.message}
                 />
               </div>
-            </div>
-          </SettingsSection>
+            </SettingsSection>
 
-          <SettingsSection
-            title="Renewals"
-            description="Choose the default behavior used when a new renewal cycle is created."
-          >
-            <div className="flex flex-col gap-y-2">
-              <Label htmlFor="default_renewal_behavior">
-                Default renewal behavior
-              </Label>
-              <Controller
-                control={form.control}
-                name="default_renewal_behavior"
-                render={({ field }) => (
-                  <Select
-                    value={field.value}
-                    onValueChange={field.onChange}
-                  >
-                    <Select.Trigger id="default_renewal_behavior">
-                      <Select.Value />
-                    </Select.Trigger>
-                    <Select.Content>
-                      {renewalBehaviorOptions.map((option) => (
-                        <Select.Item key={option.value} value={option.value}>
-                          {option.label}
-                        </Select.Item>
-                      ))}
-                    </Select.Content>
-                  </Select>
-                )}
-              />
-              <Text
-                size="small"
-                leading="compact"
-                className="text-ui-fg-subtle"
-              >
-                {
-                  renewalBehaviorOptions.find(
-                    (option) =>
-                      option.value ===
-                      form.watch("default_renewal_behavior")
-                  )?.hint
-                }
-              </Text>
-              <FieldError
-                message={form.formState.errors.default_renewal_behavior?.message}
-              />
-            </div>
-          </SettingsSection>
-
-          <SettingsSection
-            title="Cancellation Defaults"
-            description="Define how newly created cancellation cases should start."
-          >
-            <div className="flex flex-col gap-y-2">
-              <Label htmlFor="default_cancellation_behavior">
-                Default cancellation behavior
-              </Label>
-              <Controller
-                control={form.control}
-                name="default_cancellation_behavior"
-                render={({ field }) => (
-                  <Select
-                    value={field.value}
-                    onValueChange={field.onChange}
-                  >
-                    <Select.Trigger id="default_cancellation_behavior">
-                      <Select.Value />
-                    </Select.Trigger>
-                    <Select.Content>
-                      {cancellationBehaviorOptions.map((option) => (
-                        <Select.Item key={option.value} value={option.value}>
-                          {option.label}
-                        </Select.Item>
-                      ))}
-                    </Select.Content>
-                  </Select>
-                )}
-              />
-              <Text
-                size="small"
-                leading="compact"
-                className="text-ui-fg-subtle"
-              >
-                {
-                  cancellationBehaviorOptions.find(
-                    (option) =>
-                      option.value ===
-                      form.watch("default_cancellation_behavior")
-                  )?.hint
-                }
-              </Text>
-              <FieldError
-                message={
-                  form.formState.errors.default_cancellation_behavior?.message
-                }
-              />
-            </div>
-          </SettingsSection>
+            <SettingsSection
+              title="Cancellation Defaults"
+              description="Define how newly created cancellation cases should start."
+            >
+              <div className="flex flex-col gap-y-2">
+                <Label htmlFor="default_cancellation_behavior">
+                  Default cancellation behavior
+                </Label>
+                <Controller
+                  control={form.control}
+                  name="default_cancellation_behavior"
+                  render={({ field }) => (
+                    <Select
+                      value={field.value}
+                      onValueChange={field.onChange}
+                    >
+                      <Select.Trigger id="default_cancellation_behavior">
+                        <Select.Value />
+                      </Select.Trigger>
+                      <Select.Content>
+                        {cancellationBehaviorOptions.map((option) => (
+                          <Select.Item key={option.value} value={option.value}>
+                            {option.label}
+                          </Select.Item>
+                        ))}
+                      </Select.Content>
+                    </Select>
+                  )}
+                />
+                <Text
+                  size="small"
+                  leading="compact"
+                  className="text-ui-fg-subtle"
+                >
+                  {
+                    cancellationBehaviorOptions.find(
+                      (option) =>
+                        option.value ===
+                        form.watch("default_cancellation_behavior")
+                    )?.hint
+                  }
+                </Text>
+                <FieldError
+                  message={
+                    form.formState.errors.default_cancellation_behavior?.message
+                  }
+                />
+              </div>
+            </SettingsSection>
+          </fieldset>
         </div>
       </Container>
     </form>
