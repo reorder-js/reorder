@@ -94,3 +94,7 @@ export {
   rebuildAnalyticsDailySnapshotsWorkflow,
   default as rebuildAnalyticsDailySnapshotsWorkflowDefault,
 } from "./rebuild-analytics-daily-snapshots"
+export {
+  updateSubscriptionSettingsWorkflow,
+  default as updateSubscriptionSettingsWorkflowDefault,
+} from "./update-subscription-settings"
