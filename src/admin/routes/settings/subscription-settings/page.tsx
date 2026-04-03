@@ -12,7 +12,6 @@ import {
   Text,
   toast,
 } from "@medusajs/ui"
-import { useMutation, useQueryClient } from "@tanstack/react-query"
 import type { ReactNode } from "react"
 import { useEffect } from "react"
 import { Controller, useFieldArray, useForm } from "react-hook-form"
@@ -20,10 +19,11 @@ import { z } from "zod"
 import type {
   AdminSubscriptionCancellationBehavior,
   AdminSubscriptionRenewalBehavior,
+  SubscriptionSettingsAdminResponse,
 } from "../../../types/settings"
 import {
-  adminSubscriptionSettingsQueryKeys,
-  updateAdminSubscriptionSettings,
+  adminSubscriptionSettingsCapabilities,
+  useAdminSubscriptionSettingsUpdateMutation,
   useAdminSubscriptionSettingsQuery,
 } from "./data-loading"
 
@@ -150,7 +150,6 @@ function getChangedSections(
 }
 
 const SubscriptionSettingsPage = () => {
-  const queryClient = useQueryClient()
   const {
     data,
     isLoading,
@@ -189,11 +188,47 @@ const SubscriptionSettingsPage = () => {
     replace(nextValues.dunning_retry_intervals)
   }, [data, form, replace])
 
-  const saveMutation = useMutation({
-    mutationFn: async (values: SubscriptionSettingsFormValues) => {
-      const currentVersion = data?.subscription_settings.version ?? 0
+  const saveMutation = useAdminSubscriptionSettingsUpdateMutation()
 
-      return await updateAdminSubscriptionSettings({
+  const handleSuccessfulSave = (response: SubscriptionSettingsAdminResponse) => {
+    form.reset({
+      default_trial_days: response.subscription_settings.default_trial_days,
+      dunning_retry_intervals:
+        response.subscription_settings.dunning_retry_intervals.map((value) => ({
+          value,
+        })),
+      max_dunning_attempts: response.subscription_settings.max_dunning_attempts,
+      default_renewal_behavior:
+        response.subscription_settings.default_renewal_behavior,
+      default_cancellation_behavior:
+        response.subscription_settings.default_cancellation_behavior,
+    })
+
+    toast.success("Subscription settings updated")
+  }
+
+  const handleFailedSave = (mutationError: unknown) => {
+    const message =
+      mutationError instanceof Error
+        ? mutationError.message
+        : "Failed to update subscription settings"
+
+    if (
+      message.toLowerCase().includes("version") ||
+      message.toLowerCase().includes("conflict")
+    ) {
+      toast.error(
+        "Settings changed in another session. Refresh the page and try saving again."
+      )
+      return
+    }
+
+    toast.error(message)
+  }
+
+  const handleSubmit = form.handleSubmit((values) => {
+    saveMutation.mutate(
+      {
         default_trial_days: values.default_trial_days,
         dunning_retry_intervals: values.dunning_retry_intervals.map(
           (item) => item.value
@@ -201,55 +236,13 @@ const SubscriptionSettingsPage = () => {
         max_dunning_attempts: values.max_dunning_attempts,
         default_renewal_behavior: values.default_renewal_behavior,
         default_cancellation_behavior: values.default_cancellation_behavior,
-        expected_version: currentVersion,
-      })
-    },
-    onSuccess: async (response) => {
-      await queryClient.invalidateQueries({
-        queryKey: adminSubscriptionSettingsQueryKeys.all,
-      })
-
-      form.reset({
-        default_trial_days:
-          response.subscription_settings.default_trial_days,
-        dunning_retry_intervals:
-          response.subscription_settings.dunning_retry_intervals.map(
-            (value) => ({ value })
-          ),
-        max_dunning_attempts:
-          response.subscription_settings.max_dunning_attempts,
-        default_renewal_behavior:
-          response.subscription_settings.default_renewal_behavior,
-        default_cancellation_behavior:
-          response.subscription_settings.default_cancellation_behavior,
-      })
-
-      toast.success("Subscription settings updated")
-    },
-    onError: (mutationError) => {
-      const message =
-        mutationError instanceof Error
-          ? mutationError.message
-          : "Failed to update subscription settings"
-
-      if (
-        message.toLowerCase().includes("version") ||
-        message.toLowerCase().includes("conflict")
-      ) {
-        toast.error(
-          "Settings changed in another session. Refresh the page and try saving again."
-        )
-        return
+        expected_version: data?.subscription_settings.version ?? 0,
+      },
+      {
+        onSuccess: handleSuccessfulSave,
+        onError: handleFailedSave,
       }
-
-      toast.error(
-        message
-      )
-    },
-  })
-
-  const handleSubmit = form.handleSubmit((values) => {
-    saveMutation.mutate(values)
+    )
   })
 
   if (isLoading) {
@@ -377,6 +370,15 @@ const SubscriptionSettingsPage = () => {
                     ? `Updated by ${currentSettings.updated_by}`
                     : "Updated by system bootstrap or no actor recorded."}
                 </Text>
+                {!adminSubscriptionSettingsCapabilities.supportsReset && (
+                  <Text
+                    size="small"
+                    leading="compact"
+                    className="text-ui-fg-subtle"
+                  >
+                    Reset to defaults is not supported yet in the admin UI.
+                  </Text>
+                )}
               </div>
             </Alert>
           )}
