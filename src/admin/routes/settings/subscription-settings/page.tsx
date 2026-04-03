@@ -292,13 +292,6 @@ const SubscriptionSettingsPage = () => {
       <Container className="divide-y p-0">
         <div className="flex items-start justify-between px-6 py-4">
           <div className="flex flex-col">
-            <Text
-              size="small"
-              leading="compact"
-              className="text-ui-fg-subtle"
-            >
-              Settings
-            </Text>
             <Heading level="h1">Subscription Settings</Heading>
             <Text
               size="small"

@@ -216,9 +216,6 @@ const CancellationsPage = () => {
         <div className="px-6 py-4">
           <div className="flex items-center justify-between gap-x-4">
             <div className="flex flex-col">
-              <Text size="small" leading="compact" className="text-ui-fg-subtle">
-                Subscription management
-              </Text>
               <Heading level="h1">Cancellation &amp; Retention</Heading>
             </div>
           </div>
@@ -248,9 +245,6 @@ const CancellationsPage = () => {
       <div className="px-6 py-4">
         <div className="flex items-center justify-between gap-x-4">
           <div className="flex flex-col">
-            <Text size="small" leading="compact" className="text-ui-fg-subtle">
-              Subscription management
-            </Text>
             <Heading level="h1">Cancellation &amp; Retention</Heading>
             <Text size="small" leading="compact" className="text-ui-fg-subtle">
               Review cancellation cases, churn reasons, and retention outcomes.

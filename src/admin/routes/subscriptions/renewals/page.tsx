@@ -17,7 +17,7 @@ import {
   useDataTable,
 } from "@medusajs/ui";
 import { useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import {
   RenewalAdminApprovalSummary,
   RenewalApprovalStatus,
@@ -253,9 +253,6 @@ const RenewalsPage = () => {
         <div className="px-6 py-4">
           <div className="flex items-center justify-between gap-x-4">
             <div className="flex flex-col">
-              <Text size="small" leading="compact" className="text-ui-fg-subtle">
-                Subscription management
-              </Text>
               <Heading level="h1">Renewals</Heading>
               <Text
                 size="small"
@@ -266,9 +263,6 @@ const RenewalsPage = () => {
                 execution state.
               </Text>
             </div>
-            <Button asChild size="small" variant="secondary" type="button">
-              <Link to="/subscriptions">View Subscriptions</Link>
-            </Button>
           </div>
         </div>
         <div className="px-6 py-6">
@@ -291,18 +285,12 @@ const RenewalsPage = () => {
     <Container className="divide-y p-0">
       <div className="flex items-center justify-between px-6 py-4">
         <div className="flex flex-col">
-          <Text size="small" leading="compact" className="text-ui-fg-subtle">
-            Subscription management
-          </Text>
           <Heading level="h1">Renewals</Heading>
           <Text size="small" leading="compact" className="text-ui-fg-subtle">
             Monitor scheduled subscription renewal cycles and their latest
             execution state.
           </Text>
         </div>
-        <Button asChild size="small" variant="secondary" type="button">
-          <Link to="/subscriptions">View Subscriptions</Link>
-        </Button>
       </div>
       <DataTable instance={table}>
         <div className="flex flex-col gap-3 px-6 py-4">

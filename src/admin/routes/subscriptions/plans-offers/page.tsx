@@ -26,7 +26,6 @@ import {
 } from "@medusajs/ui";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
 import { sdk } from "../../../lib/client";
 import {
   adminPlanOffersQueryKeys,
@@ -497,9 +496,6 @@ const PlansOffersPage = () => {
       <Container className="divide-y p-0">
         <div className="flex items-center justify-between px-6 py-4">
           <div className="flex flex-col">
-            <Text size="small" leading="compact" className="text-ui-fg-subtle">
-              Subscription management
-            </Text>
             <Heading level="h1">Plans & Offers</Heading>
             <Text
               size="small"
@@ -510,9 +506,6 @@ const PlansOffersPage = () => {
             </Text>
           </div>
           <div className="flex items-center gap-x-2">
-            <Button asChild size="small" variant="secondary" type="button">
-              <Link to="/subscriptions">View Subscriptions</Link>
-            </Button>
             <Button
               size="small"
               type="button"

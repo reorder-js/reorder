@@ -18,7 +18,6 @@ import {
   useDataTable,
 } from "@medusajs/ui"
 import { useMemo, useState, type ReactNode } from "react"
-import { Link } from "react-router-dom"
 import {
   ActivityLogAdminActorType,
   ActivityLogAdminDetail,
@@ -271,18 +270,12 @@ const ActivityLogPage = () => {
         <div className="px-6 py-4">
           <div className="flex items-center justify-between gap-x-4">
             <div className="flex flex-col">
-              <Text size="small" leading="compact" className="text-ui-fg-subtle">
-                Subscription management
-              </Text>
               <Heading level="h1">Activity Log</Heading>
               <Text size="small" leading="compact" className="text-ui-fg-subtle">
                 Review subscription lifecycle events across renewals, dunning,
                 and cancellation workflows.
               </Text>
             </div>
-            <Button asChild size="small" variant="secondary" type="button">
-              <Link to="/subscriptions">View Subscriptions</Link>
-            </Button>
           </div>
         </div>
         <div className="px-6 py-6">
@@ -307,18 +300,12 @@ const ActivityLogPage = () => {
       <Container className="divide-y p-0">
         <div className="flex items-center justify-between px-6 py-4">
           <div className="flex flex-col">
-            <Text size="small" leading="compact" className="text-ui-fg-subtle">
-              Subscription management
-            </Text>
             <Heading level="h1">Activity Log</Heading>
             <Text size="small" leading="compact" className="text-ui-fg-subtle">
               Review subscription lifecycle events across renewals, dunning,
               and cancellation workflows.
             </Text>
           </div>
-          <Button asChild size="small" variant="secondary" type="button">
-            <Link to="/subscriptions">View Subscriptions</Link>
-          </Button>
         </div>
         <DataTable instance={table}>
           <div className="flex flex-col gap-3 px-6 py-4">

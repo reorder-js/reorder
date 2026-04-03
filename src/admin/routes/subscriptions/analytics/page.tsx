@@ -13,7 +13,6 @@ import {
 } from "@medusajs/ui"
 import { useMutation } from "@tanstack/react-query"
 import { useMemo, useState } from "react"
-import { Link } from "react-router-dom"
 import {
   type AnalyticsExportFormat,
   AnalyticsGroupBy,
@@ -147,9 +146,6 @@ const AnalyticsPage = () => {
     <Container className="divide-y p-0">
       <div className="flex items-center justify-between px-6 py-4">
         <div className="flex flex-col">
-          <Text size="small" leading="compact" className="text-ui-fg-subtle">
-            Subscription management
-          </Text>
           <Heading level="h1">Analytics</Heading>
           <Text size="small" leading="compact" className="text-ui-fg-subtle">
             Review recurring revenue, churn, and active subscription trends from
@@ -188,9 +184,6 @@ const AnalyticsPage = () => {
               </DropdownMenu.Item>
             </DropdownMenu.Content>
           </DropdownMenu>
-          <Button asChild size="small" variant="secondary" type="button">
-            <Link to="/subscriptions">View Subscriptions</Link>
-          </Button>
         </div>
       </div>
 
