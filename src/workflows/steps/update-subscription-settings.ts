@@ -67,29 +67,45 @@ export const updateSubscriptionSettingsStep = createStep(
     }
 
     const changedAt = new Date().toISOString()
-    const nextMetadata = appendSettingsAuditMetadata(previous.metadata, {
+    const settings = await settingsModule.updateSettings({
+      ...input,
+      metadata: previous.metadata,
+    })
+    const metadataWithAudit = appendSettingsAuditMetadata(previous.metadata, {
       previous,
+      next: settings,
       updated_by: input.updated_by ?? null,
       reason: input.reason ?? null,
       changed_at: changedAt,
     })
+    const [record] = (await settingsModule.listSubscriptionSettings({
+      settings_key: GLOBAL_SUBSCRIPTION_SETTINGS_KEY,
+    } as any)) as PersistedSettingsRecord[]
 
-    const settings = await settingsModule.updateSettings({
-      ...input,
-      metadata: nextMetadata,
-    })
+    if (record) {
+      await settingsModule.updateSubscriptionSettings({
+        id: record.id,
+        metadata: metadataWithAudit,
+      } as any)
+    }
+
+    const persistedSettings = await settingsModule.getSettings()
+    const lastUpdate =
+      (metadataWithAudit.last_update as Record<string, unknown> | undefined) ??
+      null
 
     logger.info(
       JSON.stringify({
         domain: "settings",
         event: "settings.update",
         outcome: "completed",
-        settings_key: settings.settings_key,
+        settings_key: persistedSettings.settings_key,
         previous_version: previous.version,
-        version: settings.version,
-        updated_by: settings.updated_by,
-        updated_at: settings.updated_at?.toISOString?.() ?? null,
+        version: persistedSettings.version,
+        updated_by: persistedSettings.updated_by,
+        updated_at: persistedSettings.updated_at?.toISOString?.() ?? null,
         reason: input.reason ?? null,
+        change_summary: lastUpdate?.change_summary ?? [],
       })
     )
 
@@ -98,7 +114,7 @@ export const updateSubscriptionSettingsStep = createStep(
       UpdateSubscriptionSettingsCompensation
     >(
       {
-        settings,
+        settings: persistedSettings,
       },
       {
         previous,

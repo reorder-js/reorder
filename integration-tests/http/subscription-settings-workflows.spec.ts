@@ -152,7 +152,20 @@ medusaIntegrationTestRunner({
           action: "update_settings",
           who: "admin_audit",
           previous_version: 1,
+          next_version: 2,
           reason: "audit_test",
+          change_summary: [
+            {
+              field: "default_trial_days",
+              from: 7,
+              to: 10,
+            },
+            {
+              field: "default_renewal_behavior",
+              from: SubscriptionRenewalBehavior.PROCESS_IMMEDIATELY,
+              to: SubscriptionRenewalBehavior.REQUIRE_REVIEW_FOR_PENDING_CHANGES,
+            },
+          ],
         })
         expect(auditLog[auditLog.length - 1].when).toBeTruthy()
       })

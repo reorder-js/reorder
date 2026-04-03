@@ -194,6 +194,90 @@ This is the safest and clearest operator model.
 
 It avoids hidden mass updates and keeps historical process behavior stable.
 
+## Audit Trail and Changelog
+
+For MVP, `SubscriptionSettings` use a lightweight changelog model.
+
+The implemented audit trail consists of:
+- scalar record fields:
+  - `version`
+  - `updated_by`
+  - `updated_at`
+- `metadata.audit_log` as the persisted change history
+- `metadata.last_update` as a convenience snapshot of the latest change
+- structured operational log events:
+  - `settings.update`
+
+### MVP Decision
+
+For MVP, `metadata.audit_log` is the changelog.
+
+This means:
+- we do not add a separate append-only `settings_change` entity yet
+- we do not add a dedicated settings-history table yet
+- the settings record remains the source of truth for current configuration
+- `metadata.audit_log` remains the source of truth for lightweight change history
+
+This is intentional.
+
+Unlike:
+- renewal execution history
+- dunning retry attempt history
+- retention offer history
+- subscription business events in `Activity Log`
+
+settings version history is not yet a standalone operational domain with independent query or workflow requirements.
+
+### Audit Record Contract
+
+Each `metadata.audit_log` entry should use the same stable contract:
+- `action`
+- `who`
+- `when`
+- `reason`
+- `previous_version`
+- `next_version`
+- `change_summary`
+
+`change_summary` is intended to stay compact and operator-readable.
+
+For MVP it should describe:
+- which fields changed
+- the previous scalar or list value
+- the next scalar or list value
+
+It should not attempt to store:
+- full historical copies of the entire settings record
+- arbitrary metadata diffs
+- separate history rows detached from the settings aggregate
+
+### Role of `version`
+
+`version` is not the changelog itself.
+
+It exists primarily for:
+- optimistic locking
+- ordering changes
+- correlating audit entries with persisted updates
+
+Historical readability comes from:
+- `metadata.audit_log`
+- `metadata.last_update`
+- `settings.update` structured logs
+
+### Future Escalation Path
+
+If later requirements include:
+- browsing long settings history in Admin
+- filtering by actor or change type
+- retention and pagination rules for history
+- separate query endpoints for configuration history
+- compliance-driven append-only storage
+
+then the correct next step is a dedicated append-only `settings_change` record.
+
+That future model would complement the singleton settings record rather than replace it.
+
 ## Operator Communication Semantics
 
 The Admin UI should communicate the effect boundary clearly.
@@ -226,6 +310,157 @@ This keeps the feature aligned with:
 - Medusa’s module isolation principles
 - the existing plugin architecture
 - safe operational behavior for `Renewals`, `Dunning`, and `Cancellation & Retention`
+
+## Runtime Source of Truth and Bootstrap
+
+The implemented runtime source of truth is:
+- persisted singleton `subscription_settings` record in the `settings` module
+
+Current bootstrap semantics:
+- the database record is the primary runtime source of truth
+- fallback defaults are used only when the singleton record does not yet exist
+- `GET /admin/subscription-settings` returns effective settings, not `404`
+- the singleton is created lazily on first successful update
+
+Once the persisted record exists:
+- fallback defaults are no longer authoritative
+- runtime reads use the stored singleton
+
+## Implemented Persistence Model
+
+The current persistence model is:
+- one global singleton record
+- keyed by `settings_key = "global"`
+- unique singleton semantics enforced at the data-model level
+
+The persisted record stores:
+- `default_trial_days`
+- `dunning_retry_intervals`
+- `max_dunning_attempts`
+- `default_renewal_behavior`
+- `default_cancellation_behavior`
+- `version`
+- `updated_by`
+- `updated_at`
+- `metadata`
+
+The current implementation does not support:
+- per-store settings
+- per-product settings
+- multi-tenant settings ownership
+
+## Service and Update Semantics
+
+The implemented service boundary provides:
+- `getSettings()`
+- `updateSettings()`
+- `resetSettings()`
+
+Current behavior:
+- `getSettings()` returns effective settings even when no persisted record exists
+- `updateSettings()` performs lazy-create on first write
+- `updateSettings()` increments `version` on every successful persisted update
+- `resetSettings()` removes the persisted singleton and returns effective fallback defaults
+
+Validation and normalization are currently applied in the settings module before persistence:
+- `default_trial_days >= 0`
+- `max_dunning_attempts > 0`
+- `dunning_retry_intervals` must be positive integers
+- retry intervals must be strictly increasing
+- `max_dunning_attempts` must match the number of retry intervals
+
+## Workflow and Optimistic Locking
+
+Settings writes are implemented through the dedicated workflow:
+- `update-subscription-settings`
+
+Current workflow responsibilities:
+- load current effective settings
+- validate `expected_version`
+- persist the next settings state
+- append audit metadata
+- emit structured `settings.update` logs
+- compensate on failure
+
+Optimistic locking uses:
+- `expected_version`
+
+Current rules:
+- first persisted write expects `0`
+- later writes must match the current persisted `version`
+- version mismatch returns a conflict
+
+Compensation semantics:
+- if a new settings record was created and a later step fails, rollback returns to fallback state
+- if an existing singleton was updated and a later step fails, rollback restores the previous persisted state
+
+## Implemented Runtime Wiring
+
+The current runtime integration is intentionally scoped to create-time or operation-start behavior.
+
+### Dunning
+
+`Dunning` reads effective settings when a new `DunningCase` is created.
+
+Current usage:
+- default retry schedule
+- default maximum attempts
+
+These values are snapshotted into the created case metadata as:
+- `metadata.settings_policy`
+
+Existing active dunning cases are not rewritten when global settings later change.
+
+### Cancellation
+
+`Cancellation & Retention` read effective settings when a new `CancellationCase` is created.
+
+Current usage:
+- default cancellation behavior snapshot
+
+The chosen policy is stored on the case metadata.
+
+Existing active cancellation cases are not rewritten when global settings later change.
+
+### Renewals
+
+`Renewals` read effective settings when a new upcoming `RenewalCycle` is created.
+
+Current usage:
+- default renewal behavior at create time
+
+The chosen behavior is snapshotted into cycle metadata.
+
+Existing cycles are not retroactively rewritten just because global settings changed.
+
+If an existing cycle later needs approval-state recomputation because the subscription changed, it is recomputed using the cycle’s persisted settings policy, not the latest global settings by default.
+
+## Admin Surface and Data Loading
+
+The implemented Admin page lives under:
+- `/app/settings/subscription-settings`
+
+The UI follows current Medusa Admin page conventions:
+- display query loaded on mount
+- mutation-backed save flow
+- inline validation
+- warning and impact messaging
+- query invalidation after update
+
+The page communicates the intended effect boundary:
+- changes apply to future operations
+- existing active process state keeps its persisted configuration
+
+## Current MVP Boundaries
+
+The current implementation intentionally does not include:
+- dedicated append-only `settings_change` storage
+- separate settings history queries
+- reset endpoint in the Admin API
+- role-based route restriction beyond authenticated admin access
+- per-store configuration
+
+These remain future expansion points rather than current runtime requirements.
 
 ## Admin Placement
 
