@@ -6,8 +6,8 @@ import {
   getAdminSubscriptionSettingsResponse,
   mapSubscriptionSettingsAdminRouteError,
   updateAdminSubscriptionSettingsResponse,
-  type PostAdminSubscriptionSettingsBody,
 } from "./utils"
+import type { PostAdminSubscriptionSettingsSchemaType } from "./validators"
 
 export const GET = async (
   req: AuthenticatedMedusaRequest,
@@ -28,13 +28,13 @@ export const GET = async (
 }
 
 export const POST = async (
-  req: AuthenticatedMedusaRequest<PostAdminSubscriptionSettingsBody>,
+  req: AuthenticatedMedusaRequest<PostAdminSubscriptionSettingsSchemaType>,
   res: MedusaResponse
 ) => {
   try {
     const response = await updateAdminSubscriptionSettingsResponse(
       req.scope,
-      req.body ?? {},
+      req.validatedBody,
       req.auth_context.actor_id
     )
 

@@ -6,10 +6,12 @@ import { adminDunningMiddlewares } from "./admin/dunning/middlewares"
 import { adminCancellationsMiddlewares } from "./admin/cancellations/middlewares"
 import { adminSubscriptionLogsMiddlewares } from "./admin/subscription-logs/middlewares"
 import { adminSubscriptionAnalyticsMiddlewares } from "./admin/subscription-analytics/middlewares"
+import { adminSubscriptionSettingsMiddlewares } from "./admin/subscription-settings/middlewares"
 
 export default defineMiddlewares({
   routes: [
     ...adminSubscriptionsMiddlewares,
+    ...adminSubscriptionSettingsMiddlewares,
     ...adminSubscriptionAnalyticsMiddlewares,
     ...adminSubscriptionLogsMiddlewares,
     ...adminSubscriptionOffersMiddlewares,
