@@ -32,14 +32,14 @@ The list is based on `DataTable` and uses the following columns:
 |---|---:|---:|---|
 | `subscription` | yes | yes | `reference` + stable identifier |
 | `status` | yes | yes | status badge |
-| `customer` | yes | yes | full name + email |
+| `customer` | no | yes | available in the DTO and backend sorting/search, but not currently rendered as a visible list column |
 | `product` | yes | yes | product + variant + optional SKU |
 | `frequency` | yes | yes | for example `Every 2 months` |
 | `next_renewal_at` | yes | yes | next renewal date |
 | `trial` | yes | yes | flag + `trial_ends_at` |
 | `discount` | yes | yes | subscription discount snapshot |
 | `skip_next_cycle` | yes | yes | boolean |
-| `updated_at` | no | yes | technical helper column |
+| `updated_at` | no | yes | technical helper sort field, not rendered as a visible list column |
 
 Minimal list record:
 - `id`

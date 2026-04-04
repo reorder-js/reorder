@@ -40,6 +40,7 @@ Main response types:
 - `ActivityLogAdminListItem`
 - `ActivityLogAdminDetail`
 - `ActivityLogAdminSubscriptionSummary`
+- `ActivityLogAdminActorSummary`
 
 ## Shared Domain Values
 
@@ -272,6 +273,13 @@ Shape:
       "event_type": "subscription.paused",
       "actor_type": "user",
       "actor_id": "user_123",
+      "actor": {
+        "type": "user",
+        "id": "user_123",
+        "email": "admin@example.com",
+        "name": "Admin User",
+        "display": "admin@example.com"
+      },
       "subscription": {
         "subscription_id": "sub_123",
         "reference": "SUB-001",
@@ -301,3 +309,20 @@ This means:
 - the API does not require heavy runtime enrichment from linked modules for the base experience
 
 This keeps the audit trail historically stable and operationally predictable.
+
+## Actor Display Notes
+
+The read model keeps the raw audit identity fields:
+- `actor_type`
+- `actor_id`
+
+It also enriches the Admin DTO with:
+- `actor.type`
+- `actor.id`
+- `actor.email`
+- `actor.name`
+- `actor.display`
+
+The intended UI behavior is:
+- prefer `actor.display`
+- fall back to `actor_id` only when display enrichment is unavailable

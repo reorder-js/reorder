@@ -51,12 +51,10 @@ The page includes:
 
 The list currently displays:
 - `Reference`
-- `Customer`
 - `Product`
 - `Status`
 - `Frequency`
 - `Next renewal`
-- `Updated`
 - row action menu
 
 Column rendering uses compact Medusa-style cells:
@@ -95,10 +93,9 @@ The list uses the standard sorting menu in the toolbar.
 
 It supports sorting on fields exposed by the backend query layer, including:
 - `Status`
-- `Customer`
 - `Product`
 - `Next renewal`
-- `Updated`
+- `Updated` as a technical backend sort key, even though it is not shown as a visible column
 
 ### Row Actions
 
@@ -150,6 +147,7 @@ The detail page currently renders:
 - `Product`
 - `Shipping address`
 - `Pending plan change`
+- `Activity Log`
 
 These sections are read-oriented and designed for quick operator inspection.
 
@@ -219,7 +217,25 @@ Behavior:
 - the form validates required fields before submit
 - the save action is shown in standard Medusa Drawer footer form
 
-## 5. Action Rules by Status
+## 5. Activity Log Section
+
+The detail page includes a dedicated `Activity Log` section for one subscription.
+
+It is implemented as a table-based audit view and follows the same Medusa-style list pattern used across the plugin:
+- compact table rows
+- sorting
+- filtering
+- pagination
+- drawer-based event detail
+
+The section currently:
+- does not expose a search input
+- supports sorting through the sorting menu
+- supports `Add filter` for domain, actor, and optional date filters
+- shows `Created from` and `Created to` inputs only after those filters are added from the menu
+- opens the event drawer when a row is clicked
+
+## 6. Action Rules by Status
 
 Current lifecycle rules in the UI:
 
@@ -244,7 +260,7 @@ Current lifecycle rules in the UI:
   - no further lifecycle transitions
   - read-only detail view remains available
 
-## 6. Loading, Empty, and Error States
+## 7. Loading, Empty, and Error States
 
 The UI follows Medusa-style state handling.
 
@@ -269,7 +285,7 @@ Drawer behavior:
 - drawer-specific errors are shown inline as `Alert`
 - when no variants are available, the user sees a clear empty state and cannot save
 
-## 7. Mutation Feedback
+## 8. Mutation Feedback
 
 The UI provides immediate feedback after mutations.
 
@@ -280,7 +296,7 @@ Implemented behavior:
 - error toasts when a mutation fails
 - query invalidation for both list and detail views after mutation success
 
-## 8. UX Decisions
+## 9. UX Decisions
 
 ### List vs Detail Responsibilities
 
@@ -305,7 +321,7 @@ Reason:
 - adding text-based pseudo-filters would create weak UX
 - a proper Medusa-style implementation would require dedicated entity selectors
 
-## 9. Tested User Flows
+## 10. Tested User Flows
 
 The implemented UI is supported by integration coverage for the underlying Admin flow:
 - list subscriptions
@@ -320,7 +336,7 @@ The browser UI itself is not currently covered by Playwright.
 
 The current project relies on Medusa-supported HTTP integration tests for end-to-end backend flow validation.
 
-## 10. Boundary with Cancellation & Retention
+## 11. Boundary with Cancellation & Retention
 
 The `Subscriptions` Admin area still owns direct lifecycle actions such as:
 - pause

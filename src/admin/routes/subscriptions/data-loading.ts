@@ -31,11 +31,42 @@ type UseAdminSubscriptionsDisplayQueryInput = {
   sorting: DataTableSortingState | null
 }
 
+type UseAdminSubscriptionTimelineQueryInput = {
+  id?: string
+  pagination: DataTablePaginationState
+  filtering: DataTableFilteringState
+  sorting: DataTableSortingState | null
+}
+
 export const adminSubscriptionsQueryKeys = {
   all: ["admin-subscriptions"] as const,
   detail: (id: string) => [...adminSubscriptionsQueryKeys.all, "detail", id] as const,
   detailLogs: (id: string) =>
     [...adminSubscriptionsQueryKeys.all, "detail-logs", id] as const,
+  detailLogsDisplay: (params: {
+    id: string
+    pageSize: number
+    offset: number
+    eventType: string[]
+    actorType: string[]
+    dateFrom?: string
+    dateTo?: string
+    sortingId?: string
+    sortingDesc?: boolean
+  }) =>
+    [
+      ...adminSubscriptionsQueryKeys.all,
+      "detail-logs-display",
+      params.id,
+      params.pageSize,
+      params.offset,
+      params.eventType,
+      params.actorType,
+      params.dateFrom,
+      params.dateTo,
+      params.sortingId,
+      params.sortingDesc,
+    ] as const,
   logDetail: (logId: string) =>
     [...adminSubscriptionsQueryKeys.all, "log-detail", logId] as const,
   planOptions: (productId: string) =>
@@ -166,6 +197,73 @@ export function useAdminSubscriptionLogsQuery(id?: string) {
   })
 }
 
+export function getAdminSubscriptionTimelineQueryInput(
+  input: UseAdminSubscriptionTimelineQueryInput
+) {
+  const offset = input.pagination.pageIndex * input.pagination.pageSize
+  const eventType = Array.isArray(input.filtering.event_type)
+    ? (input.filtering.event_type as string[])
+    : []
+  const actorType = Array.isArray(input.filtering.actor_type)
+    ? (input.filtering.actor_type as string[])
+    : []
+  const dateFrom =
+    typeof input.filtering.date_from === "string"
+      ? toIsoDateTime(input.filtering.date_from)
+      : undefined
+  const dateTo =
+    typeof input.filtering.date_to === "string"
+      ? toIsoDateTime(input.filtering.date_to)
+      : undefined
+
+  return {
+    id: input.id ?? "",
+    pageSize: input.pagination.pageSize,
+    offset,
+    eventType,
+    actorType,
+    dateFrom,
+    dateTo,
+    sortingId: input.sorting?.id,
+    sortingDesc: input.sorting?.desc,
+  }
+}
+
+export function useAdminSubscriptionTimelineQuery(
+  input: UseAdminSubscriptionTimelineQueryInput
+) {
+  const queryInput = getAdminSubscriptionTimelineQueryInput(input)
+
+  return useQuery<ActivityLogAdminListResponse>({
+    queryKey: adminSubscriptionsQueryKeys.detailLogsDisplay(queryInput),
+    queryFn: () =>
+      sdk.client.fetch(`/admin/subscriptions/${queryInput.id}/logs`, {
+        query: {
+          limit: queryInput.pageSize,
+          offset: queryInput.offset,
+          event_type: queryInput.eventType.length
+            ? queryInput.eventType
+            : undefined,
+          actor_type: queryInput.actorType.length
+            ? queryInput.actorType
+            : undefined,
+          date_from: queryInput.dateFrom,
+          date_to: queryInput.dateTo,
+          order: queryInput.sortingId,
+          direction:
+            queryInput.sortingId &&
+            typeof queryInput.sortingDesc === "boolean"
+              ? queryInput.sortingDesc
+                ? "desc"
+                : "asc"
+              : undefined,
+        },
+      }),
+    enabled: Boolean(input.id),
+    placeholderData: keepPreviousData,
+  })
+}
+
 export function useAdminSubscriptionLogDetailQuery(
   logId?: string,
   enabled = false,
@@ -264,6 +362,16 @@ function getNextRenewalRange(value?: NextRenewalFilterValue) {
         to: addDays(now, 90).toISOString(),
       }
   }
+}
+
+function toIsoDateTime(value: string) {
+  const date = new Date(value)
+
+  if (Number.isNaN(date.getTime())) {
+    return undefined
+  }
+
+  return date.toISOString()
 }
 
 function addDays(date: Date, amount: number) {

@@ -13,6 +13,7 @@ import {
   ActivityLogActorType,
   ActivityLogEventType,
 } from "../modules/activity-log/types"
+import type { SubscriptionShippingAddress } from "../modules/subscription/types"
 import { toISOStringOrNull } from "./utils/date-output"
 
 export const updateSubscriptionShippingAddressWorkflow = createWorkflow(
@@ -22,6 +23,11 @@ export const updateSubscriptionShippingAddressWorkflow = createWorkflow(
     const logInput = transform(
       { subscriptionChange, input },
       function ({ subscriptionChange, input }) {
+        const shippingAddressLogState = buildShippingAddressLogStates(
+          subscriptionChange.previous.shipping_address ?? null,
+          subscriptionChange.current.shipping_address ?? null
+        )
+
         return {
           log_event: normalizeActivityLogEvent({
             subscription_id: subscriptionChange.current.id,
@@ -38,18 +44,8 @@ export const updateSubscriptionShippingAddressWorkflow = createWorkflow(
               variant_title:
                 subscriptionChange.current.product_snapshot?.variant_title ?? null,
             },
-            previous_state: {
-              city: subscriptionChange.previous.shipping_address?.city ?? null,
-              province: subscriptionChange.previous.shipping_address?.province ?? null,
-              country_code:
-                subscriptionChange.previous.shipping_address?.country_code ?? null,
-            },
-            new_state: {
-              city: subscriptionChange.current.shipping_address?.city ?? null,
-              province: subscriptionChange.current.shipping_address?.province ?? null,
-              country_code:
-                subscriptionChange.current.shipping_address?.country_code ?? null,
-            },
+            previous_state: shippingAddressLogState.previous,
+            new_state: shippingAddressLogState.current,
             metadata: {
               source: "admin",
             },
@@ -71,3 +67,64 @@ export const updateSubscriptionShippingAddressWorkflow = createWorkflow(
 )
 
 export default updateSubscriptionShippingAddressWorkflow
+
+function buildShippingAddressLogStates(
+  previous: SubscriptionShippingAddress | null,
+  current: SubscriptionShippingAddress | null
+): {
+  previous: Record<string, string | boolean | null> | null
+  current: Record<string, string | boolean | null> | null
+} {
+  if (!previous && !current) {
+    return {
+      previous: null,
+      current: null,
+    }
+  }
+
+  const previousAddress = previous ?? current!
+  const currentAddress = current ?? previous!
+
+  return {
+    previous: toShippingAddressLogState(previousAddress, currentAddress),
+    current: toShippingAddressLogState(currentAddress, previousAddress),
+  }
+}
+
+function toShippingAddressLogState(
+  address: SubscriptionShippingAddress,
+  counterpart: SubscriptionShippingAddress
+): Record<string, string | boolean | null> {
+  const recipient = [address.first_name, address.last_name]
+    .filter(Boolean)
+    .join(" ")
+    .trim()
+
+  return {
+    recipient: recipient || null,
+    address_lines_changed: haveAddressLinesChanged(address, counterpart),
+    city: address.city || null,
+    province: address.province ?? null,
+    postal_code_changed: address.postal_code !== counterpart.postal_code,
+    country_code: address.country_code || null,
+    phone_changed: normalizePhone(address.phone) !== normalizePhone(counterpart.phone),
+  }
+}
+
+function haveAddressLinesChanged(
+  left: SubscriptionShippingAddress,
+  right: SubscriptionShippingAddress
+) {
+  return (
+    normalizeAddressLine(left.address_1) !== normalizeAddressLine(right.address_1) ||
+    normalizeAddressLine(left.address_2) !== normalizeAddressLine(right.address_2)
+  )
+}
+
+function normalizeAddressLine(value: string | null) {
+  return (value ?? "").trim()
+}
+
+function normalizePhone(value: string | null) {
+  return value ? value.replace(/\s+/g, "") : ""
+}

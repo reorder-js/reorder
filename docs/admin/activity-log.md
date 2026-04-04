@@ -93,6 +93,10 @@ These date inputs:
 
 Applied non-date filters are rendered as segmented filter chips, consistent with `Cancellation & Retention`.
 
+The `Actor` presentation prefers the resolved display value from the read model:
+- for admin users, this is typically the admin email
+- if no display enrichment is available, the UI falls back to `actor_id`
+
 The toolbar also exposes:
 - `Add filter`
 - `Clear all`
@@ -140,7 +144,10 @@ This gives operators local audit context without leaving the subscription detail
 ### Main UI Elements
 
 The section includes:
-- timeline list
+- table-based timeline
+- filter toolbar
+- sorting menu
+- pagination
 - loading state
 - empty state
 - inline error alert
@@ -148,12 +155,13 @@ The section includes:
 
 ### Timeline Content
 
-Each timeline entry currently shows:
-- event type
-- created timestamp
-- actor type and actor id
-- reason
-- change summary
+The subscription detail timeline now uses a compact table layout rather than a card list.
+
+The table currently shows:
+- `Created`
+- `Event`
+- `Actor`
+- `Summary`
 
 Entries are ordered by:
 - `created_at desc`
@@ -166,6 +174,27 @@ The timeline distinguishes:
 - `scheduler`
 
 It uses the same status-badge language and color semantics as the global `Activity Log` page.
+
+The actor cell prefers the resolved display value:
+- admin email when available
+- `actor_id` only as a fallback
+
+### Timeline Filters
+
+The subscription timeline intentionally does not expose a search input.
+
+It supports:
+- domain filter
+- actor filter
+- `Created from`
+- `Created to`
+
+The date filters are not always visible.
+
+Instead:
+- they are added through `Add filter`
+- once added, the corresponding datetime input is rendered below the toolbar
+- if removed, the input disappears again
 
 ### Detail Drill-Down
 
