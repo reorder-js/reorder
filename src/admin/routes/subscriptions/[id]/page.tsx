@@ -190,6 +190,7 @@ const SubscriptionDetailPage = () => {
     subscription?.product.product_id && subscription?.product.variant_id
       ? `/products/${subscription.product.product_id}/variants/${subscription.product.variant_id}`
       : null;
+  const displayedRenewalOrders = subscription?.renewal_orders.slice(0, 3) ?? [];
   const {
     data: logsData,
     isLoading: isLogsLoading,
@@ -521,6 +522,7 @@ const SubscriptionDetailPage = () => {
       setActivityLogDrawerOpen(true);
     },
   });
+  const activityLogRows = activityLogTable.getRowModel().rows;
 
   if (isLoading) {
     return (
@@ -746,34 +748,53 @@ const SubscriptionDetailPage = () => {
             </DropdownMenu>
           </div>
         </div>
-        <div className="grid grid-cols-1 gap-4 px-6 py-4 xl:grid-cols-[minmax(0,1fr)_360px]">
-          <div className="flex min-w-0 flex-col gap-4">
-            <DetailBlock
-              title="Subscription"
-              columns={2}
-              rows={[
-                {
-                  label: "Status",
-                  value: (
+      </Container>
+
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
+        <div className="flex min-w-0 flex-col gap-4">
+          <Container className="divide-y p-0">
+            <div className="px-4 py-4">
+              <Text size="small" leading="compact" weight="plus">
+                Subscription
+              </Text>
+            </div>
+            <div className="px-4 py-4">
+              <div className="grid gap-3 md:grid-cols-2">
+                <DetailRow
+                  label="Status"
+                  value={(
                     <StatusBadge
                       color={getStatusColor(subscription.status)}
                       className="text-nowrap"
                     >
                       {formatStatus(subscription.status)}
                     </StatusBadge>
-                  ),
-                },
-                { label: "Frequency", value: subscription.frequency.label },
-                { label: "Next renewal", value: formatDateTime(subscription.next_renewal_at) },
-                { label: "Started at", value: formatDateTime(subscription.started_at) },
-                { label: "Last renewal", value: formatDateTime(subscription.last_renewal_at) },
-              ]}
-            />
-            <div className="rounded-lg border p-4">
+                  )}
+                />
+                <DetailRow label="Frequency" value={subscription.frequency.label} />
+                <DetailRow
+                  label="Next renewal"
+                  value={formatDateTime(subscription.next_renewal_at)}
+                />
+                <DetailRow
+                  label="Started at"
+                  value={formatDateTime(subscription.started_at)}
+                />
+                <DetailRow
+                  label="Last renewal"
+                  value={formatDateTime(subscription.last_renewal_at)}
+                />
+              </div>
+            </div>
+          </Container>
+          <Container className="divide-y p-0">
+            <div className="px-4 py-4">
               <Text size="small" leading="compact" weight="plus">
                 Shipping address
               </Text>
-              <div className="mt-4 grid gap-3 md:grid-cols-2">
+            </div>
+            <div className="px-4 py-4">
+              <div className="grid gap-3 md:grid-cols-2">
                 <div className="flex flex-col gap-3">
                   <DetailRow
                     label="Recipient"
@@ -805,14 +826,429 @@ const SubscriptionDetailPage = () => {
                 </div>
               </div>
             </div>
-          </div>
-          <div className="flex min-w-0 flex-col gap-4">
-            <DetailBlock
-              title="Customer"
-              rows={[
-                {
-                  label: "",
-                  value: customerLink ? (
+          </Container>
+          <Container className="divide-y p-0">
+            <div className="px-6 py-4">
+              <Heading level="h2">Pending plan change</Heading>
+            </div>
+            <div className="px-6 py-4">
+              {subscription.pending_update_data ? (
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <DetailRow
+                    label="Variant"
+                    value={subscription.pending_update_data.variant_title}
+                  />
+                  <DetailRow
+                    label="Frequency"
+                    value={formatFrequency(
+                      subscription.pending_update_data.frequency_interval,
+                      subscription.pending_update_data.frequency_value,
+                    )}
+                  />
+                  <DetailRow
+                    label="Effective at"
+                    value={formatDateTime(subscription.pending_update_data.effective_at)}
+                  />
+                  <DetailRow
+                    label="Variant ID"
+                    value={subscription.pending_update_data.variant_id}
+                  />
+                </div>
+              ) : (
+                <Text size="small" leading="compact" className="text-ui-fg-subtle">
+                  No pending plan change is scheduled for this subscription.
+                </Text>
+              )}
+            </div>
+          </Container>
+          <Container className="divide-y p-0">
+            <div className="px-6 py-4">
+              <Heading level="h2">Activity Log</Heading>
+            </div>
+            <DataTable instance={activityLogTable} className="min-h-0">
+              <div className="flex flex-col gap-4 px-6 py-4">
+                <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                  <div className="flex flex-wrap items-center gap-2">
+                    {activeActivityLogDomain ? (
+                      <FilterChip
+                        label="Domain"
+                        value={activeActivityLogDomain.label}
+                        onRemove={() => {
+                          setActivityLogFiltering((current) =>
+                            removeTimelineFilter(current, "event_type"),
+                          );
+                        }}
+                      />
+                    ) : null}
+                    {activityLogActorTypeFilters.length ? (
+                      <FilterChip
+                        label="Actor"
+                        value={activityLogActorLabels.join(", ")}
+                        onRemove={() => {
+                          setActivityLogFiltering((current) =>
+                            removeTimelineFilter(current, "actor_type"),
+                          );
+                        }}
+                      />
+                    ) : null}
+                    {activityLogDateFrom ? (
+                      <FilterChip
+                        label="Created from"
+                        value={formatDateTimeInputValue(activityLogDateFrom)}
+                        onRemove={() => {
+                          setActivityLogFiltering((current) =>
+                            removeTimelineFilter(current, "date_from"),
+                          );
+                        }}
+                      />
+                    ) : null}
+                    {activityLogDateTo ? (
+                      <FilterChip
+                        label="Created to"
+                        value={formatDateTimeInputValue(activityLogDateTo)}
+                        onRemove={() => {
+                          setActivityLogFiltering((current) =>
+                            removeTimelineFilter(current, "date_to"),
+                          );
+                        }}
+                      />
+                    ) : null}
+                    <DropdownMenu>
+                      <DropdownMenu.Trigger asChild>
+                        <Button size="small" variant="secondary" type="button">
+                          Add filter
+                        </Button>
+                      </DropdownMenu.Trigger>
+                      <DropdownMenu.Content align="start">
+                        <DropdownMenu.SubMenu>
+                          <DropdownMenu.SubMenuTrigger>
+                            Domain
+                          </DropdownMenu.SubMenuTrigger>
+                          <DropdownMenu.SubMenuContent>
+                            {activityLogDomainFilterOptions.map((option) => (
+                              <DropdownMenu.CheckboxItem
+                                key={option.value}
+                                checked={activeActivityLogDomain?.value === option.value}
+                                onSelect={(event) => {
+                                  event.preventDefault();
+                                }}
+                                onCheckedChange={(checked) => {
+                                  setActivityLogFiltering((current) => {
+                                    if (!checked) {
+                                      return removeTimelineFilter(current, "event_type");
+                                    }
+
+                                    return {
+                                      ...current,
+                                      event_type: [...option.eventTypes],
+                                    };
+                                  });
+                                }}
+                              >
+                                {option.label}
+                              </DropdownMenu.CheckboxItem>
+                            ))}
+                          </DropdownMenu.SubMenuContent>
+                        </DropdownMenu.SubMenu>
+                        <DropdownMenu.SubMenu>
+                          <DropdownMenu.SubMenuTrigger>
+                            Actor
+                          </DropdownMenu.SubMenuTrigger>
+                          <DropdownMenu.SubMenuContent>
+                            {activityLogActorFilterOptions.map((option) => {
+                              const checked = activityLogActorTypeFilters.includes(
+                                option.value,
+                              );
+
+                              return (
+                                <DropdownMenu.CheckboxItem
+                                  key={option.value}
+                                  checked={checked}
+                                  onSelect={(event) => {
+                                    event.preventDefault();
+                                  }}
+                                  onCheckedChange={(nextChecked) => {
+                                    setActivityLogFiltering((current) => {
+                                      const currentValues = Array.isArray(
+                                        current.actor_type,
+                                      )
+                                        ? (current.actor_type as ActivityLogAdminActorType[])
+                                        : [];
+
+                                      const nextValues = nextChecked
+                                        ? currentValues.includes(option.value)
+                                          ? currentValues
+                                          : [...currentValues, option.value]
+                                        : currentValues.filter(
+                                            (currentValue) =>
+                                              currentValue !== option.value,
+                                          );
+
+                                      if (!nextValues.length) {
+                                        return removeTimelineFilter(
+                                          current,
+                                          "actor_type",
+                                        );
+                                      }
+
+                                      return {
+                                        ...current,
+                                        actor_type: nextValues,
+                                      };
+                                    });
+                                  }}
+                                >
+                                  {option.label}
+                                </DropdownMenu.CheckboxItem>
+                              );
+                            })}
+                          </DropdownMenu.SubMenuContent>
+                        </DropdownMenu.SubMenu>
+                        {!hasActivityLogDateFrom ? (
+                          <DropdownMenu.Item
+                            onClick={() => {
+                              setActivityLogFiltering((current) => ({
+                                ...current,
+                                date_from: "",
+                              }));
+                            }}
+                          >
+                            Created from
+                          </DropdownMenu.Item>
+                        ) : null}
+                        {!hasActivityLogDateTo ? (
+                          <DropdownMenu.Item
+                            onClick={() => {
+                              setActivityLogFiltering((current) => ({
+                                ...current,
+                                date_to: "",
+                              }));
+                            }}
+                          >
+                            Created to
+                          </DropdownMenu.Item>
+                        ) : null}
+                      </DropdownMenu.Content>
+                    </DropdownMenu>
+                    {hasActivityLogFilters ? (
+                      <Button
+                        size="small"
+                        variant="transparent"
+                        type="button"
+                        onClick={() => {
+                          setActivityLogFiltering({});
+                          setActivityLogPagination((current) => ({
+                            ...current,
+                            pageIndex: 0,
+                          }));
+                        }}
+                      >
+                        Clear all
+                      </Button>
+                    ) : null}
+                  </div>
+                  <DataTable.SortingMenu
+                    direction={activityLogSorting?.desc ? "desc" : "asc"}
+                    sortBy={activityLogSorting?.id ?? "created_at"}
+                    onSort={(sort) => {
+                      setActivityLogSorting({
+                        id: sort.sortBy,
+                        desc: sort.direction === "desc",
+                      });
+                      setActivityLogPagination((current) => ({
+                        ...current,
+                        pageIndex: 0,
+                      }));
+                    }}
+                    fields={[
+                      { label: "Created", value: "created_at" },
+                      { label: "Event", value: "event_type" },
+                      { label: "Actor", value: "actor_display" },
+                    ]}
+                  />
+                </div>
+                {hasActivityLogDateFrom || hasActivityLogDateTo ? (
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    {hasActivityLogDateFrom ? (
+                      <div className="grid gap-2">
+                        <Label>Created from</Label>
+                        <div className="relative">
+                          <Input
+                            type="datetime-local"
+                            value={activityLogDateFrom}
+                            onChange={(event) => {
+                              const nextValue = event.target.value;
+
+                              setActivityLogFiltering((current) => ({
+                                ...current,
+                                date_from: nextValue,
+                              }));
+                              setActivityLogPagination((current) => ({
+                                ...current,
+                                pageIndex: 0,
+                              }));
+                            }}
+                          />
+                          <button
+                            type="button"
+                            className="absolute right-2 top-1/2 -translate-y-1/2 text-ui-fg-subtle"
+                            onClick={() => {
+                              setActivityLogFiltering((current) =>
+                                removeTimelineFilter(current, "date_from"),
+                              );
+                            }}
+                          >
+                            <XMarkMini />
+                          </button>
+                        </div>
+                      </div>
+                    ) : null}
+                    {hasActivityLogDateTo ? (
+                      <div className="grid gap-2">
+                        <Label>Created to</Label>
+                        <div className="relative">
+                          <Input
+                            type="datetime-local"
+                            value={activityLogDateTo}
+                            onChange={(event) => {
+                              const nextValue = event.target.value;
+
+                              setActivityLogFiltering((current) => ({
+                                ...current,
+                                date_to: nextValue,
+                              }));
+                              setActivityLogPagination((current) => ({
+                                ...current,
+                                pageIndex: 0,
+                              }));
+                            }}
+                          />
+                          <button
+                            type="button"
+                            className="absolute right-2 top-1/2 -translate-y-1/2 text-ui-fg-subtle"
+                            onClick={() => {
+                              setActivityLogFiltering((current) =>
+                                removeTimelineFilter(current, "date_to"),
+                              );
+                            }}
+                          >
+                            <XMarkMini />
+                          </button>
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
+                ) : null}
+                {isLogsLoading ? (
+                  <div className="flex items-center gap-x-2 text-ui-fg-subtle">
+                    <Spinner className="animate-spin" />
+                    <Text size="small" leading="compact" className="text-ui-fg-subtle">
+                      Loading activity log...
+                    </Text>
+                  </div>
+                ) : isLogsError ? (
+                  <Alert variant="error">
+                    {logsError instanceof Error
+                      ? logsError.message
+                      : "Failed to load activity log."}
+                  </Alert>
+                ) : (
+                  <>
+                    <div className="overflow-x-auto border-y">
+                      <Table>
+                        <Table.Header>
+                          {activityLogTable.getHeaderGroups().map((headerGroup) => (
+                            <Table.Row key={headerGroup.id}>
+                              {headerGroup.headers.map((header) => (
+                                <Table.HeaderCell key={header.id}>
+                                  {header.isPlaceholder
+                                    ? null
+                                    : flexRender(
+                                        header.column.columnDef.header,
+                                        header.getContext(),
+                                      )}
+                                </Table.HeaderCell>
+                              ))}
+                            </Table.Row>
+                          ))}
+                        </Table.Header>
+                        <Table.Body>
+                          {activityLogRows.length ? (
+                            activityLogRows.map((row) => (
+                              <Table.Row
+                                key={row.id}
+                                className="cursor-pointer"
+                                onClick={() => {
+                                  setSelectedLogId(row.original.id);
+                                  setActivityLogDrawerOpen(true);
+                                }}
+                              >
+                                {row.getVisibleCells().map((cell) => (
+                                  <Table.Cell key={cell.id}>
+                                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                  </Table.Cell>
+                                ))}
+                              </Table.Row>
+                            ))
+                          ) : (
+                            <Table.Row>
+                              <Table.Cell colSpan={activityLogColumns.length}>
+                                <Text
+                                  size="small"
+                                  leading="compact"
+                                  className="text-ui-fg-subtle"
+                                >
+                                  No activity log events found.
+                                </Text>
+                              </Table.Cell>
+                            </Table.Row>
+                          )}
+                        </Table.Body>
+                      </Table>
+                    </div>
+                    <DataTable.Pagination
+                      count={logsData?.count ?? 0}
+                      pageSize={activityLogPagination.pageSize}
+                      pageIndex={activityLogPagination.pageIndex}
+                      pageCount={Math.max(
+                        1,
+                        Math.ceil((logsData?.count ?? 0) / activityLogPagination.pageSize),
+                      )}
+                      canNextPage={
+                        (activityLogPagination.pageIndex + 1) *
+                          activityLogPagination.pageSize <
+                        (logsData?.count ?? 0)
+                      }
+                      canPreviousPage={activityLogPagination.pageIndex > 0}
+                      nextPage={() =>
+                        setActivityLogPagination((current) => ({
+                          ...current,
+                          pageIndex: current.pageIndex + 1,
+                        }))
+                      }
+                      previousPage={() =>
+                        setActivityLogPagination((current) => ({
+                          ...current,
+                          pageIndex: Math.max(0, current.pageIndex - 1),
+                        }))
+                      }
+                    />
+                  </>
+                )}
+              </div>
+            </DataTable>
+          </Container>
+        </div>
+        <div className="flex min-w-0 flex-col gap-4">
+            <Container className="divide-y p-0">
+              <div className="px-4 py-4">
+                <Text size="small" leading="compact" weight="plus">
+                  Customer
+                </Text>
+              </div>
+              <div className="px-4 py-4">
+                <div className="flex flex-col gap-3">
+                  {customerLink ? (
                     <Link
                       to={customerLink}
                       className="outline-none focus-within:shadow-borders-interactive-with-focus rounded-md [&:hover>div]:bg-ui-bg-component-hover"
@@ -860,18 +1296,21 @@ const SubscriptionDetailPage = () => {
                         </div>
                       </div>
                     </div>
-                  ),
-                },
-                { label: "Email", value: subscription.customer.email || "-" },
-                { label: "Customer ID", value: subscription.customer.id },
-              ]}
-            />
-            <DetailBlock
-              title="Product"
-              rows={[
-                {
-                  label: "",
-                  value: variantLink ? (
+                  )}
+                  <DetailRow label="Email" value={subscription.customer.email || "-"} />
+                  <DetailRow label="Customer ID" value={subscription.customer.id} />
+                </div>
+              </div>
+            </Container>
+            <Container className="divide-y p-0">
+              <div className="px-4 py-4">
+                <Text size="small" leading="compact" weight="plus">
+                  Product
+                </Text>
+              </div>
+              <div className="px-4 py-4">
+                <div className="flex flex-col gap-3">
+                  {variantLink ? (
                     <Link
                       to={variantLink}
                       className="outline-none focus-within:shadow-borders-interactive-with-focus rounded-md [&:hover>div]:bg-ui-bg-component-hover"
@@ -947,384 +1386,54 @@ const SubscriptionDetailPage = () => {
                         </div>
                       </div>
                     </div>
-                  ),
-                },
-                { label: "SKU", value: subscription.product.sku || "-" },
-              ]}
-            />
-          </div>
-        </div>
-      </Container>
-
-      <Container className="divide-y p-0">
-        <div className="px-6 py-4">
-          <Heading level="h2">Pending plan change</Heading>
-        </div>
-        <div className="px-6 py-4">
-          {subscription.pending_update_data ? (
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <DetailRow
-                label="Variant"
-                value={subscription.pending_update_data.variant_title}
-              />
-              <DetailRow
-                label="Frequency"
-                value={formatFrequency(
-                  subscription.pending_update_data.frequency_interval,
-                  subscription.pending_update_data.frequency_value,
-                )}
-              />
-              <DetailRow
-                label="Effective at"
-                value={formatDateTime(subscription.pending_update_data.effective_at)}
-              />
-              <DetailRow
-                label="Variant ID"
-                value={subscription.pending_update_data.variant_id}
-              />
-            </div>
-          ) : (
-            <Text size="small" leading="compact" className="text-ui-fg-subtle">
-              No pending plan change is scheduled for this subscription.
-            </Text>
-          )}
-        </div>
-      </Container>
-
-      <Container className="divide-y p-0">
-        <div className="px-6 py-4">
-          <Heading level="h2">Activity Log</Heading>
-        </div>
-        <DataTable instance={activityLogTable} className="min-h-0">
-          <div className="flex flex-col gap-4 px-6 py-4">
-            <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-              <div className="flex flex-wrap items-center gap-2">
-                {activeActivityLogDomain ? (
-                  <FilterChip
-                    label="Domain"
-                    value={activeActivityLogDomain.label}
-                    onRemove={() => {
-                      setActivityLogFiltering((current) =>
-                        removeTimelineFilter(current, "event_type"),
-                      );
-                    }}
-                  />
-                ) : null}
-                {activityLogActorTypeFilters.length ? (
-                  <FilterChip
-                    label="Actor"
-                    value={activityLogActorLabels.join(", ")}
-                    onRemove={() => {
-                      setActivityLogFiltering((current) =>
-                        removeTimelineFilter(current, "actor_type"),
-                      );
-                    }}
-                  />
-                ) : null}
-                {activityLogDateFrom ? (
-                  <FilterChip
-                    label="Created from"
-                    value={formatDateTimeInputValue(activityLogDateFrom)}
-                    onRemove={() => {
-                      setActivityLogFiltering((current) =>
-                        removeTimelineFilter(current, "date_from"),
-                      );
-                    }}
-                  />
-                ) : null}
-                {activityLogDateTo ? (
-                  <FilterChip
-                    label="Created to"
-                    value={formatDateTimeInputValue(activityLogDateTo)}
-                    onRemove={() => {
-                      setActivityLogFiltering((current) =>
-                        removeTimelineFilter(current, "date_to"),
-                      );
-                    }}
-                  />
-                ) : null}
-                <DropdownMenu>
-                  <DropdownMenu.Trigger asChild>
-                    <Button size="small" variant="secondary" type="button">
-                      Add filter
-                    </Button>
-                  </DropdownMenu.Trigger>
-                  <DropdownMenu.Content align="start">
-                    <DropdownMenu.SubMenu>
-                      <DropdownMenu.SubMenuTrigger>
-                        Domain
-                      </DropdownMenu.SubMenuTrigger>
-                      <DropdownMenu.SubMenuContent>
-                        {activityLogDomainFilterOptions.map((option) => (
-                          <DropdownMenu.CheckboxItem
-                            key={option.value}
-                            checked={activeActivityLogDomain?.value === option.value}
-                            onSelect={(event) => {
-                              event.preventDefault();
-                            }}
-                            onCheckedChange={(checked) => {
-                              setActivityLogFiltering((current) => {
-                                if (!checked) {
-                                  return removeTimelineFilter(current, "event_type");
-                                }
-
-                                return {
-                                  ...current,
-                                  event_type: [...option.eventTypes],
-                                };
-                              });
-                            }}
-                          >
-                            {option.label}
-                          </DropdownMenu.CheckboxItem>
-                        ))}
-                      </DropdownMenu.SubMenuContent>
-                    </DropdownMenu.SubMenu>
-                    <DropdownMenu.SubMenu>
-                      <DropdownMenu.SubMenuTrigger>
-                        Actor
-                      </DropdownMenu.SubMenuTrigger>
-                      <DropdownMenu.SubMenuContent>
-                        {activityLogActorFilterOptions.map((option) => {
-                          const checked = activityLogActorTypeFilters.includes(
-                            option.value,
-                          );
-
-                          return (
-                            <DropdownMenu.CheckboxItem
-                              key={option.value}
-                              checked={checked}
-                              onSelect={(event) => {
-                                event.preventDefault();
-                              }}
-                              onCheckedChange={(nextChecked) => {
-                                setActivityLogFiltering((current) => {
-                                  const currentValues = Array.isArray(
-                                    current.actor_type,
-                                  )
-                                    ? (current.actor_type as ActivityLogAdminActorType[])
-                                    : [];
-
-                                  const nextValues = nextChecked
-                                    ? currentValues.includes(option.value)
-                                      ? currentValues
-                                      : [...currentValues, option.value]
-                                    : currentValues.filter(
-                                        (currentValue) =>
-                                          currentValue !== option.value,
-                                      );
-
-                                  if (!nextValues.length) {
-                                    return removeTimelineFilter(
-                                      current,
-                                      "actor_type",
-                                    );
-                                  }
-
-                                  return {
-                                    ...current,
-                                    actor_type: nextValues,
-                                  };
-                                });
-                              }}
-                            >
-                              {option.label}
-                            </DropdownMenu.CheckboxItem>
-                          );
-                        })}
-                      </DropdownMenu.SubMenuContent>
-                    </DropdownMenu.SubMenu>
-                    <DropdownMenu.Item
-                      onSelect={(event) => {
-                        event.preventDefault();
-                        setActivityLogFiltering((current) => ({
-                          ...current,
-                          date_from:
-                            typeof current.date_from === "string"
-                              ? current.date_from
-                              : "",
-                        }));
-                      }}
-                    >
-                      Created from
-                    </DropdownMenu.Item>
-                    <DropdownMenu.Item
-                      onSelect={(event) => {
-                        event.preventDefault();
-                        setActivityLogFiltering((current) => ({
-                          ...current,
-                          date_to:
-                            typeof current.date_to === "string"
-                              ? current.date_to
-                              : "",
-                        }));
-                      }}
-                    >
-                      Created to
-                    </DropdownMenu.Item>
-                    {hasActivityLogFilters ? (
-                      <>
-                        <DropdownMenu.Separator />
-                        <DropdownMenu.Item
-                          onSelect={(event) => {
-                            event.preventDefault();
-                            setActivityLogFiltering({});
-                          }}
-                        >
-                          Clear all filters
-                        </DropdownMenu.Item>
-                      </>
-                    ) : null}
-                  </DropdownMenu.Content>
-                </DropdownMenu>
-                {hasActivityLogFilters ? (
-                  <button
-                    type="button"
-                    className="text-ui-fg-muted hover:text-ui-fg-subtle txt-compact-small-plus rounded-md px-2 py-1 transition-fg"
-                    onClick={() => {
-                      setActivityLogFiltering({});
-                    }}
-                  >
-                    Clear all
-                  </button>
-                ) : null}
+                  )}
+                  <DetailRow label="SKU" value={subscription.product.sku || "-"} />
+                </div>
               </div>
-              <div className="self-end md:self-auto">
-                <DataTable.SortingMenu />
+            </Container>
+            <Container className="divide-y p-0">
+              <div className="px-4 py-4">
+                <Text size="small" leading="compact" weight="plus">
+                  Orders
+                </Text>
               </div>
-            </div>
-            {hasActivityLogDateFrom || hasActivityLogDateTo ? (
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                {hasActivityLogDateFrom ? (
-                  <div className="grid gap-2">
-                    <Label htmlFor="activity-log-date-from">Created from</Label>
-                    <Input
-                      id="activity-log-date-from"
-                      type="datetime-local"
-                      value={activityLogDateFrom}
-                      onChange={(event) => {
-                        const value = event.target.value;
-
-                        setActivityLogFiltering((current) => ({
-                          ...current,
-                          date_from: value,
-                        }));
-                      }}
+              <div className="px-4 py-4">
+                <div className="flex flex-col gap-3">
+                  {subscription.initial_order ? (
+                    <LinkedOrderCard
+                      label="Initial order"
+                      orderId={subscription.initial_order.order_id}
+                      title={formatOrderDisplayLabel(
+                        subscription.initial_order.display_id,
+                        subscription.initial_order.order_id
+                      )}
+                      subtitle={`${subscription.initial_order.status} · ${formatDateTime(subscription.initial_order.created_at)}`}
                     />
-                  </div>
-                ) : null}
-                {hasActivityLogDateTo ? (
-                  <div className="grid gap-2">
-                    <Label htmlFor="activity-log-date-to">Created to</Label>
-                    <Input
-                      id="activity-log-date-to"
-                      type="datetime-local"
-                      value={activityLogDateTo}
-                      onChange={(event) => {
-                        const value = event.target.value;
-
-                        setActivityLogFiltering((current) => ({
-                          ...current,
-                          date_to: value,
-                        }));
-                      }}
+                  ) : null}
+                  {displayedRenewalOrders.map((order, index) => (
+                    <LinkedOrderCard
+                      key={order.order_id}
+                      label={index === 0 ? "Latest renewal" : `Renewal ${index + 1}`}
+                      orderId={order.order_id}
+                      title={formatOrderDisplayLabel(order.display_id, order.order_id)}
+                      subtitle={`${order.status} · ${formatDateTime(order.created_at)}`}
                     />
-                  </div>
-                ) : null}
+                  ))}
+                  {!subscription.initial_order && !displayedRenewalOrders.length ? (
+                    <Text
+                      size="small"
+                      leading="compact"
+                      className="text-ui-fg-subtle"
+                    >
+                      No linked orders yet
+                    </Text>
+                  ) : null}
+                </div>
               </div>
-            ) : null}
-          </div>
-          {isLogsError ? (
-            <div className="px-6 py-6">
-              <Alert variant="error">
-                {logsError instanceof Error
-                  ? logsError.message
-                  : "Failed to load activity log."}
-              </Alert>
-            </div>
-          ) : activityLogTable.getRowModel().rows.length ? (
-            <>
-              <div className="overflow-x-auto border-y">
-                <Table className="relative isolate w-full">
-                  <Table.Header className="border-t-0">
-                    {activityLogTable.getHeaderGroups().map((headerGroup) => (
-                      <Table.Row key={headerGroup.id} className="border-b-0">
-                        {headerGroup.headers.map((header) => {
-                          const canSort = header.column.getCanSort();
-                          const sortHandler =
-                            header.column.getToggleSortingHandler();
+            </Container>
+        </div>
+      </div>
 
-                          return (
-                            <Table.HeaderCell
-                              key={header.id}
-                              className="whitespace-nowrap"
-                            >
-                              {header.isPlaceholder ? null : canSort ? (
-                                <button
-                                  type="button"
-                                  onClick={sortHandler}
-                                  className="group flex items-center gap-2 text-left"
-                                >
-                                  {flexRender(
-                                    header.column.columnDef.header,
-                                    header.getContext(),
-                                  )}
-                                </button>
-                              ) : (
-                                flexRender(
-                                  header.column.columnDef.header,
-                                  header.getContext(),
-                                )
-                              )}
-                            </Table.HeaderCell>
-                          );
-                        })}
-                      </Table.Row>
-                    ))}
-                  </Table.Header>
-                  <Table.Body className="border-b-0">
-                    {activityLogTable.getRowModel().rows.map((row) => (
-                      <Table.Row
-                        key={row.id}
-                        className="group/row cursor-pointer"
-                        onClick={() => {
-                          setSelectedLogId(row.original.id);
-                          setActivityLogDrawerOpen(true);
-                        }}
-                      >
-                        {row.getVisibleCells().map((cell) => (
-                          <Table.Cell key={cell.id}>
-                            {flexRender(
-                              cell.column.columnDef.cell,
-                              cell.getContext(),
-                            )}
-                          </Table.Cell>
-                        ))}
-                      </Table.Row>
-                    ))}
-                  </Table.Body>
-                </Table>
-              </div>
-              <div className="px-6 py-4">
-                <DataTable.Pagination />
-              </div>
-            </>
-          ) : isLogsLoading ? (
-            <div className="flex items-center gap-x-2 px-6 py-6 text-ui-fg-subtle">
-              <Spinner className="animate-spin" />
-              <Text size="small" leading="compact" className="text-ui-fg-subtle">
-                Loading activity log...
-              </Text>
-            </div>
-          ) : (
-            <div className="px-6 py-6">
-              <Text size="small" leading="compact" className="text-ui-fg-subtle">
-                No activity log entries are available for this subscription yet.
-              </Text>
-            </div>
-          )}
-        </DataTable>
-      </Container>
 
       <Drawer open={planDrawerOpen} onOpenChange={setPlanDrawerOpen}>
         <Drawer.Content>
@@ -1680,6 +1789,61 @@ const DetailRow = ({
     </div>
   );
 };
+
+const LinkedOrderCard = ({
+  label,
+  orderId,
+  title,
+  subtitle,
+}: {
+  label: string;
+  orderId: string;
+  title: string;
+  subtitle: string;
+}) => {
+  return (
+    <div className="grid gap-1">
+      <Text size="small" leading="compact" className="text-ui-fg-subtle">
+        {label}
+      </Text>
+      <Link
+        to={`/orders/${orderId}`}
+        className="outline-none focus-within:shadow-borders-interactive-with-focus rounded-md [&:hover>div]:bg-ui-bg-component-hover"
+      >
+        <div className="shadow-elevation-card-rest bg-ui-bg-component rounded-md px-4 py-2 transition-colors">
+          <div className="flex items-center gap-3">
+            <div className="shadow-elevation-card-rest flex h-12 w-12 items-center justify-center rounded-md text-ui-fg-muted">
+              <ShoppingBag />
+            </div>
+            <div className="flex flex-1 flex-col">
+              <Text size="small" leading="compact" weight="plus">
+                {title}
+              </Text>
+              <Text
+                size="small"
+                leading="compact"
+                className="text-ui-fg-subtle"
+              >
+                {subtitle}
+              </Text>
+            </div>
+            <div className="size-7 flex items-center justify-center">
+              <TriangleRightMini className="text-ui-fg-muted rtl:rotate-180" />
+            </div>
+          </div>
+        </div>
+      </Link>
+    </div>
+  );
+};
+
+function formatOrderDisplayLabel(displayId: number | null, orderId: string) {
+  if (displayId !== null) {
+    return `#${displayId}`;
+  }
+
+  return orderId;
+}
 
 const ActivityLogDetailContent = ({ log }: { log: ActivityLogAdminDetail }) => {
   return (

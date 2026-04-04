@@ -7,6 +7,7 @@ import {
   SubscriptionAdminFrequency,
   SubscriptionAdminListItem,
   SubscriptionAdminListResponse,
+  SubscriptionAdminOrderSummary,
   SubscriptionAdminPendingPlanChange,
   SubscriptionAdminShippingAddress,
   SubscriptionAdminStatus,
@@ -78,6 +79,31 @@ type SubscriptionRecord = {
   } | null
   created_at: string
   updated_at: string
+}
+
+type SubscriptionOrderLinkRecord = {
+  subscription?: {
+    id?: string | null
+  } | null
+  order?: {
+    id?: string | null
+    display_id?: number | null
+    status?: string | null
+    created_at?: string | null
+  } | null
+}
+
+type RenewalCycleRecord = {
+  id: string
+  subscription_id: string
+  generated_order_id: string | null
+}
+
+type OrderRecord = {
+  id: string
+  display_id: number | null
+  status: string
+  created_at: string | null
 }
 
 const listFields = [
@@ -250,6 +276,31 @@ function mapDetail(record: SubscriptionRecord): SubscriptionAdminDetail {
     last_renewal_at: record.last_renewal_at,
     shipping_address: record.shipping_address,
     pending_update_data: mapPendingUpdateData(record.pending_update_data),
+    initial_order: null,
+    renewal_orders: [],
+  }
+}
+
+function mapOrderSummary(
+  record:
+    | {
+        id?: string | null
+        display_id?: number | null
+        status?: string | null
+        created_at?: string | null
+      }
+    | null
+    | undefined
+): SubscriptionAdminOrderSummary | null {
+  if (!record?.id || !record.status) {
+    return null
+  }
+
+  return {
+    order_id: record.id,
+    display_id: record.display_id ?? null,
+    status: record.status,
+    created_at: record.created_at ?? null,
   }
 }
 
@@ -476,7 +527,90 @@ export async function getAdminSubscriptionDetail(
     throw subscriptionErrors.notFound("Subscription", id)
   }
 
+  const [subscriptionOrderLinksResult, renewalCyclesResult] = await Promise.all([
+    query.graph({
+      entity: "subscription_order",
+      fields: [
+        "subscription.id",
+        "order.id",
+        "order.display_id",
+        "order.status",
+        "order.created_at",
+      ],
+      filters: {
+        subscription_id: [id],
+      },
+    }),
+    query.graph({
+      entity: "renewal_cycle",
+      fields: ["id", "subscription_id", "generated_order_id"],
+      filters: {
+        subscription_id: [id],
+      },
+    }),
+  ])
+
+  const renewalCycles = (renewalCyclesResult.data ?? []) as RenewalCycleRecord[]
+  const renewalOrderIds = [
+    ...new Set(
+      renewalCycles
+        .map((cycle) => cycle.generated_order_id)
+        .filter((orderId): orderId is string => Boolean(orderId))
+    ),
+  ]
+
+  const renewalOrdersResult = renewalOrderIds.length
+    ? await query.graph({
+        entity: "order",
+        fields: ["id", "display_id", "status", "created_at"],
+        filters: {
+          id: renewalOrderIds,
+        },
+      })
+    : { data: [] }
+
+  const renewalOrdersById = new Map(
+    ((renewalOrdersResult.data ?? []) as OrderRecord[]).map((order) => [
+      order.id,
+      mapOrderSummary(order),
+    ])
+  )
+
+  const renewalOrders = renewalCycles
+    .map((cycle) =>
+      cycle.generated_order_id
+        ? renewalOrdersById.get(cycle.generated_order_id) ?? null
+        : null
+    )
+    .filter((order): order is SubscriptionAdminOrderSummary => Boolean(order))
+    .sort((a, b) => {
+      const left = a.created_at ? new Date(a.created_at).getTime() : 0
+      const right = b.created_at ? new Date(b.created_at).getTime() : 0
+
+      return right - left
+    })
+
+  const renewalOrderIdSet = new Set(renewalOrders.map((order) => order.order_id))
+
+  const initialOrder =
+    ((subscriptionOrderLinksResult.data ?? []) as SubscriptionOrderLinkRecord[])
+      .map((record) => mapOrderSummary(record.order))
+      .filter(
+        (order): order is SubscriptionAdminOrderSummary =>
+          order !== null && !renewalOrderIdSet.has(order.order_id)
+      )
+      .sort((a, b) => {
+        const left = a.created_at ? new Date(a.created_at).getTime() : 0
+        const right = b.created_at ? new Date(b.created_at).getTime() : 0
+
+        return left - right
+      })[0] ?? null
+
   return {
-    subscription: mapDetail(subscription),
+    subscription: {
+      ...mapDetail(subscription),
+      initial_order: initialOrder,
+      renewal_orders: renewalOrders,
+    },
   }
 }

@@ -55,6 +55,13 @@ export type SubscriptionAdminPendingPlanChange = {
   effective_at: string | null
 }
 
+export type SubscriptionAdminOrderSummary = {
+  order_id: string
+  display_id: number | null
+  status: string
+  created_at: string | null
+}
+
 export type SubscriptionAdminShippingAddress = {
   first_name: string
   last_name: string
@@ -90,6 +97,8 @@ export type SubscriptionAdminDetail = SubscriptionAdminListItem & {
   last_renewal_at: string | null
   shipping_address: SubscriptionAdminShippingAddress
   pending_update_data: SubscriptionAdminPendingPlanChange | null
+  initial_order: SubscriptionAdminOrderSummary | null
+  renewal_orders: SubscriptionAdminOrderSummary[]
 }
 
 export type SubscriptionAdminListResponse = {
@@ -102,4 +111,3 @@ export type SubscriptionAdminListResponse = {
 export type SubscriptionAdminDetailResponse = {
   subscription: SubscriptionAdminDetail
 }
-
