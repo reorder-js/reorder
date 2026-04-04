@@ -51,8 +51,6 @@ The queue currently displays:
 - `Status`
 - `Approval`
 - `Last attempt`
-- `Generated order`
-- `Updated`
 
 Column rendering uses compact Medusa-style cells:
 - primary value on the first line
@@ -84,7 +82,7 @@ The page also exposes dedicated date inputs for:
 
 These date inputs:
 - are applied as list filters
-- are initialized on page load to `now - 30 days` and `now + 30 days`
+- are initialized on page load to `now - 30 days 00:00` and `now + 30 days 00:00`
 - are intentionally not rendered as toolbar filter chips
 
 Applied non-date filters are shown as chips in the toolbar and can be removed individually.
@@ -101,8 +99,6 @@ It supports sorting on fields exposed by the backend query layer, including:
 - `Status`
 - `Approval`
 - `Last attempt`
-- `Generated order`
-- `Updated`
 
 ### Row Navigation
 

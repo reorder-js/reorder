@@ -17,6 +17,7 @@ import {
 import {
   CheckCircle,
   EllipsisHorizontal,
+  ShoppingBag,
   Spinner,
   TriangleRightMini,
   XCircle,
@@ -338,218 +339,291 @@ const RenewalDetailPage = () => {
             </DropdownMenu>
           </div>
         </div>
-        <div className="grid grid-cols-1 gap-4 px-6 py-4 md:grid-cols-2">
-          <DetailBlock
-            title="Cycle overview"
-            rows={[
-              {
-                label: "Status",
-                value: (
-                  <StatusBadge color={getCycleStatusColor(renewal.status)}>
-                    {formatCycleStatus(renewal.status)}
-                  </StatusBadge>
-                ),
-              },
-              { label: "Scheduled for", value: formatDateTime(renewal.scheduled_for) },
-              { label: "Processed at", value: formatDateTime(renewal.processed_at) },
-              { label: "Created at", value: formatDateTime(renewal.created_at) },
-              {
-                label: "Last error",
-                value: renewal.last_error || "No error recorded",
-              },
-            ]}
-          />
-          <DetailBlock
-            title="Approval summary"
-            rows={[
-              {
-                label: "Approval",
-                value: (
-                  <StatusBadge color={getApprovalStatusColor(renewal.approval)}>
-                    {formatApprovalStatus(renewal.approval)}
-                  </StatusBadge>
-                ),
-              },
-              {
-                label: "Required",
-                value: renewal.approval.required ? "Yes" : "No",
-              },
-              {
-                label: "Decided at",
-                value: formatDateTime(renewal.approval.decided_at),
-              },
-              {
-                label: "Decided by",
-                value: renewal.approval.decided_by || "-",
-              },
-              {
-                label: "Reason",
-                value: renewal.approval.reason || "-",
-              },
-            ]}
-          />
-          <DetailBlock
-            title="Subscription summary"
-            rows={[
-              {
-                label: "Reference",
-                value: (
-                  <Link
-                    to={`/subscriptions/${renewal.subscription.subscription_id}`}
-                    className="text-ui-fg-interactive hover:text-ui-fg-interactive-hover"
-                  >
-                    {renewal.subscription.reference}
-                  </Link>
-                ),
-              },
-              { label: "Status", value: formatSubscriptionStatus(renewal.subscription.status) },
-              { label: "Customer", value: renewal.subscription.customer_name },
-              { label: "Product", value: renewal.subscription.product_title },
-              { label: "Variant", value: renewal.subscription.variant_title },
-              { label: "SKU", value: renewal.subscription.sku || "-" },
-            ]}
-          />
-          <DetailBlock
-            title="Generated order summary"
-            rows={[
-              {
-                label: "Order",
-                value: renewal.generated_order ? (
-                  <Link
-                    to={`/orders/${renewal.generated_order.order_id}`}
-                    className="text-ui-fg-interactive hover:text-ui-fg-interactive-hover"
-                  >
-                    #{renewal.generated_order.display_id}
-                  </Link>
-                ) : (
-                  "No order generated"
-                ),
-              },
-              {
-                label: "Status",
-                value: renewal.generated_order?.status || "-",
-              },
-              {
-                label: "Order ID",
-                value: renewal.generated_order?.order_id || "-",
-              },
-            ]}
-          />
-        </div>
       </Container>
-
-      <Container className="divide-y p-0">
-        <div className="px-6 py-4">
-          <Heading level="h2">Pending changes</Heading>
-        </div>
-        <div className="px-6 py-4">
-          {renewal.pending_changes ? (
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <DetailRow
-                label="Variant"
-                value={renewal.pending_changes.variant_title}
-              />
-              <DetailRow
-                label="Frequency"
-                value={formatFrequency(
-                  renewal.pending_changes.frequency_interval,
-                  renewal.pending_changes.frequency_value
-                )}
-              />
-              <DetailRow
-                label="Effective at"
-                value={formatDateTime(renewal.pending_changes.effective_at)}
-              />
-              <DetailRow
-                label="Variant ID"
-                value={renewal.pending_changes.variant_id}
-              />
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
+        <div className="flex min-w-0 flex-col gap-4">
+          <Container className="divide-y p-0">
+            <div className="px-6 py-4">
+              <Heading level="h2">Cycle overview</Heading>
             </div>
-          ) : (
-            <Text size="small" leading="compact" className="text-ui-fg-subtle">
-              No pending changes are attached to this renewal cycle.
-            </Text>
-          )}
-        </div>
-      </Container>
+            <div className="px-6 py-4">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <DetailRow
+                  label="Status"
+                  value={(
+                    <StatusBadge color={getCycleStatusColor(renewal.status)}>
+                      {formatCycleStatus(renewal.status)}
+                    </StatusBadge>
+                  )}
+                />
+                <DetailRow
+                  label="Scheduled for"
+                  value={formatDateTime(renewal.scheduled_for)}
+                />
+                <DetailRow
+                  label="Processed at"
+                  value={formatDateTime(renewal.processed_at)}
+                />
+                <DetailRow
+                  label="Created at"
+                  value={formatDateTime(renewal.created_at)}
+                />
+                <DetailRow
+                  label="Last error"
+                  value={renewal.last_error || "No error recorded"}
+                />
+              </div>
+            </div>
+          </Container>
 
-      <Container className="divide-y p-0">
-        <div className="px-6 py-4">
-          <Heading level="h2">Attempt history</Heading>
+          <Container className="divide-y p-0">
+            <div className="px-6 py-4">
+              <Heading level="h2">Approval summary</Heading>
+            </div>
+            <div className="px-6 py-4">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <DetailRow
+                  label="Approval"
+                  value={(
+                    <StatusBadge color={getApprovalStatusColor(renewal.approval)}>
+                      {formatApprovalStatus(renewal.approval)}
+                    </StatusBadge>
+                  )}
+                />
+                <DetailRow
+                  label="Required"
+                  value={renewal.approval.required ? "Yes" : "No"}
+                />
+                <DetailRow
+                  label="Decided at"
+                  value={formatDateTime(renewal.approval.decided_at)}
+                />
+                <DetailRow
+                  label="Decided by"
+                  value={renewal.approval.decided_by || "-"}
+                />
+                <DetailRow label="Reason" value={renewal.approval.reason || "-"} />
+              </div>
+            </div>
+          </Container>
+
+          <Container className="divide-y p-0">
+            <div className="px-6 py-4">
+              <Heading level="h2">Pending changes</Heading>
+            </div>
+            <div className="px-6 py-4">
+              {renewal.pending_changes ? (
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <DetailRow
+                    label="Variant"
+                    value={renewal.pending_changes.variant_title}
+                  />
+                  <DetailRow
+                    label="Frequency"
+                    value={formatFrequency(
+                      renewal.pending_changes.frequency_interval,
+                      renewal.pending_changes.frequency_value
+                    )}
+                  />
+                  <DetailRow
+                    label="Effective at"
+                    value={formatDateTime(renewal.pending_changes.effective_at)}
+                  />
+                  <DetailRow
+                    label="Variant ID"
+                    value={renewal.pending_changes.variant_id}
+                  />
+                </div>
+              ) : (
+                <Text size="small" leading="compact" className="text-ui-fg-subtle">
+                  No pending changes are attached to this renewal cycle.
+                </Text>
+              )}
+            </div>
+          </Container>
+
+          <Container className="divide-y p-0">
+            <div className="px-6 py-4">
+              <Heading level="h2">Attempt history</Heading>
+            </div>
+            <div className="px-6 py-4">
+              {renewal.attempts.length ? (
+                <Table>
+                  <Table.Header>
+                    <Table.Row>
+                      <Table.HeaderCell>Attempt</Table.HeaderCell>
+                      <Table.HeaderCell>Status</Table.HeaderCell>
+                      <Table.HeaderCell>Started</Table.HeaderCell>
+                      <Table.HeaderCell>Finished</Table.HeaderCell>
+                      <Table.HeaderCell>Error</Table.HeaderCell>
+                      <Table.HeaderCell>Order</Table.HeaderCell>
+                    </Table.Row>
+                  </Table.Header>
+                  <Table.Body>
+                    {renewal.attempts.map((attempt) => (
+                      <Table.Row key={attempt.id}>
+                        <Table.Cell>
+                          <Text size="small" leading="compact" weight="plus">
+                            #{attempt.attempt_no}
+                          </Text>
+                        </Table.Cell>
+                        <Table.Cell>
+                          <StatusBadge color={getAttemptStatusColor(attempt.status)}>
+                            {formatAttemptStatus(attempt.status)}
+                          </StatusBadge>
+                        </Table.Cell>
+                        <Table.Cell>{formatDateTime(attempt.started_at)}</Table.Cell>
+                        <Table.Cell>{formatDateTime(attempt.finished_at)}</Table.Cell>
+                        <Table.Cell>
+                          <div className="flex flex-col gap-y-0.5">
+                            <Text size="small" leading="compact">
+                              {attempt.error_code || "-"}
+                            </Text>
+                            <Text
+                              size="small"
+                              leading="compact"
+                              className="text-ui-fg-subtle"
+                            >
+                              {attempt.error_message || "No error message"}
+                            </Text>
+                          </div>
+                        </Table.Cell>
+                        <Table.Cell>{attempt.order_id || "-"}</Table.Cell>
+                      </Table.Row>
+                    ))}
+                  </Table.Body>
+                </Table>
+              ) : (
+                <Text size="small" leading="compact" className="text-ui-fg-subtle">
+                  No attempts have been recorded for this renewal cycle yet.
+                </Text>
+              )}
+            </div>
+          </Container>
+
+          <Container className="divide-y p-0">
+            <div className="px-6 py-4">
+              <Heading level="h2">Technical metadata</Heading>
+            </div>
+            <div className="px-6 py-4">
+              {metadataRows.length ? (
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  {metadataRows.map((row) => (
+                    <DetailRow key={row.key} label={row.key} value={row.value} mono />
+                  ))}
+                </div>
+              ) : (
+                <Text size="small" leading="compact" className="text-ui-fg-subtle">
+                  No metadata was stored for this renewal cycle.
+                </Text>
+              )}
+            </div>
+          </Container>
         </div>
-        <div className="px-6 py-4">
-          {renewal.attempts.length ? (
-            <Table>
-              <Table.Header>
-                <Table.Row>
-                  <Table.HeaderCell>Attempt</Table.HeaderCell>
-                  <Table.HeaderCell>Status</Table.HeaderCell>
-                  <Table.HeaderCell>Started</Table.HeaderCell>
-                  <Table.HeaderCell>Finished</Table.HeaderCell>
-                  <Table.HeaderCell>Error</Table.HeaderCell>
-                  <Table.HeaderCell>Order</Table.HeaderCell>
-                </Table.Row>
-              </Table.Header>
-              <Table.Body>
-                {renewal.attempts.map((attempt) => (
-                  <Table.Row key={attempt.id}>
-                    <Table.Cell>
-                      <Text size="small" leading="compact" weight="plus">
-                        #{attempt.attempt_no}
-                      </Text>
-                    </Table.Cell>
-                    <Table.Cell>
-                      <StatusBadge color={getAttemptStatusColor(attempt.status)}>
-                        {formatAttemptStatus(attempt.status)}
-                      </StatusBadge>
-                    </Table.Cell>
-                    <Table.Cell>{formatDateTime(attempt.started_at)}</Table.Cell>
-                    <Table.Cell>{formatDateTime(attempt.finished_at)}</Table.Cell>
-                    <Table.Cell>
-                      <div className="flex flex-col gap-y-0.5">
-                        <Text size="small" leading="compact">
-                          {attempt.error_code || "-"}
+
+        <div className="flex min-w-0 flex-col gap-4">
+          <Container className="divide-y p-0">
+            <div className="px-6 py-4">
+              <Heading level="h2">Subscription summary</Heading>
+            </div>
+            <div className="px-6 py-4">
+              <div className="grid gap-4">
+                <Link
+                  to={`/subscriptions/${renewal.subscription.subscription_id}`}
+                  className="outline-none focus-within:shadow-borders-interactive-with-focus rounded-md [&:hover>div]:bg-ui-bg-component-hover"
+                >
+                  <div className="shadow-elevation-card-rest bg-ui-bg-component rounded-md px-4 py-2 transition-colors">
+                    <div className="flex items-center gap-3">
+                      <div className="shadow-elevation-card-rest flex h-14 w-14 items-center justify-center rounded-md text-ui-fg-muted">
+                        <Text size="small" leading="compact" weight="plus">
+                          SUB
+                        </Text>
+                      </div>
+                      <div className="flex flex-1 flex-col">
+                        <Text size="small" leading="compact" weight="plus">
+                          {renewal.subscription.reference}
                         </Text>
                         <Text
                           size="small"
                           leading="compact"
                           className="text-ui-fg-subtle"
                         >
-                          {attempt.error_message || "No error message"}
+                          {renewal.subscription.customer_name}
                         </Text>
                       </div>
-                    </Table.Cell>
-                    <Table.Cell>{attempt.order_id || "-"}</Table.Cell>
-                  </Table.Row>
-                ))}
-              </Table.Body>
-            </Table>
-          ) : (
-            <Text size="small" leading="compact" className="text-ui-fg-subtle">
-              No attempts have been recorded for this renewal cycle yet.
-            </Text>
-          )}
-        </div>
-      </Container>
-
-      <Container className="divide-y p-0">
-        <div className="px-6 py-4">
-          <Heading level="h2">Technical metadata</Heading>
-        </div>
-        <div className="px-6 py-4">
-          {metadataRows.length ? (
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              {metadataRows.map((row) => (
-                <DetailRow key={row.key} label={row.key} value={row.value} mono />
-              ))}
+                      <div className="size-7 flex items-center justify-center">
+                        <TriangleRightMini className="text-ui-fg-muted rtl:rotate-180" />
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+                <DetailRow
+                  label="Status"
+                  value={formatSubscriptionStatus(renewal.subscription.status)}
+                />
+                <DetailRow
+                  label="Customer"
+                  value={renewal.subscription.customer_name}
+                />
+                <DetailRow label="Product" value={renewal.subscription.product_title} />
+                <DetailRow label="Variant" value={renewal.subscription.variant_title} />
+                <DetailRow label="SKU" value={renewal.subscription.sku || "-"} />
+              </div>
             </div>
-          ) : (
-            <Text size="small" leading="compact" className="text-ui-fg-subtle">
-              No metadata was stored for this renewal cycle.
-            </Text>
-          )}
+          </Container>
+
+          <Container className="divide-y p-0">
+            <div className="px-6 py-4">
+              <Heading level="h2">Generated order summary</Heading>
+            </div>
+            <div className="px-6 py-4">
+              <div className="grid gap-4">
+                {renewal.generated_order ? (
+                  <Link
+                    to={`/orders/${renewal.generated_order.order_id}`}
+                    className="outline-none focus-within:shadow-borders-interactive-with-focus rounded-md [&:hover>div]:bg-ui-bg-component-hover"
+                  >
+                    <div className="shadow-elevation-card-rest bg-ui-bg-component rounded-md px-4 py-2 transition-colors">
+                      <div className="flex items-center gap-3">
+                        <div className="shadow-elevation-card-rest flex h-14 w-14 items-center justify-center rounded-md text-ui-fg-muted">
+                          <ShoppingBag />
+                        </div>
+                        <div className="flex flex-1 flex-col">
+                          <Text size="small" leading="compact" weight="plus">
+                            #{renewal.generated_order.display_id}
+                          </Text>
+                          <Text
+                            size="small"
+                            leading="compact"
+                            className="text-ui-fg-subtle"
+                          >
+                            {renewal.generated_order.status}
+                          </Text>
+                        </div>
+                        <div className="size-7 flex items-center justify-center">
+                          <TriangleRightMini className="text-ui-fg-muted rtl:rotate-180" />
+                        </div>
+                      </div>
+                    </div>
+                  </Link>
+                ) : (
+                  <Text size="small" leading="compact" className="text-ui-fg-subtle">
+                    No order generated
+                  </Text>
+                )}
+                <DetailRow
+                  label="Status"
+                  value={renewal.generated_order?.status || "-"}
+                />
+                <DetailRow
+                  label="Order ID"
+                  value={renewal.generated_order?.order_id || "-"}
+                />
+              </div>
+            </div>
+          </Container>
         </div>
-      </Container>
+      </div>
 
       <Drawer open={decisionDrawerOpen} onOpenChange={setDecisionDrawerOpen}>
         <Drawer.Content>
@@ -616,29 +690,6 @@ export default RenewalDetailPage;
 export const handle = {
   breadcrumb: ({ params, data }: UIMatch<RenewalCycleAdminDetailResponse>) =>
     params?.id || data?.renewal?.id || "Renewal",
-};
-
-const DetailBlock = ({
-  title,
-  rows,
-}: {
-  title: string;
-  rows: Array<{ label: string; value: ReactNode }>;
-}) => {
-  return (
-    <div className="rounded-lg border border-ui-border-base p-4">
-      <div className="mb-4">
-        <Text size="small" leading="compact" weight="plus">
-          {title}
-        </Text>
-      </div>
-      <div className="grid gap-4">
-        {rows.map((row) => (
-          <DetailRow key={row.label} label={row.label} value={row.value} />
-        ))}
-      </div>
-    </div>
-  );
 };
 
 const DetailRow = ({

@@ -254,6 +254,9 @@ Business validation includes:
 - discount value range checks
 - trial rule consistency
 
+Current gap:
+- `Plans & Offers` mutations do not emit audit events yet and are not visible in `Activity Log`.
+
 ### Compensation and Rollback
 
 The create and update flows store previous state for compensation.

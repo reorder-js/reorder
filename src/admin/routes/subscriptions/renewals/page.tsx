@@ -139,50 +139,14 @@ const baseColumns = [
       );
     },
   }),
-  columnHelper.accessor("generated_order.display_id", {
-    id: "order_display_id",
-    header: "Generated order",
-    enableSorting: true,
-    sortLabel: "Generated order",
-    cell: ({ row }) => {
-      if (!row.original.generated_order) {
-        return (
-          <Text size="small" leading="compact" className="text-ui-fg-subtle">
-            No order generated
-          </Text>
-        );
-      }
-
-      return (
-        <div className="flex flex-col">
-          <Text size="small" leading="compact" weight="plus">
-            #{row.original.generated_order.display_id}
-          </Text>
-          <Text size="small" leading="compact" className="text-ui-fg-subtle">
-            {row.original.generated_order.status}
-          </Text>
-        </div>
-      );
-    },
-  }),
-  columnHelper.accessor("updated_at", {
-    header: "Updated",
-    enableSorting: true,
-    sortLabel: "Updated",
-    cell: ({ getValue }) => (
-      <Text size="small" leading="compact">
-        {formatDateTime(getValue())}
-      </Text>
-    ),
-  }),
 ];
 
 const RenewalsPage = () => {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [filtering, setFiltering] = useState<DataTableFilteringState>(() => ({
-    scheduled_from: toLocalDateTimeInputValue(addDays(new Date(), -30)),
-    scheduled_to: toLocalDateTimeInputValue(addDays(new Date(), 30)),
+    scheduled_from: toLocalDateTimeInputValue(startOfDay(addDays(new Date(), -30))),
+    scheduled_to: toLocalDateTimeInputValue(startOfDay(addDays(new Date(), 30))),
   }));
   const [sorting, setSorting] = useState<DataTableSortingState | null>({
     id: "scheduled_for",
@@ -751,6 +715,12 @@ function getApprovalStatusColor(approval: RenewalAdminApprovalSummary) {
 function addDays(date: Date, amount: number) {
   const next = new Date(date);
   next.setDate(next.getDate() + amount);
+  return next;
+}
+
+function startOfDay(date: Date) {
+  const next = new Date(date);
+  next.setHours(0, 0, 0, 0);
   return next;
 }
 
