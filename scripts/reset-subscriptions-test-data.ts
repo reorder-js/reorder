@@ -1,5 +1,7 @@
 import type { ExecArgs } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
+import { RENEWAL_MODULE } from "../src/modules/renewal"
+import { SUBSCRIPTION_MODULE } from "../src/modules/subscription"
 
 const SEED_NAMESPACE = "subscriptions-test-data"
 
@@ -103,6 +105,21 @@ type QueryRecord = {
   metadata?: Record<string, unknown> | null
 }
 
+type SubscriptionOrderLinkRecord = {
+  subscription?: {
+    id?: string | null
+  } | null
+  order?: {
+    id?: string | null
+    metadata?: Record<string, unknown> | null
+  } | null
+}
+
+type RenewalCycleOrderRecord = {
+  id: string
+  generated_order_id?: string | null
+}
+
 function hasSeedNamespace(record: QueryRecord) {
   return record.metadata?.seed_namespace === SEED_NAMESPACE
 }
@@ -175,9 +192,13 @@ export default async function resetSubscriptionsTestData({
   const logger = container.resolve(ContainerRegistrationKeys.LOGGER)
   const query = container.resolve(ContainerRegistrationKeys.QUERY)
   const pgConnection = container.resolve(ContainerRegistrationKeys.PG_CONNECTION)
+  const link = container.resolve(ContainerRegistrationKeys.LINK)
   const customerModule = container.resolve<{
     deleteCustomers(ids: string[]): Promise<void>
   }>(Modules.CUSTOMER)
+  const orderModule = container.resolve<{
+    deleteOrders(ids: string[]): Promise<void>
+  }>(Modules.ORDER)
 
   logger.info("[subscriptions-test-data-reset] Resolving seeded records")
 
@@ -240,6 +261,102 @@ export default async function resetSubscriptionsTestData({
   ).data
     ?.filter((record) => hasSeedNamespace(record as QueryRecord))
     .map((record) => (record as QueryRecord).id) ?? []
+
+  const subscriptionOrderLinks = subscriptionIds.length
+    ? (
+        await query.graph({
+          entity: "subscription_order",
+          fields: ["subscription.id", "order.id", "order.metadata"],
+          filters: {
+            subscription_id: subscriptionIds,
+          },
+        })
+      ).data ?? []
+    : []
+
+  const renewalCycles = renewalCycleIds.length
+    ? (
+        await query.graph({
+          entity: "renewal_cycle",
+          fields: ["id", "generated_order_id"],
+          filters: {
+            id: renewalCycleIds,
+          },
+        })
+      ).data ?? []
+    : []
+
+  const renewalOrderIds = (renewalCycles as RenewalCycleOrderRecord[])
+    .map((record) => record.generated_order_id)
+    .filter((id): id is string => !!id)
+
+  const renewalOrders = renewalOrderIds.length
+    ? (
+        await query.graph({
+          entity: "order",
+          fields: ["id", "metadata"],
+          filters: {
+            id: renewalOrderIds,
+          },
+        })
+      ).data ?? []
+    : []
+
+  const subscriptionOrderLinkDefinitions = (
+    subscriptionOrderLinks as SubscriptionOrderLinkRecord[]
+  )
+    .filter((record) => record.subscription?.id && record.order?.id)
+    .map((record) => ({
+      [SUBSCRIPTION_MODULE]: {
+        subscription_id: record.subscription!.id!,
+      },
+      [Modules.ORDER]: {
+        order_id: record.order!.id!,
+      },
+    }))
+
+  const renewalOrderLinkDefinitions = (renewalCycles as RenewalCycleOrderRecord[])
+    .filter((record) => record.id && record.generated_order_id)
+    .map((record) => ({
+      [RENEWAL_MODULE]: {
+        renewal_cycle_id: record.id,
+      },
+      [Modules.ORDER]: {
+        order_id: record.generated_order_id!,
+      },
+    }))
+
+  const seededOrderIds = [
+    ...new Set(
+      [
+        ...(subscriptionOrderLinks as SubscriptionOrderLinkRecord[]).map(
+          (record) => record.order
+        ),
+        ...(renewalOrders as Array<QueryRecord | null | undefined>),
+      ]
+        .filter(
+          (order): order is {
+            id?: string | null
+            metadata?: Record<string, unknown> | null
+          } => !!order
+        )
+        .filter((order) => order.metadata?.seed_namespace === SEED_NAMESPACE)
+        .map((order) => order.id)
+        .filter((id): id is string => !!id)
+    ),
+  ]
+
+  if (renewalOrderLinkDefinitions.length) {
+    await link.dismiss(renewalOrderLinkDefinitions)
+  }
+
+  if (subscriptionOrderLinkDefinitions.length) {
+    await link.dismiss(subscriptionOrderLinkDefinitions)
+  }
+
+  if (seededOrderIds.length) {
+    await orderModule.deleteOrders(seededOrderIds)
+  }
 
   const deletedSubscriptionLogs = await deleteFromTable(
     pgConnection,
@@ -320,6 +437,6 @@ export default async function resetSubscriptionsTestData({
 
   logger.info("[subscriptions-test-data-reset] Reset completed.")
   logger.info(
-    `[subscriptions-test-data-reset] Removed settings=${deletedSettings} plan_offers=${deletedPlanOffers} subscriptions=${deletedSubscriptions} renewal_cycles=${deletedRenewalCycles} renewal_attempts=${deletedRenewalAttempts + deletedRenewalAttemptsByCycle} dunning_cases=${deletedDunningCases} dunning_attempts=${deletedDunningAttempts + deletedDunningAttemptsByCase} cancellation_cases=${deletedCancellationCases} retention_offer_events=${deletedRetentionOfferEvents + deletedRetentionOfferEventsByCase} subscription_logs=${deletedSubscriptionLogs} analytics_snapshots=${deletedAnalyticsSnapshots} customers=${seededCustomerIds.length}`
+    `[subscriptions-test-data-reset] Removed settings=${deletedSettings} plan_offers=${deletedPlanOffers} subscriptions=${deletedSubscriptions} renewal_cycles=${deletedRenewalCycles} renewal_attempts=${deletedRenewalAttempts + deletedRenewalAttemptsByCycle} dunning_cases=${deletedDunningCases} dunning_attempts=${deletedDunningAttempts + deletedDunningAttemptsByCase} cancellation_cases=${deletedCancellationCases} retention_offer_events=${deletedRetentionOfferEvents + deletedRetentionOfferEventsByCase} subscription_logs=${deletedSubscriptionLogs} analytics_snapshots=${deletedAnalyticsSnapshots} orders=${seededOrderIds.length} customers=${seededCustomerIds.length}`
   )
 }

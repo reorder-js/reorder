@@ -123,6 +123,7 @@ npx medusa exec ../reorder/scripts/reset-subscriptions-test-data.ts
 
 The script creates or updates:
 - standard Medusa `Customer` records for the seeded subscription scenarios
+- standard Medusa `Order` records linked to every seeded subscription
 - one global `SubscriptionSettings` singleton for Settings QA
 - two `Plan Offers`
 - multiple test subscriptions
@@ -137,6 +138,7 @@ The script creates or updates:
 
 The reset script removes the seeded records for the same areas:
 - seeded standard `Customer` records
+- seeded standard `Order` records and their subscription/renewal links
 - seeded `SubscriptionSettings`
 - seeded `Plan Offers`
 - seeded `Subscriptions`
@@ -152,7 +154,11 @@ The reset script removes the seeded records for the same areas:
 The seed is designed to be idempotent:
 - it uses stable IDs
 - it reuses seeded customers by deterministic email
+- it reuses renewal orders through `renewal_cycle.generated_order_id` or seeded order metadata when a previous run stopped midway
 - rerunning it should update the same records instead of endlessly creating duplicates
+
+Implementation note:
+- the seed creates customers and orders through direct Medusa module services instead of core workflows so it can run safely through `medusa exec`
 
 The reset is also deterministic:
 - it targets only stable seeded IDs
@@ -605,16 +611,13 @@ Implementation note:
 
 ## What the Script Does Not Create
 
-The current version does not build a full checkout or order-generation setup.
+The current version does not build a full checkout or payment lifecycle.
 
 This means:
-- the success scenario is intentionally based on `skip_next_cycle = true`
-- generated order summary may remain empty in seeded renewal records
-- seeded dunning records use real plugin modules and real linked renewal/subscription data, but they still do not create fully realistic commerce payment artifacts
-- order summary coverage in Admin depends on whether the target store already has matching order records for seeded `renewal_order_id` values
-- the script optimizes for operator-flow QA, not for full commerce checkout realism
-
-If a future iteration needs richer end-to-end order creation test data, this script can be extended rather than replaced.
+- every seeded subscription now has at least one real linked Medusa `Order`
+- seeded renewal/dunning scenarios that carry renewal order references now also create real linked renewal orders
+- the script still does not create fully realistic checkout, payment collection, capture, or fulfillment artifacts
+- the script still optimizes for operator-flow QA, not for full commerce checkout realism
 
 ## How to Use the Seeded Data in Admin
 
