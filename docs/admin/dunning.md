@@ -52,8 +52,6 @@ The queue currently displays:
 - `Next retry`
 - `Attempts`
 - `Last error`
-- `Renewal / Order`
-- `Updated`
 
 Column rendering uses compact Medusa-style cells:
 - primary value on the first line
@@ -87,6 +85,8 @@ The page also exposes dedicated inputs for:
 - `Next retry from`
 - `Next retry to`
 
+`Next retry from/to` default to `now - 30 days 00:00` and `now + 30 days 00:00`.
+
 Applied `status` filters are shown as chips in the toolbar.
 
 The dedicated text, numeric, and date filters are applied as list filters but are intentionally not rendered as filter chips.
@@ -96,7 +96,6 @@ The dedicated text, numeric, and date filters are applied as list filters but ar
 The queue uses the standard sorting menu in the toolbar.
 
 It supports sorting on fields exposed by the backend query layer, including:
-- `Updated`
 - `Status`
 - `Next retry`
 - `Attempts`
@@ -136,14 +135,19 @@ This follows the Medusa pattern of title on the left and status plus actions on 
 
 The detail page currently renders:
 - `Case overview`
+- `Payment summary`
+- `Retry schedule`
 - `Subscription summary`
 - `Renewal summary`
 - `Order / payment summary`
-- `Retry schedule`
 - `Attempt timeline`
 - `Technical metadata`
 
 These sections are read-oriented and designed for quick operator inspection.
+
+Layout:
+- the left column contains `Case overview`, `Payment summary`, `Retry schedule`, `Attempt timeline`, and `Technical metadata`
+- the right column contains `Subscription summary`, `Renewal summary`, and `Order / payment summary` as linked Medusa-style cards where linked records exist
 
 ## 3. Detail Actions
 

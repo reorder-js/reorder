@@ -27,8 +27,12 @@ import {
 import { useAdminDunningDisplayQuery } from "./data-loading"
 
 const PAGE_SIZE = 20
-const DEFAULT_NEXT_RETRY_FROM = toLocalDateTimeInputValue(addDays(new Date(), -30))
-const DEFAULT_NEXT_RETRY_TO = toLocalDateTimeInputValue(addDays(new Date(), 30))
+const DEFAULT_NEXT_RETRY_FROM = toLocalDateTimeInputValue(
+  startOfDay(addDays(new Date(), -30))
+)
+const DEFAULT_NEXT_RETRY_TO = toLocalDateTimeInputValue(
+  startOfDay(addDays(new Date(), 30))
+)
 
 const columnHelper = createDataTableColumnHelper<DunningCaseAdminListItem>()
 
@@ -122,48 +126,6 @@ const baseColumns = [
           {row.original.subscription.payment_provider_id || "Unknown provider"}
         </Text>
       </div>
-    ),
-  }),
-  columnHelper.accessor("renewal.renewal_cycle_id", {
-    id: "renewal_order",
-    header: "Renewal / Order",
-    cell: ({ row }) => (
-      <div className="flex flex-col gap-y-0.5">
-        {row.original.renewal ? (
-          <Link
-            to={`/subscriptions/renewals/${row.original.renewal.renewal_cycle_id}`}
-            className="txt-compact-small-plus text-ui-fg-interactive hover:text-ui-fg-interactive-hover"
-          >
-            Renewal {row.original.renewal.renewal_cycle_id}
-          </Link>
-        ) : (
-          <Text size="small" leading="compact" className="text-ui-fg-subtle">
-            No linked renewal
-          </Text>
-        )}
-        {row.original.order ? (
-          <Link
-            to={`/orders/${row.original.order.order_id}`}
-            className="txt-compact-small-plus text-ui-fg-interactive hover:text-ui-fg-interactive-hover"
-          >
-            Order #{row.original.order.display_id}
-          </Link>
-        ) : (
-          <Text size="small" leading="compact" className="text-ui-fg-subtle">
-            No linked order
-          </Text>
-        )}
-      </div>
-    ),
-  }),
-  columnHelper.accessor("updated_at", {
-    header: "Updated",
-    enableSorting: true,
-    sortLabel: "Updated",
-    cell: ({ getValue }) => (
-      <Text size="small" leading="compact">
-        {formatDateTime(getValue())}
-      </Text>
     ),
   }),
 ]
@@ -774,6 +736,12 @@ function formatDateRange(from?: string, to?: string) {
 function addDays(date: Date, amount: number) {
   const next = new Date(date)
   next.setDate(next.getDate() + amount)
+  return next
+}
+
+function startOfDay(date: Date) {
+  const next = new Date(date)
+  next.setHours(0, 0, 0, 0)
   return next
 }
 

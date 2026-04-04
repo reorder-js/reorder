@@ -135,12 +135,16 @@ The detail page currently renders:
 - `Cycle overview`
 - `Approval summary`
 - `Subscription summary`
-- `Generated order`
+- `Generated order summary`
 - `Pending changes`
 - `Attempt history`
 - `Technical metadata`
 
 These sections are read-oriented and designed for quick operator inspection.
+
+Layout:
+- the left column contains `Cycle overview`, `Approval summary`, `Pending changes`, `Attempt history`, and `Technical metadata`
+- the right column contains `Subscription summary` and `Generated order summary` as linked Medusa-style cards
 
 ## 3. Detail Actions
 
