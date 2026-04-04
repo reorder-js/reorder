@@ -97,6 +97,10 @@ The `Actor` presentation prefers the resolved display value from the read model:
 - for admin users, this is typically the admin email
 - if no display enrichment is available, the UI falls back to `actor_id`
 
+The `Event` cell renders only the event badge in the table view.
+
+The domain label is not shown as a secondary line in the table cell.
+
 The toolbar also exposes:
 - `Add filter`
 - `Clear all`
@@ -178,6 +182,13 @@ It uses the same status-badge language and color semantics as the global `Activi
 The actor cell prefers the resolved display value:
 - admin email when available
 - `actor_id` only as a fallback
+
+The event cell shows only the event badge.
+
+The summary cell is operator-facing:
+- it prefers a readable summary over raw internal field names
+- technical keys such as `pending_update_data` are translated before rendering
+- the secondary line is shown only when an explicit `reason` exists
 
 ### Timeline Filters
 

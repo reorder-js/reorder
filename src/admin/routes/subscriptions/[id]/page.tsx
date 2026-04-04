@@ -449,17 +449,12 @@ const SubscriptionDetailPage = () => {
         enableSorting: true,
         sortLabel: "Event",
         cell: ({ row }) => (
-          <div className="flex flex-col gap-y-1">
-            <StatusBadge
-              color={getActivityEventColor(row.original.event_type)}
-              className="w-fit text-nowrap"
-            >
-              {formatActivityEventType(row.original.event_type)}
-            </StatusBadge>
-            <Text size="small" leading="compact" className="text-ui-fg-subtle">
-              {formatActivityDomain(row.original.event_type)}
-            </Text>
-          </div>
+          <StatusBadge
+            color={getActivityEventColor(row.original.event_type)}
+            className="w-fit text-nowrap"
+          >
+            {formatActivityEventType(row.original.event_type)}
+          </StatusBadge>
         ),
       }),
       activityLogColumnHelper.accessor("actor_type", {
@@ -467,17 +462,9 @@ const SubscriptionDetailPage = () => {
         enableSorting: true,
         sortLabel: "Actor",
         cell: ({ row }) => (
-          <div className="flex flex-col gap-y-1">
-            <StatusBadge
-              color={getActivityActorColor(row.original.actor_type)}
-              className="w-fit text-nowrap"
-            >
-              {formatActivityActorType(row.original.actor_type)}
-            </StatusBadge>
-            <Text size="small" leading="compact" className="text-ui-fg-subtle">
-              {row.original.actor.display || row.original.actor_id || "No actor"}
-            </Text>
-          </div>
+          <Text size="small" leading="compact">
+            {getActivityActorDisplay(row.original)}
+          </Text>
         ),
       }),
       activityLogColumnHelper.accessor("change_summary", {
@@ -488,11 +475,13 @@ const SubscriptionDetailPage = () => {
         cell: ({ row }) => (
           <div className="flex flex-col gap-y-0.5">
             <Text size="small" leading="compact" weight="plus">
-              {row.original.change_summary || row.original.reason || "No summary"}
+              {formatActivitySummary(row.original)}
             </Text>
-            <Text size="small" leading="compact" className="text-ui-fg-subtle">
-              {row.original.reason || "-"}
-            </Text>
+            {row.original.reason ? (
+              <Text size="small" leading="compact" className="text-ui-fg-subtle">
+                {row.original.reason}
+              </Text>
+            ) : null}
           </div>
         ),
       }),
@@ -1536,15 +1525,11 @@ const ActivityLogDetailContent = ({ log }: { log: ActivityLogAdminDetail }) => {
           },
           {
             label: "Actor",
-            value: `${formatActivityActorType(log.actor_type)}${
-              log.actor.display || log.actor_id
-                ? ` · ${log.actor.display || log.actor_id}`
-                : ""
-            }`,
+            value: getActivityActorDisplay(log),
           },
           { label: "Created", value: formatDateTime(log.created_at) },
           { label: "Reason", value: log.reason || "-" },
-          { label: "Summary", value: log.change_summary || "-" },
+          { label: "Summary", value: formatActivitySummary(log) },
         ]}
       />
       <DetailBlock
@@ -1824,26 +1809,6 @@ function formatActivityEventType(value: string) {
   );
 }
 
-function formatActivityDomain(value: string) {
-  if (value.startsWith("subscription.")) {
-    return "Subscriptions";
-  }
-
-  if (value.startsWith("renewal.")) {
-    return "Renewals";
-  }
-
-  if (value.startsWith("dunning.")) {
-    return "Dunning";
-  }
-
-  if (value.startsWith("cancellation.")) {
-    return "Cancellation & Retention";
-  }
-
-  return "Activity";
-}
-
 function formatActivityActorType(value: ActivityLogAdminActorType) {
   switch (value) {
     case ActivityLogAdminActorType.USER:
@@ -1852,6 +1817,58 @@ function formatActivityActorType(value: ActivityLogAdminActorType) {
       return "System";
     case ActivityLogAdminActorType.SCHEDULER:
       return "Scheduler";
+  }
+}
+
+function getActivityActorDisplay(
+  log: Pick<ActivityLogAdminListItem, "actor" | "actor_id" | "actor_type">,
+) {
+  return log.actor.display || log.actor_id || formatActivityActorType(log.actor_type);
+}
+
+function formatActivitySummary(
+  log: Pick<ActivityLogAdminListItem, "change_summary" | "reason">,
+) {
+  if (log.reason) {
+    return log.reason;
+  }
+
+  if (!log.change_summary) {
+    return "No summary";
+  }
+
+  return log.change_summary
+    .split(",")
+    .map((part) => formatActivitySummaryField(part.trim()))
+    .filter(Boolean)
+    .join(", ");
+}
+
+function formatActivitySummaryField(value: string) {
+  switch (value) {
+    case "pending_update_data":
+      return "Scheduled plan change";
+    case "status":
+      return "Status changed";
+    case "recipient":
+      return "Recipient updated";
+    case "address_lines_changed":
+      return "Address updated";
+    case "postal_code_changed":
+      return "Postal code updated";
+    case "phone_changed":
+      return "Phone updated";
+    case "country_code":
+      return "Country updated";
+    case "province":
+      return "Province updated";
+    case "city":
+      return "City updated";
+    default:
+      return value
+        .split("_")
+        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+        .join(" ");
   }
 }
 

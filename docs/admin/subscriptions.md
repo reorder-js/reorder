@@ -234,6 +234,9 @@ The section currently:
 - supports `Add filter` for domain, actor, and optional date filters
 - shows `Created from` and `Created to` inputs only after those filters are added from the menu
 - opens the event drawer when a row is clicked
+- renders `Actor` as the resolved display value, typically admin email
+- renders `Event` without a secondary domain subtitle in the table cell
+- renders `Summary` using operator-facing labels instead of raw internal field names such as `pending_update_data`
 
 ## 6. Action Rules by Status
 

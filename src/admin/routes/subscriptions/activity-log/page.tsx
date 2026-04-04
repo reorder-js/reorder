@@ -130,17 +130,9 @@ const baseColumns = [
     enableSorting: true,
     sortLabel: "Actor",
     cell: ({ row }) => (
-      <div className="flex flex-col gap-y-0.5">
-        <StatusBadge
-          color={getActorColor(row.original.actor_type)}
-          className="w-fit text-nowrap"
-        >
-          {formatActorType(row.original.actor_type)}
-        </StatusBadge>
-        <Text size="small" leading="compact" className="text-ui-fg-subtle">
-          {row.original.actor.display || row.original.actor_id || "No actor"}
-        </Text>
-      </div>
+      <Text size="small" leading="compact">
+        {getActorDisplay(row.original)}
+      </Text>
     ),
   }),
   columnHelper.accessor("event_type", {
@@ -148,17 +140,12 @@ const baseColumns = [
     enableSorting: true,
     sortLabel: "Event",
     cell: ({ row }) => (
-      <div className="flex flex-col gap-y-1">
-        <StatusBadge
-          color={getEventColor(row.original.event_type)}
-          className="w-fit text-nowrap"
-        >
-          {formatEventType(row.original.event_type)}
-        </StatusBadge>
-        <Text size="small" leading="compact" className="text-ui-fg-subtle">
-          {formatDomainLabel(row.original.event_type)}
-        </Text>
-      </div>
+      <StatusBadge
+        color={getEventColor(row.original.event_type)}
+        className="w-fit text-nowrap"
+      >
+        {formatEventType(row.original.event_type)}
+      </StatusBadge>
     ),
   }),
   columnHelper.accessor("reason", {
@@ -168,11 +155,13 @@ const baseColumns = [
     cell: ({ row }) => (
       <div className="flex flex-col gap-y-0.5">
         <Text size="small" leading="compact" weight="plus">
-          {row.original.reason || "No explicit reason"}
+          {formatSummary(row.original)}
         </Text>
-        <Text size="small" leading="compact" className="text-ui-fg-subtle">
-          {row.original.change_summary || "No change summary"}
-        </Text>
+        {row.original.reason ? (
+          <Text size="small" leading="compact" className="text-ui-fg-subtle">
+            {row.original.reason}
+          </Text>
+        ) : null}
       </div>
     ),
   }),
@@ -658,9 +647,7 @@ const ActivityLogDetailContent = ({ log }: { log: ActivityLogAdminDetail }) => {
           },
           {
             label: "Actor",
-            value: `${formatActorType(log.actor_type)}${
-              log.actor.display ? ` · ${log.actor.display}` : ""
-            }`,
+            value: getActorDisplay(log),
           },
           {
             label: "Created",
@@ -672,7 +659,7 @@ const ActivityLogDetailContent = ({ log }: { log: ActivityLogAdminDetail }) => {
           },
           {
             label: "Summary",
-            value: log.change_summary || "-",
+            value: formatSummary(log),
           },
         ]}
       />
@@ -849,6 +836,58 @@ function formatDomainLabel(value: string) {
   }
 
   return "Activity"
+}
+
+function getActorDisplay(
+  log: Pick<ActivityLogAdminListItem, "actor" | "actor_id" | "actor_type">
+) {
+  return log.actor.display || log.actor_id || formatActorType(log.actor_type)
+}
+
+function formatSummary(
+  log: Pick<ActivityLogAdminListItem, "change_summary" | "reason">
+) {
+  if (log.reason) {
+    return log.reason
+  }
+
+  if (!log.change_summary) {
+    return "No summary"
+  }
+
+  return log.change_summary
+    .split(",")
+    .map((part) => formatSummaryField(part.trim()))
+    .filter(Boolean)
+    .join(", ")
+}
+
+function formatSummaryField(value: string) {
+  switch (value) {
+    case "pending_update_data":
+      return "Scheduled plan change"
+    case "status":
+      return "Status changed"
+    case "recipient":
+      return "Recipient updated"
+    case "address_lines_changed":
+      return "Address updated"
+    case "postal_code_changed":
+      return "Postal code updated"
+    case "phone_changed":
+      return "Phone updated"
+    case "country_code":
+      return "Country updated"
+    case "province":
+      return "Province updated"
+    case "city":
+      return "City updated"
+    default:
+      return value
+        .split("_")
+        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+        .join(" ")
+  }
 }
 
 function getEventColor(value: string) {
