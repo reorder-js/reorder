@@ -122,6 +122,7 @@ npx medusa exec ../reorder/scripts/reset-subscriptions-test-data.ts
 ## What the Script Creates
 
 The script creates or updates:
+- standard Medusa `Customer` records for the seeded subscription scenarios
 - one global `SubscriptionSettings` singleton for Settings QA
 - two `Plan Offers`
 - multiple test subscriptions
@@ -135,6 +136,7 @@ The script creates or updates:
 - deterministic `subscription_metrics_daily` rows for Analytics QA
 
 The reset script removes the seeded records for the same areas:
+- seeded standard `Customer` records
 - seeded `SubscriptionSettings`
 - seeded `Plan Offers`
 - seeded `Subscriptions`
@@ -149,6 +151,7 @@ The reset script removes the seeded records for the same areas:
 
 The seed is designed to be idempotent:
 - it uses stable IDs
+- it reuses seeded customers by deterministic email
 - rerunning it should update the same records instead of endlessly creating duplicates
 
 The reset is also deterministic:

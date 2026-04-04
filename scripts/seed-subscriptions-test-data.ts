@@ -1,5 +1,5 @@
 import type { ExecArgs, MedusaContainer } from "@medusajs/framework/types"
-import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import { ACTIVITY_LOG_MODULE } from "../src/modules/activity-log"
 import type ActivityLogModuleService from "../src/modules/activity-log/service"
 import { ANALYTICS_MODULE } from "../src/modules/analytics"
@@ -87,6 +87,25 @@ type SeedSummaryRow = {
   notes: string
 }
 
+type SeedCustomerDefinition = {
+  key: string
+  reference: string
+}
+
+type SeedCustomerRecord = {
+  id: string
+  email: string
+  full_name: string
+}
+
+type CustomerModuleService = {
+  createCustomers(
+    data:
+      | Record<string, unknown>
+      | Record<string, unknown>[]
+  ): Promise<Array<{ id: string; email: string }>>
+}
+
 const FIXED_TIME = new Date("2026-04-15T10:00:00.000Z")
 
 const IDS = {
@@ -164,6 +183,89 @@ function addDays(date: Date, days: number) {
   return copy
 }
 
+function buildSeedCustomerDefinition(input: SeedCustomerDefinition) {
+  return {
+    ...input,
+    email: `${input.reference.toLowerCase()}@example.com`,
+    full_name: `QA ${input.reference}`,
+  }
+}
+
+async function ensureSeedCustomers(
+  container: MedusaContainer,
+  definitions: SeedCustomerDefinition[]
+) {
+  const query = container.resolve(ContainerRegistrationKeys.QUERY)
+  const customerModule =
+    container.resolve<CustomerModuleService>(Modules.CUSTOMER)
+  const customerDefinitions = definitions.map(buildSeedCustomerDefinition)
+  const emailToDefinition = new Map(
+    customerDefinitions.map((definition) => [definition.email, definition])
+  )
+
+  const { data: existingCustomers } = await query.graph({
+    entity: "customer",
+    fields: ["id", "email"],
+    filters: {
+      email: customerDefinitions.map((definition) => definition.email),
+    },
+  })
+
+  const customerMap = new Map<string, SeedCustomerRecord>()
+
+  for (const customer of (existingCustomers ?? []) as Array<{
+    id: string
+    email: string
+  }>) {
+    const definition = emailToDefinition.get(customer.email)
+
+    if (!definition) {
+      continue
+    }
+
+    customerMap.set(definition.key, {
+      id: customer.id,
+      email: definition.email,
+      full_name: definition.full_name,
+    })
+  }
+
+  const missingDefinitions = customerDefinitions.filter(
+    (definition) => !customerMap.has(definition.key)
+  )
+
+  if (missingDefinitions.length) {
+    const result = await customerModule.createCustomers(
+      missingDefinitions.map((definition) => ({
+        email: definition.email,
+        first_name: "QA",
+        last_name: definition.reference,
+        metadata: {
+          seed_namespace: "subscriptions-test-data",
+          seed_key: definition.key,
+          seed_reference: definition.reference,
+        },
+      }))
+    )
+
+    for (const customer of result) {
+      const definition = emailToDefinition.get(customer.email)
+
+      if (!definition) {
+        continue
+      }
+
+      customerMap.set(definition.key, {
+        id: customer.id,
+        email: definition.email,
+        full_name: definition.full_name,
+      })
+    }
+  }
+
+  return customerMap
+}
+
 async function listProductsWithVariants(container: MedusaContainer) {
   const query = container.resolve(ContainerRegistrationKeys.QUERY)
   const { data } = await query.graph({
@@ -224,6 +326,7 @@ function pickSeedTargets(
 function buildSubscriptionRecord(input: {
   id: string
   reference: string
+  customer: SeedCustomerRecord
   target: TargetContext
   status: SubscriptionStatus
   frequency_interval: SubscriptionFrequencyInterval
@@ -241,7 +344,7 @@ function buildSubscriptionRecord(input: {
     id: input.id,
     reference: input.reference,
     status: input.status,
-    customer_id: `cus_${input.id}`,
+    customer_id: input.customer.id,
     cart_id: input.cart_id === undefined ? null : input.cart_id,
     product_id: input.target.product_id,
     variant_id: input.target.variant_id,
@@ -258,8 +361,8 @@ function buildSubscriptionRecord(input: {
     is_trial: false,
     trial_ends_at: null,
     customer_snapshot: {
-      email: `${input.reference.toLowerCase()}@example.com`,
-      full_name: `QA ${input.reference}`,
+      email: input.customer.email,
+      full_name: input.customer.full_name,
     },
     product_snapshot: {
       product_id: input.target.product_id,
@@ -554,6 +657,37 @@ export default async function seedSubscriptionsTestData({
   const products = await listProductsWithVariants(container)
   const offers = await listPlanOfferTargets(container)
   const targets = pickSeedTargets(products, offers)
+  const customerMap = await ensureSeedCustomers(container, [
+    { key: IDS.subSuccess, reference: "SUB-QA-REN-SUCCESS" },
+    { key: IDS.subPaused, reference: "SUB-QA-REN-PAUSED" },
+    { key: IDS.subCancelEffective, reference: "SUB-QA-REN-CANCEL-EFFECTIVE" },
+    { key: IDS.subApprovalPending, reference: "SUB-QA-REN-APPROVAL-PENDING" },
+    { key: IDS.subPolicyBlocked, reference: "SUB-QA-REN-POLICY-BLOCKED" },
+    { key: IDS.subFailedHistory, reference: "SUB-QA-REN-FAILED-HISTORY" },
+    { key: IDS.subDunningRetryScheduled, reference: "SUB-QA-DUN-RETRY-SCHEDULED" },
+    { key: IDS.subDunningAwaitingManual, reference: "SUB-QA-DUN-AWAITING-MANUAL" },
+    { key: IDS.subDunningRecovered, reference: "SUB-QA-DUN-RECOVERED" },
+    { key: IDS.subDunningUnrecovered, reference: "SUB-QA-DUN-UNRECOVERED" },
+    { key: IDS.subDunningManualOverride, reference: "SUB-QA-DUN-MANUAL-OVERRIDE" },
+    { key: IDS.subCancellationOpenBilling, reference: "SUB-QA-CAN-OPEN-BILLING" },
+    { key: IDS.subCancellationRetainedDiscount, reference: "SUB-QA-CAN-RETAINED-DISCOUNT" },
+    { key: IDS.subCancellationPaused, reference: "SUB-QA-CAN-PAUSED" },
+    { key: IDS.subCancellationCanceledImmediate, reference: "SUB-QA-CAN-CANCELED-IMMEDIATE" },
+    { key: IDS.subCancellationCanceledEndCycle, reference: "SUB-QA-CAN-CANCELED-END-CYCLE" },
+    { key: IDS.subCancellationOpenPrice, reference: "SUB-QA-CAN-OPEN-PRICE" },
+    { key: IDS.subCancellationOpenPaused, reference: "SUB-QA-CAN-OPEN-PAUSED-SUB" },
+    { key: IDS.subAnalyticsBiMonthly, reference: "SUB-QA-ANL-BI-MONTHLY" },
+  ])
+
+  const getSeedCustomer = (key: string) => {
+    const customer = customerMap.get(key)
+
+    if (!customer) {
+      throw new Error(`Seed customer missing for ${key}`)
+    }
+
+    return customer
+  }
 
   logger.info(
     `[subscriptions-test-data] Using success target ${targets.success.product_id}/${targets.success.variant_id} and blocked target ${targets.blocked.product_id}/${targets.blocked.variant_id}`
@@ -727,6 +861,7 @@ export default async function seedSubscriptionsTestData({
     buildSubscriptionRecord({
       id: IDS.subSuccess,
       reference: "SUB-QA-REN-SUCCESS",
+      customer: getSeedCustomer(IDS.subSuccess),
       target: targets.success,
       status: SubscriptionStatus.ACTIVE,
       frequency_interval: SubscriptionFrequencyInterval.MONTH,
@@ -741,6 +876,7 @@ export default async function seedSubscriptionsTestData({
     buildSubscriptionRecord({
       id: IDS.subPaused,
       reference: "SUB-QA-REN-PAUSED",
+      customer: getSeedCustomer(IDS.subPaused),
       target: targets.success,
       status: SubscriptionStatus.PAUSED,
       frequency_interval: SubscriptionFrequencyInterval.MONTH,
@@ -756,6 +892,7 @@ export default async function seedSubscriptionsTestData({
     buildSubscriptionRecord({
       id: IDS.subCancelEffective,
       reference: "SUB-QA-REN-CANCEL-EFFECTIVE",
+      customer: getSeedCustomer(IDS.subCancelEffective),
       target: targets.success,
       status: SubscriptionStatus.ACTIVE,
       frequency_interval: SubscriptionFrequencyInterval.MONTH,
@@ -771,6 +908,7 @@ export default async function seedSubscriptionsTestData({
     buildSubscriptionRecord({
       id: IDS.subApprovalPending,
       reference: "SUB-QA-REN-APPROVAL-PENDING",
+      customer: getSeedCustomer(IDS.subApprovalPending),
       target: targets.success,
       status: SubscriptionStatus.ACTIVE,
       frequency_interval: SubscriptionFrequencyInterval.MONTH,
@@ -795,6 +933,7 @@ export default async function seedSubscriptionsTestData({
     buildSubscriptionRecord({
       id: IDS.subPolicyBlocked,
       reference: "SUB-QA-REN-POLICY-BLOCKED",
+      customer: getSeedCustomer(IDS.subPolicyBlocked),
       target: targets.blocked,
       status: SubscriptionStatus.ACTIVE,
       frequency_interval: SubscriptionFrequencyInterval.MONTH,
@@ -819,6 +958,7 @@ export default async function seedSubscriptionsTestData({
     buildSubscriptionRecord({
       id: IDS.subFailedHistory,
       reference: "SUB-QA-REN-FAILED-HISTORY",
+      customer: getSeedCustomer(IDS.subFailedHistory),
       target: targets.success,
       status: SubscriptionStatus.ACTIVE,
       frequency_interval: SubscriptionFrequencyInterval.MONTH,
@@ -834,6 +974,7 @@ export default async function seedSubscriptionsTestData({
     buildSubscriptionRecord({
       id: IDS.subDunningRetryScheduled,
       reference: "SUB-QA-DUN-RETRY-SCHEDULED",
+      customer: getSeedCustomer(IDS.subDunningRetryScheduled),
       target: targets.success,
       status: SubscriptionStatus.PAST_DUE,
       frequency_interval: SubscriptionFrequencyInterval.MONTH,
@@ -850,6 +991,7 @@ export default async function seedSubscriptionsTestData({
     buildSubscriptionRecord({
       id: IDS.subCancellationOpenBilling,
       reference: "SUB-QA-CAN-OPEN-BILLING",
+      customer: getSeedCustomer(IDS.subCancellationOpenBilling),
       target: targets.success,
       status: SubscriptionStatus.PAST_DUE,
       frequency_interval: SubscriptionFrequencyInterval.MONTH,
@@ -866,6 +1008,7 @@ export default async function seedSubscriptionsTestData({
     buildSubscriptionRecord({
       id: IDS.subCancellationRetainedDiscount,
       reference: "SUB-QA-CAN-RETAINED-DISCOUNT",
+      customer: getSeedCustomer(IDS.subCancellationRetainedDiscount),
       target: targets.success,
       status: SubscriptionStatus.ACTIVE,
       frequency_interval: SubscriptionFrequencyInterval.MONTH,
@@ -881,6 +1024,7 @@ export default async function seedSubscriptionsTestData({
     buildSubscriptionRecord({
       id: IDS.subCancellationPaused,
       reference: "SUB-QA-CAN-PAUSED",
+      customer: getSeedCustomer(IDS.subCancellationPaused),
       target: targets.success,
       status: SubscriptionStatus.PAUSED,
       frequency_interval: SubscriptionFrequencyInterval.MONTH,
@@ -897,6 +1041,7 @@ export default async function seedSubscriptionsTestData({
     buildSubscriptionRecord({
       id: IDS.subCancellationCanceledImmediate,
       reference: "SUB-QA-CAN-CANCELED-IMMEDIATE",
+      customer: getSeedCustomer(IDS.subCancellationCanceledImmediate),
       target: targets.blocked,
       status: SubscriptionStatus.CANCELLED,
       frequency_interval: SubscriptionFrequencyInterval.MONTH,
@@ -914,6 +1059,7 @@ export default async function seedSubscriptionsTestData({
     buildSubscriptionRecord({
       id: IDS.subCancellationCanceledEndCycle,
       reference: "SUB-QA-CAN-CANCELED-END-CYCLE",
+      customer: getSeedCustomer(IDS.subCancellationCanceledEndCycle),
       target: targets.blocked,
       status: SubscriptionStatus.CANCELLED,
       frequency_interval: SubscriptionFrequencyInterval.MONTH,
@@ -931,6 +1077,7 @@ export default async function seedSubscriptionsTestData({
     buildSubscriptionRecord({
       id: IDS.subCancellationOpenPrice,
       reference: "SUB-QA-CAN-OPEN-PRICE",
+      customer: getSeedCustomer(IDS.subCancellationOpenPrice),
       target: targets.success,
       status: SubscriptionStatus.ACTIVE,
       frequency_interval: SubscriptionFrequencyInterval.MONTH,
@@ -946,6 +1093,7 @@ export default async function seedSubscriptionsTestData({
     buildSubscriptionRecord({
       id: IDS.subCancellationOpenPaused,
       reference: "SUB-QA-CAN-OPEN-PAUSED-SUB",
+      customer: getSeedCustomer(IDS.subCancellationOpenPaused),
       target: targets.success,
       status: SubscriptionStatus.PAUSED,
       frequency_interval: SubscriptionFrequencyInterval.MONTH,
@@ -962,6 +1110,7 @@ export default async function seedSubscriptionsTestData({
     buildSubscriptionRecord({
       id: IDS.subDunningAwaitingManual,
       reference: "SUB-QA-DUN-AWAITING-MANUAL",
+      customer: getSeedCustomer(IDS.subDunningAwaitingManual),
       target: targets.success,
       status: SubscriptionStatus.PAST_DUE,
       frequency_interval: SubscriptionFrequencyInterval.MONTH,
@@ -978,6 +1127,7 @@ export default async function seedSubscriptionsTestData({
     buildSubscriptionRecord({
       id: IDS.subDunningRecovered,
       reference: "SUB-QA-DUN-RECOVERED",
+      customer: getSeedCustomer(IDS.subDunningRecovered),
       target: targets.success,
       status: SubscriptionStatus.ACTIVE,
       frequency_interval: SubscriptionFrequencyInterval.MONTH,
@@ -994,6 +1144,7 @@ export default async function seedSubscriptionsTestData({
     buildSubscriptionRecord({
       id: IDS.subDunningUnrecovered,
       reference: "SUB-QA-DUN-UNRECOVERED",
+      customer: getSeedCustomer(IDS.subDunningUnrecovered),
       target: targets.success,
       status: SubscriptionStatus.PAST_DUE,
       frequency_interval: SubscriptionFrequencyInterval.MONTH,
@@ -1010,6 +1161,7 @@ export default async function seedSubscriptionsTestData({
     buildSubscriptionRecord({
       id: IDS.subDunningManualOverride,
       reference: "SUB-QA-DUN-MANUAL-OVERRIDE",
+      customer: getSeedCustomer(IDS.subDunningManualOverride),
       target: targets.success,
       status: SubscriptionStatus.PAST_DUE,
       frequency_interval: SubscriptionFrequencyInterval.MONTH,
@@ -1026,6 +1178,7 @@ export default async function seedSubscriptionsTestData({
     buildSubscriptionRecord({
       id: IDS.subAnalyticsBiMonthly,
       reference: "SUB-QA-ANL-BI-MONTHLY",
+      customer: getSeedCustomer(IDS.subAnalyticsBiMonthly),
       target: targets.success,
       status: SubscriptionStatus.ACTIVE,
       frequency_interval: SubscriptionFrequencyInterval.MONTH,
@@ -1896,7 +2049,7 @@ export default async function seedSubscriptionsTestData({
   await upsertSubscriptionLog(activityLogModule, {
     id: IDS.logSubscriptionPaused,
     subscription_id: IDS.subPaused,
-    customer_id: `cus_${IDS.subPaused}`,
+    customer_id: getSeedCustomer(IDS.subPaused).id,
     event_type: ActivityLogEventType.SUBSCRIPTION_PAUSED,
     actor_type: ActivityLogActorType.USER,
     actor_id: "qa-seed-admin",
@@ -1935,7 +2088,7 @@ export default async function seedSubscriptionsTestData({
   await upsertSubscriptionLog(activityLogModule, {
     id: IDS.logRenewalSucceeded,
     subscription_id: IDS.subSuccess,
-    customer_id: `cus_${IDS.subSuccess}`,
+    customer_id: getSeedCustomer(IDS.subSuccess).id,
     event_type: ActivityLogEventType.RENEWAL_SUCCEEDED,
     actor_type: ActivityLogActorType.SCHEDULER,
     actor_id: null,
@@ -1976,7 +2129,7 @@ export default async function seedSubscriptionsTestData({
   await upsertSubscriptionLog(activityLogModule, {
     id: IDS.logDunningRecovered,
     subscription_id: IDS.subDunningRecovered,
-    customer_id: `cus_${IDS.subDunningRecovered}`,
+    customer_id: getSeedCustomer(IDS.subDunningRecovered).id,
     event_type: ActivityLogEventType.DUNNING_RECOVERED,
     actor_type: ActivityLogActorType.SYSTEM,
     actor_id: "qa-seed-system",
@@ -2035,7 +2188,7 @@ export default async function seedSubscriptionsTestData({
       buildAnalyticsSnapshotRecord({
         subscription_id: IDS.subSuccess,
         metric_date: date,
-        customer_id: `cus_${IDS.subSuccess}`,
+        customer_id: getSeedCustomer(IDS.subSuccess).id,
         product_id: targets.success.product_id,
         variant_id: targets.success.variant_id,
         status: SubscriptionStatus.ACTIVE,
@@ -2055,7 +2208,7 @@ export default async function seedSubscriptionsTestData({
       buildAnalyticsSnapshotRecord({
         subscription_id: IDS.subAnalyticsBiMonthly,
         metric_date: date,
-        customer_id: `cus_${IDS.subAnalyticsBiMonthly}`,
+        customer_id: getSeedCustomer(IDS.subAnalyticsBiMonthly).id,
         product_id: targets.success.product_id,
         variant_id: targets.success.variant_id,
         status: SubscriptionStatus.ACTIVE,
@@ -2075,7 +2228,7 @@ export default async function seedSubscriptionsTestData({
       buildAnalyticsSnapshotRecord({
         subscription_id: IDS.subPaused,
         metric_date: date,
-        customer_id: `cus_${IDS.subPaused}`,
+        customer_id: getSeedCustomer(IDS.subPaused).id,
         product_id: targets.success.product_id,
         variant_id: targets.success.variant_id,
         status: SubscriptionStatus.PAUSED,
@@ -2095,7 +2248,7 @@ export default async function seedSubscriptionsTestData({
       buildAnalyticsSnapshotRecord({
         subscription_id: IDS.subDunningRetryScheduled,
         metric_date: date,
-        customer_id: `cus_${IDS.subDunningRetryScheduled}`,
+        customer_id: getSeedCustomer(IDS.subDunningRetryScheduled).id,
         product_id: targets.success.product_id,
         variant_id: targets.success.variant_id,
         status: SubscriptionStatus.PAST_DUE,
@@ -2115,7 +2268,7 @@ export default async function seedSubscriptionsTestData({
       buildAnalyticsSnapshotRecord({
         subscription_id: IDS.subCancellationCanceledImmediate,
         metric_date: date,
-        customer_id: `cus_${IDS.subCancellationCanceledImmediate}`,
+        customer_id: getSeedCustomer(IDS.subCancellationCanceledImmediate).id,
         product_id: targets.blocked.product_id,
         variant_id: targets.blocked.variant_id,
         status: SubscriptionStatus.CANCELLED,
@@ -2136,7 +2289,7 @@ export default async function seedSubscriptionsTestData({
       buildAnalyticsSnapshotRecord({
         subscription_id: IDS.subCancellationCanceledEndCycle,
         metric_date: date,
-        customer_id: `cus_${IDS.subCancellationCanceledEndCycle}`,
+        customer_id: getSeedCustomer(IDS.subCancellationCanceledEndCycle).id,
         product_id: targets.blocked.product_id,
         variant_id: targets.blocked.variant_id,
         status: SubscriptionStatus.CANCELLED,

@@ -29,6 +29,7 @@ import {
   Spinner,
   TriangleRightMini,
   Trash,
+  User,
   XMarkMini,
 } from "@medusajs/icons";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -179,6 +180,9 @@ const SubscriptionDetailPage = () => {
     loaderData,
   );
   const subscription = data?.subscription;
+  const customerLink = subscription?.customer.id
+    ? `/customers/${subscription.customer.id}`
+    : null;
   const productLink = subscription?.product.product_id
     ? `/products/${subscription.product.product_id}`
     : null;
@@ -742,46 +746,189 @@ const SubscriptionDetailPage = () => {
             </DropdownMenu>
           </div>
         </div>
-        <div className="grid grid-cols-1 gap-4 px-6 py-4 md:grid-cols-2">
-          <DetailBlock
-            title="Subscription"
-            rows={[
-              {
-                label: "Status",
-                value: (
-                  <StatusBadge
-                    color={getStatusColor(subscription.status)}
-                    className="text-nowrap"
-                  >
-                    {formatStatus(subscription.status)}
-                  </StatusBadge>
-                ),
-              },
-              { label: "Frequency", value: subscription.frequency.label },
-              { label: "Next renewal", value: formatDateTime(subscription.next_renewal_at) },
-              { label: "Started at", value: formatDateTime(subscription.started_at) },
-              { label: "Last renewal", value: formatDateTime(subscription.last_renewal_at) },
-            ]}
-          />
-          <DetailBlock
-            title="Customer"
-            rows={[
-              { label: "Name", value: subscription.customer.full_name },
-              { label: "Email", value: subscription.customer.email || "-" },
-              { label: "Customer ID", value: subscription.customer.id },
-            ]}
-          />
-          <DetailBlock
-            title="Product"
-            rows={[
-              {
-                label: "",
-                value: variantLink ? (
-                  <Link
-                    to={variantLink}
-                    className="outline-none focus-within:shadow-borders-interactive-with-focus rounded-md [&:hover>div]:bg-ui-bg-component-hover"
-                  >
-                    <div className="shadow-elevation-card-rest bg-ui-bg-component rounded-md px-4 py-2 transition-colors">
+        <div className="grid grid-cols-1 gap-4 px-6 py-4 xl:grid-cols-[minmax(0,1fr)_360px]">
+          <div className="flex min-w-0 flex-col gap-4">
+            <DetailBlock
+              title="Subscription"
+              columns={2}
+              rows={[
+                {
+                  label: "Status",
+                  value: (
+                    <StatusBadge
+                      color={getStatusColor(subscription.status)}
+                      className="text-nowrap"
+                    >
+                      {formatStatus(subscription.status)}
+                    </StatusBadge>
+                  ),
+                },
+                { label: "Frequency", value: subscription.frequency.label },
+                { label: "Next renewal", value: formatDateTime(subscription.next_renewal_at) },
+                { label: "Started at", value: formatDateTime(subscription.started_at) },
+                { label: "Last renewal", value: formatDateTime(subscription.last_renewal_at) },
+              ]}
+            />
+            <div className="rounded-lg border p-4">
+              <Text size="small" leading="compact" weight="plus">
+                Shipping address
+              </Text>
+              <div className="mt-4 grid gap-3 md:grid-cols-2">
+                <div className="flex flex-col gap-3">
+                  <DetailRow
+                    label="Recipient"
+                    value={`${subscription.shipping_address.first_name} ${subscription.shipping_address.last_name}`}
+                  />
+                  <DetailRow
+                    label="Address"
+                    value={[
+                      subscription.shipping_address.address_1,
+                      subscription.shipping_address.address_2,
+                    ]
+                      .filter(Boolean)
+                      .join(", ")}
+                  />
+                  <DetailRow
+                    label="City"
+                    value={`${subscription.shipping_address.postal_code} ${subscription.shipping_address.city}`}
+                  />
+                </div>
+                <div className="flex flex-col gap-3">
+                  <DetailRow
+                    label="Phone"
+                    value={subscription.shipping_address.phone || "-"}
+                  />
+                  <DetailRow
+                    label="Country"
+                    value={subscription.shipping_address.country_code.toUpperCase()}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="flex min-w-0 flex-col gap-4">
+            <DetailBlock
+              title="Customer"
+              rows={[
+                {
+                  label: "",
+                  value: customerLink ? (
+                    <Link
+                      to={customerLink}
+                      className="outline-none focus-within:shadow-borders-interactive-with-focus rounded-md [&:hover>div]:bg-ui-bg-component-hover"
+                    >
+                      <div className="shadow-elevation-card-rest bg-ui-bg-component rounded-md px-4 py-2 transition-colors">
+                        <div className="flex items-center gap-3">
+                          <div className="shadow-elevation-card-rest flex h-14 w-14 items-center justify-center rounded-md text-ui-fg-muted">
+                            <User />
+                          </div>
+                          <div className="flex flex-1 flex-col">
+                            <Text size="small" leading="compact" weight="plus">
+                              {subscription.customer.full_name}
+                            </Text>
+                            <Text
+                              size="small"
+                              leading="compact"
+                              className="text-ui-fg-subtle"
+                            >
+                              {subscription.customer.email || subscription.customer.id}
+                            </Text>
+                          </div>
+                          <div className="size-7 flex items-center justify-center">
+                            <TriangleRightMini className="text-ui-fg-muted rtl:rotate-180" />
+                          </div>
+                        </div>
+                      </div>
+                    </Link>
+                  ) : (
+                    <div className="shadow-elevation-card-rest bg-ui-bg-component rounded-md px-4 py-2">
+                      <div className="flex items-center gap-3">
+                        <div className="shadow-elevation-card-rest flex h-14 w-14 items-center justify-center rounded-md text-ui-fg-muted">
+                          <User />
+                        </div>
+                        <div className="flex flex-1 flex-col">
+                          <Text size="small" leading="compact" weight="plus">
+                            {subscription.customer.full_name}
+                          </Text>
+                          <Text
+                            size="small"
+                            leading="compact"
+                            className="text-ui-fg-subtle"
+                          >
+                            {subscription.customer.email || subscription.customer.id}
+                          </Text>
+                        </div>
+                      </div>
+                    </div>
+                  ),
+                },
+                { label: "Email", value: subscription.customer.email || "-" },
+                { label: "Customer ID", value: subscription.customer.id },
+              ]}
+            />
+            <DetailBlock
+              title="Product"
+              rows={[
+                {
+                  label: "",
+                  value: variantLink ? (
+                    <Link
+                      to={variantLink}
+                      className="outline-none focus-within:shadow-borders-interactive-with-focus rounded-md [&:hover>div]:bg-ui-bg-component-hover"
+                    >
+                      <div className="shadow-elevation-card-rest bg-ui-bg-component rounded-md px-4 py-2 transition-colors">
+                        <div className="flex items-center gap-3">
+                          <div className="shadow-elevation-card-rest flex h-14 w-14 items-center justify-center rounded-md text-ui-fg-muted">
+                            <ShoppingBag />
+                          </div>
+                          <div className="flex flex-1 flex-col">
+                            <Text size="small" leading="compact" weight="plus">
+                              {subscription.product.variant_title}
+                            </Text>
+                            <Text
+                              size="small"
+                              leading="compact"
+                              className="text-ui-fg-subtle"
+                            >
+                              {subscription.product.product_title}
+                            </Text>
+                          </div>
+                          <div className="size-7 flex items-center justify-center">
+                            <TriangleRightMini className="text-ui-fg-muted rtl:rotate-180" />
+                          </div>
+                        </div>
+                      </div>
+                    </Link>
+                  ) : productLink ? (
+                    <Link
+                      to={productLink}
+                      className="outline-none focus-within:shadow-borders-interactive-with-focus rounded-md [&:hover>div]:bg-ui-bg-component-hover"
+                    >
+                      <div className="shadow-elevation-card-rest bg-ui-bg-component rounded-md px-4 py-2 transition-colors">
+                        <div className="flex items-center gap-3">
+                          <div className="shadow-elevation-card-rest flex h-14 w-14 items-center justify-center rounded-md text-ui-fg-muted">
+                            <ShoppingBag />
+                          </div>
+                          <div className="flex flex-1 flex-col">
+                            <Text size="small" leading="compact" weight="plus">
+                              {subscription.product.product_title}
+                            </Text>
+                            <Text
+                              size="small"
+                              leading="compact"
+                              className="text-ui-fg-subtle"
+                            >
+                              {subscription.product.variant_title}
+                            </Text>
+                          </div>
+                          <div className="size-7 flex items-center justify-center">
+                            <TriangleRightMini className="text-ui-fg-muted rtl:rotate-180" />
+                          </div>
+                        </div>
+                      </div>
+                    </Link>
+                  ) : (
+                    <div className="shadow-elevation-card-rest bg-ui-bg-component rounded-md px-4 py-2">
                       <div className="flex items-center gap-3">
                         <div className="shadow-elevation-card-rest flex h-14 w-14 items-center justify-center rounded-md text-ui-fg-muted">
                           <ShoppingBag />
@@ -798,95 +945,14 @@ const SubscriptionDetailPage = () => {
                             {subscription.product.product_title}
                           </Text>
                         </div>
-                        <div className="size-7 flex items-center justify-center">
-                          <TriangleRightMini className="text-ui-fg-muted rtl:rotate-180" />
-                        </div>
                       </div>
                     </div>
-                  </Link>
-                ) : productLink ? (
-                  <Link
-                    to={productLink}
-                    className="outline-none focus-within:shadow-borders-interactive-with-focus rounded-md [&:hover>div]:bg-ui-bg-component-hover"
-                  >
-                    <div className="shadow-elevation-card-rest bg-ui-bg-component rounded-md px-4 py-2 transition-colors">
-                      <div className="flex items-center gap-3">
-                        <div className="shadow-elevation-card-rest flex h-14 w-14 items-center justify-center rounded-md text-ui-fg-muted">
-                          <ShoppingBag />
-                        </div>
-                        <div className="flex flex-1 flex-col">
-                          <Text size="small" leading="compact" weight="plus">
-                            {subscription.product.product_title}
-                          </Text>
-                          <Text
-                            size="small"
-                            leading="compact"
-                            className="text-ui-fg-subtle"
-                          >
-                            {subscription.product.variant_title}
-                          </Text>
-                        </div>
-                        <div className="size-7 flex items-center justify-center">
-                          <TriangleRightMini className="text-ui-fg-muted rtl:rotate-180" />
-                        </div>
-                      </div>
-                    </div>
-                  </Link>
-                ) : (
-                  <div className="shadow-elevation-card-rest bg-ui-bg-component rounded-md px-4 py-2">
-                    <div className="flex items-center gap-3">
-                      <div className="shadow-elevation-card-rest flex h-14 w-14 items-center justify-center rounded-md text-ui-fg-muted">
-                        <ShoppingBag />
-                      </div>
-                      <div className="flex flex-1 flex-col">
-                        <Text size="small" leading="compact" weight="plus">
-                          {subscription.product.variant_title}
-                        </Text>
-                        <Text
-                          size="small"
-                          leading="compact"
-                          className="text-ui-fg-subtle"
-                        >
-                          {subscription.product.product_title}
-                        </Text>
-                      </div>
-                    </div>
-                  </div>
-                ),
-              },
-              { label: "SKU", value: subscription.product.sku || "-" },
-            ]}
-          />
-          <DetailBlock
-            title="Shipping address"
-            rows={[
-              {
-                label: "Recipient",
-                value: `${subscription.shipping_address.first_name} ${subscription.shipping_address.last_name}`,
-              },
-              {
-                label: "Address",
-                value: [
-                  subscription.shipping_address.address_1,
-                  subscription.shipping_address.address_2,
-                ]
-                  .filter(Boolean)
-                  .join(", "),
-              },
-              {
-                label: "City",
-                value: `${subscription.shipping_address.postal_code} ${subscription.shipping_address.city}`,
-              },
-              {
-                label: "Country",
-                value: subscription.shipping_address.country_code.toUpperCase(),
-              },
-              {
-                label: "Phone",
-                value: subscription.shipping_address.phone || "-",
-              },
-            ]}
-          />
+                  ),
+                },
+                { label: "SKU", value: subscription.product.sku || "-" },
+              ]}
+            />
+          </div>
         </div>
       </Container>
 
@@ -1561,27 +1627,46 @@ const SubscriptionDetailPage = () => {
 const DetailBlock = ({
   title,
   rows,
+  columns = 1,
 }: {
   title: string;
-  rows: { label: string; value: ReactNode }[];
+  rows: { label: string; value: ReactNode; className?: string }[];
+  columns?: 1 | 2;
 }) => {
   return (
     <div className="rounded-lg border p-4">
       <Text size="small" leading="compact" weight="plus">
         {title}
       </Text>
-      <div className="mt-4 grid gap-3">
+      <div
+        className={`mt-4 grid gap-3 ${columns === 2 ? "md:grid-cols-2" : ""}`}
+      >
         {rows.map((row) => (
-          <DetailRow key={`${title}-${row.label}`} label={row.label} value={row.value} />
+          <DetailRow
+            key={`${title}-${row.label}-${String(
+              typeof row.value === "string" ? row.value : ""
+            )}`}
+            label={row.label}
+            value={row.value}
+            className={row.className}
+          />
         ))}
       </div>
     </div>
   );
 };
 
-const DetailRow = ({ label, value }: { label: string; value: ReactNode }) => {
+const DetailRow = ({
+  label,
+  value,
+  className,
+}: {
+  label: string;
+  value: ReactNode;
+  className?: string;
+}) => {
   return (
-    <div className="grid gap-1">
+    <div className={`grid gap-1 ${className ?? ""}`}>
       <Text size="small" leading="compact" className="text-ui-fg-subtle">
         {label}
       </Text>

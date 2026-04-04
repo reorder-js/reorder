@@ -1,5 +1,5 @@
 import type { ExecArgs } from "@medusajs/framework/types"
-import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 
 const SEED_NAMESPACE = "subscriptions-test-data"
 
@@ -74,6 +74,27 @@ const IDS = {
     "slog_seed_subscription_paused",
     "slog_seed_renewal_succeeded",
     "slog_seed_dunning_recovered",
+  ],
+  customerReferences: [
+    "SUB-QA-REN-SUCCESS",
+    "SUB-QA-REN-PAUSED",
+    "SUB-QA-REN-CANCEL-EFFECTIVE",
+    "SUB-QA-REN-APPROVAL-PENDING",
+    "SUB-QA-REN-POLICY-BLOCKED",
+    "SUB-QA-REN-FAILED-HISTORY",
+    "SUB-QA-DUN-RETRY-SCHEDULED",
+    "SUB-QA-DUN-AWAITING-MANUAL",
+    "SUB-QA-DUN-RECOVERED",
+    "SUB-QA-DUN-UNRECOVERED",
+    "SUB-QA-DUN-MANUAL-OVERRIDE",
+    "SUB-QA-CAN-OPEN-BILLING",
+    "SUB-QA-CAN-RETAINED-DISCOUNT",
+    "SUB-QA-CAN-PAUSED",
+    "SUB-QA-CAN-CANCELED-IMMEDIATE",
+    "SUB-QA-CAN-CANCELED-END-CYCLE",
+    "SUB-QA-CAN-OPEN-PRICE",
+    "SUB-QA-CAN-OPEN-PAUSED-SUB",
+    "SUB-QA-ANL-BI-MONTHLY",
   ],
 } as const
 
@@ -154,6 +175,9 @@ export default async function resetSubscriptionsTestData({
   const logger = container.resolve(ContainerRegistrationKeys.LOGGER)
   const query = container.resolve(ContainerRegistrationKeys.QUERY)
   const pgConnection = container.resolve(ContainerRegistrationKeys.PG_CONNECTION)
+  const customerModule = container.resolve<{
+    deleteCustomers(ids: string[]): Promise<void>
+  }>(Modules.CUSTOMER)
 
   logger.info("[subscriptions-test-data-reset] Resolving seeded records")
 
@@ -202,6 +226,20 @@ export default async function resetSubscriptionsTestData({
         ?.filter((record) => hasSeedNamespace(record as QueryRecord))
         .map((record) => (record as QueryRecord).id) ?? []
     : []
+  const seededCustomerEmails = IDS.customerReferences.map(
+    (reference) => `${reference.toLowerCase()}@example.com`
+  )
+  const seededCustomerIds = (
+    await query.graph({
+      entity: "customer",
+      fields: ["id", "metadata", "email"],
+      filters: {
+        email: seededCustomerEmails,
+      },
+    })
+  ).data
+    ?.filter((record) => hasSeedNamespace(record as QueryRecord))
+    .map((record) => (record as QueryRecord).id) ?? []
 
   const deletedSubscriptionLogs = await deleteFromTable(
     pgConnection,
@@ -276,9 +314,12 @@ export default async function resetSubscriptionsTestData({
     "plan_offer",
     planOfferIds
   )
+  if (seededCustomerIds.length) {
+    await customerModule.deleteCustomers(seededCustomerIds)
+  }
 
   logger.info("[subscriptions-test-data-reset] Reset completed.")
   logger.info(
-    `[subscriptions-test-data-reset] Removed settings=${deletedSettings} plan_offers=${deletedPlanOffers} subscriptions=${deletedSubscriptions} renewal_cycles=${deletedRenewalCycles} renewal_attempts=${deletedRenewalAttempts + deletedRenewalAttemptsByCycle} dunning_cases=${deletedDunningCases} dunning_attempts=${deletedDunningAttempts + deletedDunningAttemptsByCase} cancellation_cases=${deletedCancellationCases} retention_offer_events=${deletedRetentionOfferEvents + deletedRetentionOfferEventsByCase} subscription_logs=${deletedSubscriptionLogs} analytics_snapshots=${deletedAnalyticsSnapshots}`
+    `[subscriptions-test-data-reset] Removed settings=${deletedSettings} plan_offers=${deletedPlanOffers} subscriptions=${deletedSubscriptions} renewal_cycles=${deletedRenewalCycles} renewal_attempts=${deletedRenewalAttempts + deletedRenewalAttemptsByCycle} dunning_cases=${deletedDunningCases} dunning_attempts=${deletedDunningAttempts + deletedDunningAttemptsByCase} cancellation_cases=${deletedCancellationCases} retention_offer_events=${deletedRetentionOfferEvents + deletedRetentionOfferEventsByCase} subscription_logs=${deletedSubscriptionLogs} analytics_snapshots=${deletedAnalyticsSnapshots} customers=${seededCustomerIds.length}`
   )
 }
