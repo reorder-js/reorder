@@ -138,7 +138,7 @@ const baseColumns = [
           {formatActorType(row.original.actor_type)}
         </StatusBadge>
         <Text size="small" leading="compact" className="text-ui-fg-subtle">
-          {row.original.actor_id || "No actor id"}
+          {row.original.actor.display || row.original.actor_id || "No actor"}
         </Text>
       </div>
     ),
@@ -659,7 +659,7 @@ const ActivityLogDetailContent = ({ log }: { log: ActivityLogAdminDetail }) => {
           {
             label: "Actor",
             value: `${formatActorType(log.actor_type)}${
-              log.actor_id ? ` · ${log.actor_id}` : ""
+              log.actor.display ? ` · ${log.actor.display}` : ""
             }`,
           },
           {

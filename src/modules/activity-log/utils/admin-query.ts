@@ -7,6 +7,7 @@ import {
 } from "../types"
 import {
   ActivityLogAdminActorType,
+  type ActivityLogAdminActorSummary,
   type ActivityLogAdminDetail,
   type ActivityLogAdminDetailResponse,
   type ActivityLogAdminListItem,
@@ -48,6 +49,21 @@ type SubscriptionLogRecord = {
   updated_at: Date | string
 }
 
+type QueryGraph = {
+  graph: (input: {
+    entity: string
+    fields: string[]
+    filters?: Record<string, unknown>
+  }) => Promise<{ data: Array<Record<string, unknown>> }>
+}
+
+type AdminUserRecord = {
+  id: string
+  email: string | null
+  first_name: string | null
+  last_name: string | null
+}
+
 const databaseSortableFields = new Set([
   "created_at",
   "event_type",
@@ -62,6 +78,10 @@ const inMemorySortableFields = new Set([
 
 function getActivityLogModule(container: MedusaContainer) {
   return container.resolve(ACTIVITY_LOG_MODULE) as ActivityLogModuleService
+}
+
+function getQuery(container: MedusaContainer) {
+  return container.resolve("query") as QueryGraph
 }
 
 function assertSortableField(order?: string) {
@@ -130,6 +150,32 @@ function mapSubscriptionSummary(
   }
 }
 
+function buildActorName(user?: AdminUserRecord | null) {
+  if (!user) {
+    return null
+  }
+
+  const name = [user.first_name, user.last_name].filter(Boolean).join(" ").trim()
+
+  return name || null
+}
+
+function mapActorSummary(
+  record: SubscriptionLogRecord,
+  user?: AdminUserRecord | null
+): ActivityLogAdminActorSummary {
+  const name = buildActorName(user)
+  const email = user?.email ?? null
+
+  return {
+    type: mapActorType(record.actor_type),
+    id: record.actor_id,
+    email,
+    name,
+    display: email ?? name ?? record.actor_id,
+  }
+}
+
 function buildChangeSummary(record: SubscriptionLogRecord) {
   if (record.changed_fields?.length) {
     return record.changed_fields
@@ -161,13 +207,72 @@ function toIsoString(value: Date | string | null | undefined) {
   return value
 }
 
-function mapListItem(record: SubscriptionLogRecord): ActivityLogAdminListItem {
+async function resolveAdminUsersById(
+  container: MedusaContainer,
+  records: SubscriptionLogRecord[]
+) {
+  const actorIds = [...new Set(
+    records
+      .filter(
+        (record) =>
+          record.actor_type === ActivityLogActorType.USER && Boolean(record.actor_id)
+      )
+      .map((record) => record.actor_id as string)
+  )]
+
+  if (!actorIds.length) {
+    return new Map<string, AdminUserRecord>()
+  }
+
+  try {
+    const query = getQuery(container)
+    const { data } = await query.graph({
+      entity: "user",
+      fields: ["id", "email", "first_name", "last_name"],
+      filters: {
+        id: actorIds,
+      },
+    })
+
+    return new Map(
+      data.map((user) => [
+        String(user.id),
+        {
+          id: String(user.id),
+          email:
+            typeof user.email === "string" && user.email.length ? user.email : null,
+          first_name:
+            typeof user.first_name === "string" && user.first_name.length
+              ? user.first_name
+              : null,
+          last_name:
+            typeof user.last_name === "string" && user.last_name.length
+              ? user.last_name
+              : null,
+        },
+      ])
+    )
+  } catch {
+    return new Map<string, AdminUserRecord>()
+  }
+}
+
+function mapListItem(
+  record: SubscriptionLogRecord,
+  usersById: Map<string, AdminUserRecord>
+): ActivityLogAdminListItem {
+  const user =
+    record.actor_type === ActivityLogActorType.USER && record.actor_id
+      ? usersById.get(record.actor_id) ?? null
+      : null
+
   return {
     id: record.id,
     subscription_id: record.subscription_id,
     event_type: record.event_type,
     actor_type: mapActorType(record.actor_type),
     actor_id: record.actor_id,
+    actor: mapActorSummary(record, user),
     subscription: mapSubscriptionSummary(record),
     reason: record.reason,
     change_summary: buildChangeSummary(record),
@@ -175,9 +280,12 @@ function mapListItem(record: SubscriptionLogRecord): ActivityLogAdminListItem {
   }
 }
 
-function mapDetail(record: SubscriptionLogRecord): ActivityLogAdminDetail {
+function mapDetail(
+  record: SubscriptionLogRecord,
+  usersById: Map<string, AdminUserRecord>
+): ActivityLogAdminDetail {
   return {
-    ...mapListItem(record),
+    ...mapListItem(record, usersById),
     previous_state: record.previous_state,
     new_state: record.new_state,
     changed_fields: record.changed_fields ?? [],
@@ -262,7 +370,8 @@ export async function listAdminSubscriptionLogs(
   )) as unknown as [SubscriptionLogRecord[], number]
 
   const filtered = records.filter((record) => matchesQuery(record, input.q))
-  const mapped = filtered.map(mapListItem)
+  const usersById = await resolveAdminUsersById(container, filtered)
+  const mapped = filtered.map((record) => mapListItem(record, usersById))
   const sorted = inMemorySortableFields.has(order)
     ? sortItems(mapped, order, direction)
     : mapped
@@ -286,9 +395,10 @@ export async function getAdminSubscriptionLogDetail(
   const record = (await activityLogModule.retrieveSubscriptionLog(
     id
   )) as unknown as SubscriptionLogRecord
+  const usersById = await resolveAdminUsersById(container, [record])
 
   return {
-    subscription_log: mapDetail(record),
+    subscription_log: mapDetail(record, usersById),
   }
 }
 

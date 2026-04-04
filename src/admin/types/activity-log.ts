@@ -13,12 +13,21 @@ export type ActivityLogAdminSubscriptionSummary = {
   variant_title: string
 }
 
+export type ActivityLogAdminActorSummary = {
+  type: ActivityLogAdminActorType
+  id: string | null
+  email: string | null
+  name: string | null
+  display: string | null
+}
+
 export type ActivityLogAdminListItem = {
   id: string
   subscription_id: string
   event_type: string
   actor_type: ActivityLogAdminActorType
   actor_id: string | null
+  actor: ActivityLogAdminActorSummary
   subscription: ActivityLogAdminSubscriptionSummary
   reason: string | null
   change_summary: string | null

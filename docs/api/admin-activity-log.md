@@ -124,6 +124,13 @@ Shape:
       "event_type": "subscription.paused",
       "actor_type": "user",
       "actor_id": "user_123",
+      "actor": {
+        "type": "user",
+        "id": "user_123",
+        "email": "admin@example.com",
+        "name": "Admin User",
+        "display": "admin@example.com"
+      },
       "subscription": {
         "subscription_id": "sub_123",
         "reference": "SUB-001",
@@ -178,6 +185,13 @@ Shape:
     "event_type": "renewal.succeeded",
     "actor_type": "scheduler",
     "actor_id": null,
+    "actor": {
+      "type": "scheduler",
+      "id": null,
+      "email": null,
+      "name": null,
+      "display": null
+    },
     "subscription": {
       "subscription_id": "sub_123",
       "reference": "SUB-001",

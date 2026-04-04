@@ -78,22 +78,6 @@ const baseColumns = [
       </div>
     ),
   }),
-  columnHelper.accessor((row) => row.customer.full_name, {
-    id: "customer_name",
-    header: "Customer",
-    enableSorting: true,
-    sortLabel: "Customer",
-    cell: ({ row }) => (
-      <div className="flex flex-col">
-        <Text size="small" leading="compact" weight="plus">
-          {row.original.customer.full_name}
-        </Text>
-        <Text size="small" leading="compact" className="text-ui-fg-subtle">
-          {row.original.customer.email}
-        </Text>
-      </div>
-    ),
-  }),
   columnHelper.accessor((row) => row.product.product_title, {
     id: "product_title",
     header: "Product",
@@ -149,16 +133,6 @@ const baseColumns = [
           {row.original.skip_next_cycle ? "Next cycle skipped" : "Scheduled"}
         </Text>
       </div>
-    ),
-  }),
-  columnHelper.accessor("updated_at", {
-    header: "Updated",
-    enableSorting: true,
-    sortLabel: "Updated",
-    cell: ({ getValue }) => (
-      <Text size="small" leading="compact">
-        {formatDateTime(getValue())}
-      </Text>
     ),
   }),
 ];

@@ -654,13 +654,13 @@ const SubscriptionDetailPage = () => {
                         >
                           {formatActivityActorType(log.actor_type)}
                         </StatusBadge>
-                        {log.actor_id ? (
+                        {log.actor.display || log.actor_id ? (
                           <Text
                             size="small"
                             leading="compact"
                             className="text-ui-fg-subtle"
                           >
-                            {log.actor_id}
+                            {log.actor.display || log.actor_id}
                           </Text>
                         ) : null}
                       </div>
@@ -1054,7 +1054,9 @@ const ActivityLogDetailContent = ({ log }: { log: ActivityLogAdminDetail }) => {
           {
             label: "Actor",
             value: `${formatActivityActorType(log.actor_type)}${
-              log.actor_id ? ` · ${log.actor_id}` : ""
+              log.actor.display || log.actor_id
+                ? ` · ${log.actor.display || log.actor_id}`
+                : ""
             }`,
           },
           { label: "Created", value: formatDateTime(log.created_at) },
