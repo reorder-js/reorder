@@ -25,6 +25,7 @@ import {
   EllipsisHorizontal,
   Pause,
   PencilSquare,
+  ShoppingBag,
   Spinner,
   TriangleRightMini,
   Trash,
@@ -35,6 +36,7 @@ import { flexRender } from "@tanstack/react-table";
 import { ReactNode, useEffect, useMemo, useState } from "react";
 import {
   LoaderFunctionArgs,
+  Link,
   UIMatch,
   useLoaderData,
   useParams,
@@ -177,6 +179,13 @@ const SubscriptionDetailPage = () => {
     loaderData,
   );
   const subscription = data?.subscription;
+  const productLink = subscription?.product.product_id
+    ? `/products/${subscription.product.product_id}`
+    : null;
+  const variantLink =
+    subscription?.product.product_id && subscription?.product.variant_id
+      ? `/products/${subscription.product.product_id}/variants/${subscription.product.variant_id}`
+      : null;
   const {
     data: logsData,
     isLoading: isLogsLoading,
@@ -765,8 +774,86 @@ const SubscriptionDetailPage = () => {
           <DetailBlock
             title="Product"
             rows={[
-              { label: "Product", value: subscription.product.product_title },
-              { label: "Variant", value: subscription.product.variant_title },
+              {
+                label: "",
+                value: variantLink ? (
+                  <Link
+                    to={variantLink}
+                    className="outline-none focus-within:shadow-borders-interactive-with-focus rounded-md [&:hover>div]:bg-ui-bg-component-hover"
+                  >
+                    <div className="shadow-elevation-card-rest bg-ui-bg-component rounded-md px-4 py-2 transition-colors">
+                      <div className="flex items-center gap-3">
+                        <div className="shadow-elevation-card-rest flex h-14 w-14 items-center justify-center rounded-md text-ui-fg-muted">
+                          <ShoppingBag />
+                        </div>
+                        <div className="flex flex-1 flex-col">
+                          <Text size="small" leading="compact" weight="plus">
+                            {subscription.product.variant_title}
+                          </Text>
+                          <Text
+                            size="small"
+                            leading="compact"
+                            className="text-ui-fg-subtle"
+                          >
+                            {subscription.product.product_title}
+                          </Text>
+                        </div>
+                        <div className="size-7 flex items-center justify-center">
+                          <TriangleRightMini className="text-ui-fg-muted rtl:rotate-180" />
+                        </div>
+                      </div>
+                    </div>
+                  </Link>
+                ) : productLink ? (
+                  <Link
+                    to={productLink}
+                    className="outline-none focus-within:shadow-borders-interactive-with-focus rounded-md [&:hover>div]:bg-ui-bg-component-hover"
+                  >
+                    <div className="shadow-elevation-card-rest bg-ui-bg-component rounded-md px-4 py-2 transition-colors">
+                      <div className="flex items-center gap-3">
+                        <div className="shadow-elevation-card-rest flex h-14 w-14 items-center justify-center rounded-md text-ui-fg-muted">
+                          <ShoppingBag />
+                        </div>
+                        <div className="flex flex-1 flex-col">
+                          <Text size="small" leading="compact" weight="plus">
+                            {subscription.product.product_title}
+                          </Text>
+                          <Text
+                            size="small"
+                            leading="compact"
+                            className="text-ui-fg-subtle"
+                          >
+                            {subscription.product.variant_title}
+                          </Text>
+                        </div>
+                        <div className="size-7 flex items-center justify-center">
+                          <TriangleRightMini className="text-ui-fg-muted rtl:rotate-180" />
+                        </div>
+                      </div>
+                    </div>
+                  </Link>
+                ) : (
+                  <div className="shadow-elevation-card-rest bg-ui-bg-component rounded-md px-4 py-2">
+                    <div className="flex items-center gap-3">
+                      <div className="shadow-elevation-card-rest flex h-14 w-14 items-center justify-center rounded-md text-ui-fg-muted">
+                        <ShoppingBag />
+                      </div>
+                      <div className="flex flex-1 flex-col">
+                        <Text size="small" leading="compact" weight="plus">
+                          {subscription.product.variant_title}
+                        </Text>
+                        <Text
+                          size="small"
+                          leading="compact"
+                          className="text-ui-fg-subtle"
+                        >
+                          {subscription.product.product_title}
+                        </Text>
+                      </div>
+                    </div>
+                  </div>
+                ),
+              },
               { label: "SKU", value: subscription.product.sku || "-" },
             ]}
           />

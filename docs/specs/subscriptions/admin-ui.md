@@ -212,6 +212,8 @@ Subscription detail extends the list record with:
 - `frequency_value`
 - `effective_at`
 
+In the current detail UI, the `product` snapshot is rendered as a linked Medusa-style card to the standard variant detail page, with `sku` shown separately below it.
+
 ## 9. Impact on later steps
 
 This contract means the next step `2.1.2` must design at least these endpoints:

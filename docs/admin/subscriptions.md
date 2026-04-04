@@ -151,6 +151,9 @@ The detail page currently renders:
 
 These sections are read-oriented and designed for quick operator inspection.
 
+The `Product` section uses a linked Medusa-style card that opens the standard product variant detail page.
+`SKU` remains visible as a separate helper field under the card.
+
 ## 3. Detail Actions
 
 ### Action Menu
