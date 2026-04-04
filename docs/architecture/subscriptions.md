@@ -16,6 +16,7 @@ The current implementation supports:
 - cancelling subscriptions
 - scheduling plan changes
 - editing the shipping address
+- creating subscriptions from store carts
 
 ## Architectural Overview
 
@@ -133,6 +134,7 @@ Implemented mutations:
 - `cancel`
 - `schedule-plan-change`
 - `update-shipping-address`
+- `create-subscription-from-cart`
 
 Write path pattern:
 1. the Admin UI submits a mutation to a custom admin route
@@ -142,6 +144,14 @@ Write path pattern:
 5. the route returns the refreshed subscription detail payload
 
 This keeps business logic out of HTTP handlers.
+
+### Store purchase flow
+
+The store create flow uses:
+- `POST /store/carts/:id/subscribe`
+- `create-subscription-from-cart`
+
+The flow validates subscription metadata on the line item, blocks mixed cart usage, completes the cart into a standard Medusa `order`, checks idempotency through the `subscription-order` link, creates the `subscription`, links it to `customer`, `cart`, and `order`, and creates the first upcoming `renewal_cycle`.
 
 ## 5. Workflows
 

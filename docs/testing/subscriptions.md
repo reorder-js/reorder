@@ -125,6 +125,11 @@ Covered through HTTP integration tests:
 - `POST /admin/subscriptions/:id/schedule-plan-change`
 - `POST /admin/subscriptions/:id/update-shipping-address`
 
+Store checkout follow-up:
+- `POST /store/carts/:id/subscribe` now exists as the dedicated subscription purchase route
+- the route expects subscription metadata on the cart line item
+- one-time checkout remains on standard Medusa cart completion
+
 ### Admin Flow Coverage
 
 The file [subscriptions-admin-flow.spec.ts](../../integration-tests/http/subscriptions-admin-flow.spec.ts) covers the main end-to-end backend flow used by the Admin UI:
