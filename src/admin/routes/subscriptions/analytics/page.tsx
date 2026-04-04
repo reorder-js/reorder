@@ -751,12 +751,15 @@ function formatMetricValue(
 
   switch (metric.unit) {
     case "currency":
-      return new Intl.NumberFormat(undefined, {
+      return new Intl.NumberFormat(
+        metric.currency_code?.toUpperCase() === "USD" ? "en-US" : undefined,
+        {
         style: "currency",
         currency: metric.currency_code || "USD",
         minimumFractionDigits: metric.precision,
         maximumFractionDigits: metric.precision,
-      }).format(value)
+        }
+      ).format(value)
     case "percentage":
       return `${value.toFixed(metric.precision)}%`
     case "count":
