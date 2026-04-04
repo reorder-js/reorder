@@ -27,6 +27,8 @@ import {
 import { useAdminDunningDisplayQuery } from "./data-loading"
 
 const PAGE_SIZE = 20
+const DEFAULT_NEXT_RETRY_FROM = toLocalDateTimeInputValue(addDays(new Date(), -30))
+const DEFAULT_NEXT_RETRY_TO = toLocalDateTimeInputValue(addDays(new Date(), 30))
 
 const columnHelper = createDataTableColumnHelper<DunningCaseAdminListItem>()
 
@@ -169,7 +171,10 @@ const baseColumns = [
 const DunningPage = () => {
   const navigate = useNavigate()
   const [search, setSearch] = useState("")
-  const [filtering, setFiltering] = useState<DataTableFilteringState>({})
+  const [filtering, setFiltering] = useState<DataTableFilteringState>(() => ({
+    next_retry_from: DEFAULT_NEXT_RETRY_FROM,
+    next_retry_to: DEFAULT_NEXT_RETRY_TO,
+  }))
   const [sorting, setSorting] = useState<DataTableSortingState | null>({
     id: "updated_at",
     desc: true,
@@ -347,18 +352,6 @@ const DunningPage = () => {
                 }}
               />
             ) : null}
-            {nextRetryFromValue || nextRetryToValue ? (
-              <FilterChip
-                label="Next retry"
-                value={formatDateRange(nextRetryFromValue, nextRetryToValue)}
-                onRemove={() => {
-                  setFiltering((current) => ({
-                    ...removeFilter(current, "next_retry_from"),
-                    next_retry_to: undefined,
-                  }))
-                }}
-              />
-            ) : null}
             <DropdownMenu>
               <DropdownMenu.Trigger asChild>
                 <Button size="small" variant="secondary" type="button">
@@ -395,101 +388,147 @@ const DunningPage = () => {
               </DropdownMenu.Content>
             </DropdownMenu>
             {hasActiveFilters ? (
-              <Button
-                size="small"
-                variant="transparent"
+              <button
                 type="button"
-                onClick={() => {
-                  setFiltering({})
-                }}
+                className="text-ui-fg-muted hover:text-ui-fg-subtle txt-compact-small-plus rounded-md px-2 py-1 transition-fg"
+                onClick={() =>
+                  setFiltering({
+                    next_retry_from: DEFAULT_NEXT_RETRY_FROM,
+                    next_retry_to: DEFAULT_NEXT_RETRY_TO,
+                  })
+                }
               >
                 Clear all
-              </Button>
+              </button>
             ) : null}
           </div>
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
-            <Input
-              type="text"
-              size="small"
-              placeholder="Provider id"
-              value={paymentProviderValue}
-              onChange={(event) => {
-                setFiltering((current) => ({
-                  ...current,
-                  payment_provider_id: event.target.value,
-                }))
-              }}
-            />
-            <Input
-              type="text"
-              size="small"
-              placeholder="Error code"
-              value={errorCodeValue}
-              onChange={(event) => {
-                setFiltering((current) => ({
-                  ...current,
-                  last_payment_error_code: event.target.value,
-                }))
-              }}
-            />
-            <div className="grid grid-cols-2 gap-3">
-              <Input
-                type="number"
-                min={0}
-                size="small"
-                placeholder="Attempts min"
-                value={attemptCountMinValue}
-                onChange={(event) => {
-                  setFiltering((current) => ({
-                    ...current,
-                    attempt_count_min: event.target.value,
-                  }))
-                }}
-              />
-              <Input
-                type="number"
-                min={0}
-                size="small"
-                placeholder="Attempts max"
-                value={attemptCountMaxValue}
-                onChange={(event) => {
-                  setFiltering((current) => ({
-                    ...current,
-                    attempt_count_max: event.target.value,
-                  }))
-                }}
-              />
+          <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+              <div className="flex flex-col gap-y-1">
+                <Text size="small" leading="compact" weight="plus">
+                  Provider id
+                </Text>
+                <Input
+                  type="text"
+                  size="small"
+                  placeholder="Provider id"
+                  value={paymentProviderValue}
+                  onChange={(event) => {
+                    const value = event.target.value
+
+                    setFiltering((current) =>
+                      value
+                        ? { ...current, payment_provider_id: value }
+                        : removeFilter(current, "payment_provider_id")
+                    )
+                  }}
+                />
+              </div>
+              <div className="flex flex-col gap-y-1">
+                <Text size="small" leading="compact" weight="plus">
+                  Error code
+                </Text>
+                <Input
+                  type="text"
+                  size="small"
+                  placeholder="Error code"
+                  value={errorCodeValue}
+                  onChange={(event) => {
+                    const value = event.target.value
+
+                    setFiltering((current) =>
+                      value
+                        ? { ...current, last_payment_error_code: value }
+                        : removeFilter(current, "last_payment_error_code")
+                    )
+                  }}
+                />
+              </div>
+              <div className="flex flex-col gap-y-1">
+                <Text size="small" leading="compact" weight="plus">
+                  Attempt range
+                </Text>
+                <div className="grid grid-cols-2 gap-3">
+                  <Input
+                    type="number"
+                    min={0}
+                    size="small"
+                    placeholder="Min"
+                    value={attemptCountMinValue}
+                    onChange={(event) => {
+                      const value = event.target.value
+
+                      setFiltering((current) =>
+                        value
+                          ? { ...current, attempt_count_min: value }
+                          : removeFilter(current, "attempt_count_min")
+                      )
+                    }}
+                  />
+                  <Input
+                    type="number"
+                    min={0}
+                    size="small"
+                    placeholder="Max"
+                    value={attemptCountMaxValue}
+                    onChange={(event) => {
+                      const value = event.target.value
+
+                      setFiltering((current) =>
+                        value
+                          ? { ...current, attempt_count_max: value }
+                          : removeFilter(current, "attempt_count_max")
+                      )
+                    }}
+                  />
+                </div>
+              </div>
+              <div className="flex flex-col gap-y-1">
+                <Text size="small" leading="compact" weight="plus">
+                  Next retry from
+                </Text>
+                <Input
+                  type="datetime-local"
+                  size="small"
+                  value={nextRetryFromValue}
+                  onChange={(event) => {
+                    const value = event.target.value
+
+                    setFiltering((current) =>
+                      value
+                        ? { ...current, next_retry_from: value }
+                        : removeFilter(current, "next_retry_from")
+                    )
+                  }}
+                />
+              </div>
+              <div className="flex flex-col gap-y-1">
+                <Text size="small" leading="compact" weight="plus">
+                  Next retry to
+                </Text>
+                <Input
+                  type="datetime-local"
+                  size="small"
+                  value={nextRetryToValue}
+                  onChange={(event) => {
+                    const value = event.target.value
+
+                    setFiltering((current) =>
+                      value
+                        ? { ...current, next_retry_to: value }
+                        : removeFilter(current, "next_retry_to")
+                    )
+                  }}
+                />
+              </div>
             </div>
-            <Input
-              type="datetime-local"
-              size="small"
-              placeholder="Next retry from"
-              value={nextRetryFromValue}
-              onChange={(event) => {
-                setFiltering((current) => ({
-                  ...current,
-                  next_retry_from: event.target.value,
-                }))
-              }}
-            />
-            <Input
-              type="datetime-local"
-              size="small"
-              placeholder="Next retry to"
-              value={nextRetryToValue}
-              onChange={(event) => {
-                setFiltering((current) => ({
-                  ...current,
-                  next_retry_to: event.target.value,
-                }))
-              }}
-            />
-          </div>
-          <div className="flex items-center gap-x-2 self-end">
-            <div className="w-full md:w-auto">
-              <DataTable.Search placeholder="Search" />
+
+            <div className="flex items-center gap-x-2 self-end">
+              <div className="w-full md:w-auto">
+                <DataTable.Search placeholder="Search" />
+              </div>
+              <DataTable.SortingMenu />
             </div>
-            <DataTable.SortingMenu />
           </div>
         </div>
         {table.getRowModel().rows.length ? (
@@ -600,17 +639,15 @@ const FilterChip = ({
   onRemove: () => void
 }) => {
   return (
-    <div className="bg-ui-bg-subtle text-ui-fg-subtle inline-flex items-center gap-x-1 rounded-md px-2 py-1">
-      <Text size="xsmall" leading="compact" weight="plus">
-        {label}:
-      </Text>
-      <Text size="xsmall" leading="compact">
-        {value}
-      </Text>
+    <div className="shadow-buttons-neutral txt-compact-small-plus bg-ui-button-neutral text-ui-fg-base inline-flex items-center overflow-hidden rounded-md">
+      <span className="border-ui-border-base border-r px-3 py-1.5">{label}</span>
+      <span className="border-ui-border-base border-r px-3 py-1.5 text-ui-fg-subtle">
+        is
+      </span>
+      <span className="border-ui-border-base border-r px-3 py-1.5">{value}</span>
       <button
         type="button"
-        aria-label={`Remove ${label} filter`}
-        className="text-ui-fg-muted hover:text-ui-fg-subtle"
+        className="hover:bg-ui-button-neutral-hover px-2 py-1.5 transition-fg"
         onClick={onRemove}
       >
         <XMarkMini />
@@ -732,4 +769,23 @@ function formatDateRange(from?: string, to?: string) {
   }
 
   return "-"
+}
+
+function addDays(date: Date, amount: number) {
+  const next = new Date(date)
+  next.setDate(next.getDate() + amount)
+  return next
+}
+
+function toLocalDateTimeInputValue(date: Date) {
+  const next = new Date(date)
+  next.setSeconds(0, 0)
+
+  const year = next.getFullYear()
+  const month = String(next.getMonth() + 1).padStart(2, "0")
+  const day = String(next.getDate()).padStart(2, "0")
+  const hours = String(next.getHours()).padStart(2, "0")
+  const minutes = String(next.getMinutes()).padStart(2, "0")
+
+  return `${year}-${month}-${day}T${hours}:${minutes}`
 }
