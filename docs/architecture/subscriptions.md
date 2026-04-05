@@ -11,6 +11,7 @@ The `Subscriptions` area provides Admin users with an operational view over recu
 The current implementation supports:
 - listing subscriptions
 - viewing subscription details
+- showing subscription context on standard Medusa order details
 - pausing subscriptions
 - resuming subscriptions
 - cancelling subscriptions
@@ -194,6 +195,8 @@ The Admin UI is implemented as custom Medusa Admin routes.
 Current screens:
 - subscriptions list page
 - subscription detail page
+
+It also extends the built-in Medusa `Order detail` page with a widget that resolves the `subscription_order` link and renders subscription status plus a link to the linked subscription.
 
 ### List Page
 

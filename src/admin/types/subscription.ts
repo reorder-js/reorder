@@ -62,6 +62,17 @@ export type SubscriptionAdminOrderSummary = {
   created_at: string | null
 }
 
+export type AdminOrderSubscriptionSummary = {
+  is_subscription_order: boolean
+  subscription: null | {
+    id: string
+    reference: string
+    status: SubscriptionAdminStatus
+    frequency_label: string
+    next_renewal_at: string | null
+  }
+}
+
 export type SubscriptionAdminShippingAddress = {
   first_name: string
   last_name: string
@@ -110,4 +121,8 @@ export type SubscriptionAdminListResponse = {
 
 export type SubscriptionAdminDetailResponse = {
   subscription: SubscriptionAdminDetail
+}
+
+export type AdminOrderSubscriptionSummaryResponse = {
+  summary: AdminOrderSubscriptionSummary
 }

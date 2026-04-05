@@ -1,6 +1,8 @@
 import { MedusaContainer } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import {
+  AdminOrderSubscriptionSummary,
+  AdminOrderSubscriptionSummaryResponse,
   SubscriptionAdminDetail,
   SubscriptionAdminDetailResponse,
   SubscriptionAdminDiscount,
@@ -84,6 +86,11 @@ type SubscriptionRecord = {
 type SubscriptionOrderLinkRecord = {
   subscription?: {
     id?: string | null
+    reference?: string | null
+    status?: string | null
+    frequency_interval?: "week" | "month" | "year" | null
+    frequency_value?: number | null
+    next_renewal_at?: string | null
   } | null
   order?: {
     id?: string | null
@@ -281,6 +288,16 @@ function mapDetail(record: SubscriptionRecord): SubscriptionAdminDetail {
   }
 }
 
+function mapSubscriptionStatus(status: string | null | undefined) {
+  return status === "active"
+    ? SubscriptionAdminStatus.ACTIVE
+    : status === "paused"
+      ? SubscriptionAdminStatus.PAUSED
+      : status === "cancelled"
+        ? SubscriptionAdminStatus.CANCELLED
+        : SubscriptionAdminStatus.PAST_DUE
+}
+
 function mapOrderSummary(
   record:
     | {
@@ -301,6 +318,36 @@ function mapOrderSummary(
     display_id: record.display_id ?? null,
     status: record.status,
     created_at: record.created_at ?? null,
+  }
+}
+
+function mapOrderSubscriptionSummary(
+  record: SubscriptionOrderLinkRecord["subscription"]
+): AdminOrderSubscriptionSummary {
+  if (
+    !record?.id ||
+    !record.reference ||
+    !record.frequency_interval ||
+    typeof record.frequency_value !== "number"
+  ) {
+    return {
+      is_subscription_order: false,
+      subscription: null,
+    }
+  }
+
+  return {
+    is_subscription_order: true,
+    subscription: {
+      id: record.id,
+      reference: record.reference,
+      status: mapSubscriptionStatus(record.status),
+      frequency_label: formatFrequencyLabel(
+        record.frequency_interval,
+        record.frequency_value
+      ),
+      next_renewal_at: record.next_renewal_at ?? null,
+    },
   }
 }
 
@@ -612,5 +659,43 @@ export async function getAdminSubscriptionDetail(
       initial_order: initialOrder,
       renewal_orders: renewalOrders,
     },
+  }
+}
+
+export async function getAdminOrderSubscriptionSummary(
+  container: MedusaContainer,
+  orderId: string
+): Promise<AdminOrderSubscriptionSummaryResponse> {
+  const query = container.resolve(ContainerRegistrationKeys.QUERY)
+
+  const { data } = await query.graph({
+    entity: "subscription_order",
+    fields: [
+      "subscription.id",
+      "subscription.reference",
+      "subscription.status",
+      "subscription.frequency_interval",
+      "subscription.frequency_value",
+      "subscription.next_renewal_at",
+      "order.id",
+    ],
+    filters: {
+      order_id: [orderId],
+    },
+  })
+
+  const link = ((data ?? []) as SubscriptionOrderLinkRecord[])[0]
+
+  if (!link?.subscription) {
+    return {
+      summary: {
+        is_subscription_order: false,
+        subscription: null,
+      },
+    }
+  }
+
+  return {
+    summary: mapOrderSubscriptionSummary(link.subscription),
   }
 }

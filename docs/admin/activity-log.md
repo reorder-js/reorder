@@ -135,6 +135,8 @@ The drawer shows:
 - `new_state`
 - `metadata`
 
+Shipping-address events prefer readable address values in `changed_fields` instead of only technical boolean flags.
+
 The drawer uses a dedicated detail query and does not reload the entire list by itself.
 
 ## 2. Subscription Detail Timeline
@@ -189,6 +191,7 @@ The summary cell is operator-facing:
 - it prefers a readable summary over raw internal field names
 - technical keys such as `pending_update_data` are translated before rendering
 - the secondary line is shown only when an explicit `reason` exists
+- shipping-address diffs are shown in a readable `old -> new` form
 
 ### Timeline Filters
 

@@ -691,7 +691,7 @@ const ActivityLogDetailContent = ({ log }: { log: ActivityLogAdminDetail }) => {
         rows={
           log.changed_fields.length
             ? log.changed_fields.map((field) => ({
-                label: field.field,
+                label: formatSummaryField(field.field),
                 value: `${formatUnknown(field.before)} → ${formatUnknown(
                   field.after
                 )}`,
@@ -870,6 +870,8 @@ function formatSummaryField(value: string) {
       return "Status changed"
     case "recipient":
       return "Recipient updated"
+    case "address":
+      return "Address"
     case "address_lines_changed":
       return "Address updated"
     case "postal_code_changed":

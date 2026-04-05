@@ -26,6 +26,9 @@ Related recurring-operations routes under the same navigation group:
 - `/app/subscriptions/dunning`
 - `/app/subscriptions/cancellations`
 
+Related built-in Admin page customization:
+- `Order detail` shows a `Subscription` widget from this plugin
+
 Navigation behavior:
 - the list route is available as a sidebar page
 - clicking a row in the list navigates to the detail route
@@ -157,6 +160,14 @@ These sections are read-oriented and designed for quick operator inspection.
 The `Product` section uses a linked Medusa-style card that opens the standard product variant detail page.
 `SKU` remains visible as a separate helper field under the card.
 
+### Order Detail Widget
+
+The plugin also extends the standard Medusa `Order detail` page.
+
+The `Subscription` widget shows:
+- `Subscription order` with a linked subscription card when the order is linked to a subscription
+- `One-time order` when no `subscription_order` link exists
+
 ## 3. Detail Actions
 
 ### Action Menu
@@ -222,6 +233,7 @@ Behavior:
 - the drawer is prefilled from the current subscription shipping address
 - the form validates required fields before submit
 - the save action is shown in standard Medusa Drawer footer form
+- the resulting activity-log event stores readable address diffs such as `Address: old -> new`
 
 ## 5. Activity Log Section
 

@@ -68,7 +68,13 @@ export const updateSubscriptionShippingAddressWorkflow = createWorkflow(
 
 export default updateSubscriptionShippingAddressWorkflow
 
-function buildShippingAddressLogStates(
+type ShippingAddressChangeFlags = {
+  address_lines_changed: boolean
+  postal_code_changed: boolean
+  phone_changed: boolean
+}
+
+export function buildShippingAddressLogStates(
   previous: SubscriptionShippingAddress | null,
   current: SubscriptionShippingAddress | null
 ): {
@@ -84,16 +90,18 @@ function buildShippingAddressLogStates(
 
   const previousAddress = previous ?? current!
   const currentAddress = current ?? previous!
+  const changeFlags = getShippingAddressChangeFlags(previousAddress, currentAddress)
 
   return {
-    previous: toShippingAddressLogState(previousAddress, currentAddress),
-    current: toShippingAddressLogState(currentAddress, previousAddress),
+    previous: toShippingAddressLogState(previousAddress, changeFlags, false),
+    current: toShippingAddressLogState(currentAddress, changeFlags, true),
   }
 }
 
 function toShippingAddressLogState(
   address: SubscriptionShippingAddress,
-  counterpart: SubscriptionShippingAddress
+  changeFlags: ShippingAddressChangeFlags,
+  changedState: boolean
 ): Record<string, string | boolean | null> {
   const recipient = [address.first_name, address.last_name]
     .filter(Boolean)
@@ -102,12 +110,24 @@ function toShippingAddressLogState(
 
   return {
     recipient: recipient || null,
-    address_lines_changed: haveAddressLinesChanged(address, counterpart),
+    address: formatAddressLines(address),
     city: address.city || null,
     province: address.province ?? null,
-    postal_code_changed: address.postal_code !== counterpart.postal_code,
+    postal_code_changed:
+      changeFlags.postal_code_changed ? changedState : false,
     country_code: address.country_code || null,
-    phone_changed: normalizePhone(address.phone) !== normalizePhone(counterpart.phone),
+    phone_changed: changeFlags.phone_changed ? changedState : false,
+  }
+}
+
+function getShippingAddressChangeFlags(
+  previous: SubscriptionShippingAddress,
+  current: SubscriptionShippingAddress
+): ShippingAddressChangeFlags {
+  return {
+    address_lines_changed: haveAddressLinesChanged(previous, current),
+    postal_code_changed: previous.postal_code !== current.postal_code,
+    phone_changed: normalizePhone(previous.phone) !== normalizePhone(current.phone),
   }
 }
 
@@ -123,6 +143,12 @@ function haveAddressLinesChanged(
 
 function normalizeAddressLine(value: string | null) {
   return (value ?? "").trim()
+}
+
+function formatAddressLines(address: SubscriptionShippingAddress) {
+  return [normalizeAddressLine(address.address_1), normalizeAddressLine(address.address_2)]
+    .filter(Boolean)
+    .join(", ") || null
 }
 
 function normalizePhone(value: string | null) {
