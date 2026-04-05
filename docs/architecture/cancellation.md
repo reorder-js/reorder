@@ -11,7 +11,6 @@ The `Cancellation & Retention` area provides an operator-managed churn handling 
 The current implementation supports:
 - tracking `cancellation_case` and `retention_offer_event`
 - starting and continuing a cancellation case for eligible subscriptions
-- evaluating retention recommendation paths through `smart-cancellation`
 - applying pause, discount, and bonus retention offers
 - finalizing cancellation with required churn reason data
 - Admin list and detail views nested under `Subscriptions`
@@ -31,7 +30,7 @@ The implementation is split into five main layers:
 Each layer has a clear responsibility:
 
 - the domain module owns `cancellation_case` and `retention_offer_event`
-- workflows own case creation, recommendation, offer application, cancellation finalization, and reason updates
+- workflows own case creation, offer application, cancellation finalization, and reason updates
 - the admin API exposes read and mutation routes for operators
 - the admin UI renders the queue and case detail views and calls the Admin endpoints
 - the scheduler job computes operational metrics and emits structured logs for alertable churn spikes
@@ -46,12 +45,11 @@ It contains:
 - the `retention_offer_event` data model
 - the module service
 - read-model utilities for Admin list and detail
-- smart-cancellation, audit, error, observability, and operational-metrics helpers
+- retention-policy, audit, error, observability, and operational-metrics helpers
 
 Key design choices:
 - one `CancellationCase` is anchored to one `subscription_id`
 - one subscription may have many historical cases, but only one active case at a time in MVP
-- recommendation state lives on the case aggregate
 - concrete retention actions are stored separately as append-only `RetentionOfferEvent`
 - `Subscription` remains the source of lifecycle state, while `CancellationCase` remains the source of cancellation and retention process state
 
@@ -62,7 +60,6 @@ The `cancellation_case` model stores:
 - process status
 - churn reason and normalized category
 - operator notes
-- recommendation state
 - final outcome summary
 - cancellation-effective summary
 - audit summary and metadata
@@ -74,7 +71,6 @@ Core `cancellation_case` fields include:
 - `reason`
 - `reason_category`
 - `notes`
-- `recommended_action`
 - `final_outcome`
 - `finalized_at`
 - `finalized_by`
@@ -112,7 +108,6 @@ The current migrations and model setup optimize `Cancellation & Retention` for:
 The current implementation follows these rules:
 - a cancellation case can be opened only for subscriptions in `active`, `paused`, or `past_due`
 - `cancelled` subscriptions cannot open a new cancellation case
-- `smart-cancellation` stores recommendation state on the case, not on the subscription
 - applying a `pause_offer` moves the subscription into `paused`
 - applying a `discount_offer` or `bonus_offer` keeps the subscription active and closes the case as `retained`
 - final cancel moves the subscription into `cancelled`, sets `cancel_effective_at`, and clears `next_renewal_at`
@@ -207,7 +202,6 @@ All state-changing cancellation operations are routed through workflows.
 
 Implemented mutations:
 - start cancellation case
-- smart cancellation recommendation
 - apply retention offer
 - finalize cancellation
 - update cancellation reason
@@ -215,7 +209,7 @@ Implemented mutations:
 Write path pattern:
 1. the Admin route submits workflow input
 2. the workflow validates the current case and subscription state
-3. the workflow applies recommendation, offer, or finalization logic
+3. the workflow applies offer or finalization logic
 4. the route returns the refreshed cancellation detail payload for Admin mutations
 
 This keeps business logic out of routes and centralizes mutation rules in workflows.
@@ -224,7 +218,6 @@ This keeps business logic out of routes and centralizes mutation rules in workfl
 
 The current mutation layer is built around:
 - `start-cancellation-case`
-- `smart-cancellation`
 - `apply-retention-offer`
 - `finalize-cancellation`
 - `update-cancellation-reason`
@@ -238,18 +231,6 @@ It is responsible for:
 - enforcing the single-active-case-per-subscription invariant
 - creating a new case or updating the active one
 - storing initial reason, category, notes, and entry context
-
-### Recommendation Workflow
-
-`smart-cancellation` is the recommendation workflow for active cases.
-
-It is responsible for:
-- validating that the case is active
-- loading subscription and dunning context
-- determining eligible actions
-- selecting a recommended action
-- updating case status to `evaluating_retention`
-- storing rationale and recommendation snapshot in metadata
 
 ### Offer Workflow
 
@@ -295,7 +276,6 @@ Implemented read routes:
 - `GET /admin/cancellations/:id`
 
 Implemented mutation routes:
-- `POST /admin/cancellations/:id/smart-cancel`
 - `POST /admin/cancellations/:id/apply-offer`
 - `POST /admin/cancellations/:id/finalize`
 - `POST /admin/cancellations/:id/reason`
@@ -344,7 +324,6 @@ The detail page contains:
 - subscription summary
 - dunning summary
 - renewal summary
-- smart-cancellation summary
 - decision timeline
 - offer history
 - metadata
@@ -356,7 +335,6 @@ It provides three Drawer-backed edit flows:
 - finalize cancellation
 
 It also provides confirm prompts for risky actions:
-- smart cancellation
 - apply offer
 - pause offer
 - finalize cancellation

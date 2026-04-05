@@ -3,7 +3,6 @@ import path from "path"
 import {
   CancellationCaseStatus,
   CancellationFinalOutcome,
-  CancellationRecommendedAction,
   CancellationReasonCategory,
   RetentionOfferDecisionStatus,
   RetentionOfferType,
@@ -46,7 +45,6 @@ medusaIntegrationTestRunner({
           status: CancellationCaseStatus.RETAINED,
           reason: "Price sensitivity",
           reason_category: CancellationReasonCategory.PRICE,
-          recommended_action: CancellationRecommendedAction.DISCOUNT_OFFER,
           final_outcome: CancellationFinalOutcome.RETAINED,
           finalized_at: new Date("2026-04-01T10:00:00.000Z"),
           finalized_by: "admin_api",
@@ -66,7 +64,6 @@ medusaIntegrationTestRunner({
           status: CancellationCaseStatus.CANCELED,
           reason: "Switched to competitor",
           reason_category: CancellationReasonCategory.SWITCHED_COMPETITOR,
-          recommended_action: CancellationRecommendedAction.DIRECT_CANCEL,
           final_outcome: CancellationFinalOutcome.CANCELED,
           finalized_at: new Date("2026-04-01T11:00:00.000Z"),
           finalized_by: "admin_api",
@@ -85,7 +82,6 @@ medusaIntegrationTestRunner({
               id: keptCase.id,
               status: CancellationCaseStatus.RETAINED,
               final_outcome: CancellationFinalOutcome.RETAINED,
-              recommended_action: CancellationRecommendedAction.DISCOUNT_OFFER,
               subscription: expect.objectContaining({
                 reference: "SUB-CAN-API-001",
               }),
@@ -143,7 +139,6 @@ medusaIntegrationTestRunner({
           status: CancellationCaseStatus.EVALUATING_RETENTION,
           reason: "Billing issue",
           reason_category: CancellationReasonCategory.BILLING,
-          recommended_action: CancellationRecommendedAction.PAUSE_OFFER,
         })
 
         const response = await api.get(

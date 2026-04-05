@@ -60,14 +60,6 @@ Supported final outcomes:
 - `paused`
 - `canceled`
 
-### Recommended Action Values
-
-Supported recommendation values:
-- `pause_offer`
-- `discount_offer`
-- `bonus_offer`
-- `direct_cancel`
-
 ### Offer Decision Status Values
 
 Supported retention offer decision statuses:
@@ -149,7 +141,6 @@ Shape:
       "status": "evaluating_retention",
       "reason": "Customer says the price is too high",
       "reason_category": "price",
-      "recommended_action": "discount_offer",
       "final_outcome": null,
       "subscription": {
         "subscription_id": "sub_123",
@@ -212,7 +203,6 @@ Shape:
     "status": "retained",
     "reason": "Customer asked for a lower price",
     "reason_category": "price",
-    "recommended_action": "discount_offer",
     "final_outcome": "retained",
     "subscription": {
       "subscription_id": "sub_123",
@@ -276,46 +266,7 @@ Shape:
 - `404 not_found`
   The cancellation case does not exist.
 
-## 3. Smart Cancel
-
-### Endpoint
-
-- Method: `POST`
-- Path: `/admin/cancellations/:id/smart-cancel`
-
-### Purpose
-
-Evaluates the active case and stores a recommendation for retention versus direct cancellation.
-
-### Request Body
-
-All fields are optional.
-
-```json
-{
-  "evaluated_by": "user_123",
-  "metadata": {
-    "source": "admin"
-  }
-}
-```
-
-### Success Response
-
-Status:
-- `200 OK`
-
-Shape:
-- same as `GET /admin/cancellations/:id`
-
-### Common Errors
-
-- `404 not_found`
-  Case does not exist.
-- `409 invalid_state`
-  Case is terminal or not eligible for recommendation.
-
-## 4. Apply Retention Offer
+## 3. Apply Retention Offer
 
 ### Endpoint
 
@@ -411,7 +362,7 @@ Shape:
 - `409 offer_out_of_policy`
   Offer payload violates retention policy rules.
 
-## 5. Finalize Cancellation
+## 4. Finalize Cancellation
 
 ### Endpoint
 
@@ -459,7 +410,7 @@ Shape:
 - `400 invalid_data`
   Reason is missing after resolving body and existing case data.
 
-## 6. Update Cancellation Reason
+## 5. Update Cancellation Reason
 
 ### Endpoint
 

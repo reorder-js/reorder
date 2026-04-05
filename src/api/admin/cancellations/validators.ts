@@ -125,15 +125,6 @@ const bonusOfferPayloadSchema = z.object({
   }),
 })
 
-export const PostAdminSmartCancelSchema = z.object({
-  evaluated_by: z.string().optional(),
-  metadata: metadataSchema,
-})
-
-export type PostAdminSmartCancelSchemaType = z.infer<
-  typeof PostAdminSmartCancelSchema
->
-
 export const PostAdminApplyRetentionOfferSchema = z.object({
   offer_type: z.nativeEnum(RetentionOfferType),
   offer_payload: z.union([

@@ -64,7 +64,6 @@ The current ownership model of the plugin remains unchanged.
 
 `Cancellation & Retention` remains the source of truth for:
 - cancellation process state
-- retention recommendation state
 - retention offer history
 - churn reason and final cancellation outcome
 
@@ -223,7 +222,6 @@ Examples of good event-level state summaries:
 - status before and after a pause or resume
 - pending plan change before and after approval decision
 - retry schedule before and after manual override
-- cancellation recommendation before and after smart-cancel evaluation
 
 Examples of data that should stay outside the event state payload:
 - full attempt history arrays
@@ -263,7 +261,6 @@ The `Activity Log` should use a stable, explicit taxonomy grouped by domain pref
 ### Cancellation & Retention Events
 
 - `cancellation.case_started`
-- `cancellation.recommendation_generated`
 - `cancellation.offer_applied`
 - `cancellation.reason_updated`
 - `cancellation.finalized`
@@ -567,7 +564,6 @@ Required compound indexes:
 
 For `Cancellation & Retention`, the current business-event emission scope is:
 - `start-cancellation-case` -> `cancellation.case_started`
-- `smart-cancellation` -> `cancellation.recommendation_generated`
 - `apply-retention-offer` -> `cancellation.offer_applied`
 - `update-cancellation-reason` -> `cancellation.reason_updated`
 - `finalize-cancellation` -> `cancellation.finalized`

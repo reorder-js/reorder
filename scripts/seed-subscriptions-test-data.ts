@@ -15,7 +15,6 @@ import {
   CancellationCaseStatus,
   CancellationFinalOutcome,
   CancellationReasonCategory,
-  CancellationRecommendedAction,
   RetentionOfferDecisionStatus,
   RetentionOfferType,
 } from "../src/modules/cancellation/types"
@@ -2086,7 +2085,7 @@ export default async function seedSubscriptionsTestData({
     metadata: {
       seed_namespace: "subscriptions-test-data",
       scenario: "cancellation-open-billing",
-      qa_focus: ["cancellation-detail", "linked-dunning", "smart-cancel"],
+      qa_focus: ["cancellation-detail", "linked-dunning"],
     },
   })
 
@@ -2212,7 +2211,6 @@ export default async function seedSubscriptionsTestData({
     reason: "Customer reports billing problems and wants to stop unless billing is stabilized.",
     reason_category: CancellationReasonCategory.BILLING,
     notes: "Use to validate active case detail with linked dunning summary.",
-    recommended_action: CancellationRecommendedAction.PAUSE_OFFER,
     final_outcome: null,
     finalized_at: null,
     finalized_by: null,
@@ -2220,17 +2218,6 @@ export default async function seedSubscriptionsTestData({
     metadata: {
       seed_namespace: "subscriptions-test-data",
       scenario: "cancellation-open-billing",
-      smart_cancellation: {
-        recommended_action: CancellationRecommendedAction.PAUSE_OFFER,
-        eligible_actions: [
-          CancellationRecommendedAction.PAUSE_OFFER,
-          CancellationRecommendedAction.DIRECT_CANCEL,
-        ],
-        rationale:
-          "Billing issues with active dunning make pause safer than a new discount.",
-        evaluated_by: "qa-seed",
-        evaluated_at: FIXED_TIME.toISOString(),
-      },
     },
   })
 
@@ -2241,7 +2228,6 @@ export default async function seedSubscriptionsTestData({
     reason: "Customer said the current price is too high.",
     reason_category: CancellationReasonCategory.PRICE,
     notes: "Use to validate retained detail, timeline, and discount-offer filtering.",
-    recommended_action: CancellationRecommendedAction.DISCOUNT_OFFER,
     final_outcome: CancellationFinalOutcome.RETAINED,
     finalized_at: FIXED_TIME,
     finalized_by: "qa-seed",
@@ -2270,7 +2256,6 @@ export default async function seedSubscriptionsTestData({
     reason: "Customer asked for a temporary pause instead of canceling.",
     reason_category: CancellationReasonCategory.TEMPORARY_PAUSE,
     notes: "Use to validate pause as retention outcome.",
-    recommended_action: CancellationRecommendedAction.PAUSE_OFFER,
     final_outcome: CancellationFinalOutcome.PAUSED,
     finalized_at: addDays(FIXED_TIME, -2),
     finalized_by: "qa-seed",
@@ -2288,7 +2273,6 @@ export default async function seedSubscriptionsTestData({
     reason: "Customer switched to another provider and requested immediate cancel.",
     reason_category: CancellationReasonCategory.SWITCHED_COMPETITOR,
     notes: "Use to compare immediate cancel semantics on detail.",
-    recommended_action: CancellationRecommendedAction.DIRECT_CANCEL,
     final_outcome: CancellationFinalOutcome.CANCELED,
     finalized_at: FIXED_TIME,
     finalized_by: "qa-seed",
@@ -2309,7 +2293,6 @@ export default async function seedSubscriptionsTestData({
     reason: "Customer wants cancellation at the end of the current cycle.",
     reason_category: CancellationReasonCategory.OTHER,
     notes: "Use to compare end-of-cycle cancellation semantics.",
-    recommended_action: CancellationRecommendedAction.DIRECT_CANCEL,
     final_outcome: CancellationFinalOutcome.CANCELED,
     finalized_at: FIXED_TIME,
     finalized_by: "qa-seed",
@@ -2329,8 +2312,7 @@ export default async function seedSubscriptionsTestData({
     status: CancellationCaseStatus.REQUESTED,
     reason: "Customer is considering cancellation because the price feels too high.",
     reason_category: CancellationReasonCategory.PRICE,
-    notes: "Use to run smart cancellation and test discount recommendation.",
-    recommended_action: null,
+    notes: "Use to validate an open price-driven cancellation case before any offer is applied.",
     final_outcome: null,
     finalized_at: null,
     finalized_by: null,
@@ -2348,7 +2330,6 @@ export default async function seedSubscriptionsTestData({
     reason: "Paused customer may still want final cancellation after the break.",
     reason_category: CancellationReasonCategory.OTHER,
     notes: "Use to validate an active case on an already paused subscription.",
-    recommended_action: CancellationRecommendedAction.DIRECT_CANCEL,
     final_outcome: null,
     finalized_at: null,
     finalized_by: null,
@@ -2356,14 +2337,6 @@ export default async function seedSubscriptionsTestData({
     metadata: {
       seed_namespace: "subscriptions-test-data",
       scenario: "cancellation-open-paused-sub",
-      smart_cancellation: {
-        recommended_action: CancellationRecommendedAction.DIRECT_CANCEL,
-        eligible_actions: [CancellationRecommendedAction.DIRECT_CANCEL],
-        rationale:
-          "Subscription is already paused, so direct cancellation is the main remaining operator path.",
-        evaluated_by: "qa-seed",
-        evaluated_at: FIXED_TIME.toISOString(),
-      },
     },
   })
 
@@ -2907,7 +2880,7 @@ export default async function seedSubscriptionsTestData({
       renewal_cycle_id: IDS.cycleCancellationOpenPrice,
       cancellation_case_id: IDS.cancellationOpenPrice,
       notes:
-        "Use to run smart cancellation and validate a discount-oriented recommendation path without active dunning.",
+        "Use to validate an open price-driven cancellation case before any retention action is applied.",
     },
     {
       scenario: "Cancellation open case for paused subscription",

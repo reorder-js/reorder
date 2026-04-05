@@ -39,7 +39,6 @@ export const applyRetentionOfferWorkflow = createWorkflow(
           new_state: {
             status: result.current.status,
             final_outcome: result.current.final_outcome,
-            recommended_action: result.current.recommended_action,
           },
           reason: input.decision_reason ?? null,
           metadata: {

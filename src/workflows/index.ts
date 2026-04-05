@@ -59,10 +59,6 @@ export {
   default as startCancellationCaseWorkflowDefault,
 } from "./start-cancellation-case"
 export {
-  smartCancellationWorkflow,
-  default as smartCancellationWorkflowDefault,
-} from "./smart-cancellation"
-export {
   applyRetentionOfferWorkflow,
   default as applyRetentionOfferWorkflowDefault,
 } from "./apply-retention-offer"

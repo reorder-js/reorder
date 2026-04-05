@@ -42,7 +42,6 @@ type CancellationCaseRecord = {
   reason: string | null
   reason_category: CancellationReasonCategory | null
   notes: string | null
-  recommended_action: string | null
   final_outcome: string | null
   finalized_at: Date | null
   finalized_by: string | null
@@ -242,7 +241,6 @@ export const startCancellationCaseStep = createStep(
       reason: input.reason ?? null,
       reason_category: input.reason_category ?? null,
       notes: input.notes ?? null,
-      recommended_action: null,
       final_outcome: null,
       finalized_at: null,
       finalized_by: null,

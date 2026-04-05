@@ -11,13 +11,11 @@ import {
   CancellationCaseAdminListResponse,
   CancellationCaseAdminStatus,
   CancellationFinalOutcomeAdmin,
-  CancellationRecommendedActionAdmin,
   RetentionOfferDecisionAdminStatus,
 } from "../../../admin/types/cancellation"
 import {
   CancellationCaseStatus,
   CancellationFinalOutcome,
-  CancellationRecommendedAction,
   RetentionOfferType,
   RetentionOfferDecisionStatus,
 } from "../types"
@@ -45,7 +43,6 @@ type CancellationCaseRecord = {
   reason: string | null
   reason_category: string | null
   notes: string | null
-  recommended_action: CancellationRecommendedAction | null
   final_outcome: CancellationFinalOutcome | null
   finalized_at: string | null
   finalized_by: string | null
@@ -119,7 +116,6 @@ const caseListFields = [
   "status",
   "reason",
   "reason_category",
-  "recommended_action",
   "final_outcome",
   "finalized_at",
   "created_at",
@@ -209,23 +205,6 @@ function mapCaseStatus(status: CancellationCaseRecord["status"]) {
   throw cancellationErrors.invalidData(
     `Unsupported cancellation case status '${status}'`
   )
-}
-
-function mapRecommendedAction(
-  action: CancellationCaseRecord["recommended_action"]
-): CancellationRecommendedActionAdmin | null {
-  switch (action) {
-    case CancellationRecommendedAction.PAUSE_OFFER:
-      return CancellationRecommendedActionAdmin.PAUSE_OFFER
-    case CancellationRecommendedAction.DISCOUNT_OFFER:
-      return CancellationRecommendedActionAdmin.DISCOUNT_OFFER
-    case CancellationRecommendedAction.BONUS_OFFER:
-      return CancellationRecommendedActionAdmin.BONUS_OFFER
-    case CancellationRecommendedAction.DIRECT_CANCEL:
-      return CancellationRecommendedActionAdmin.DIRECT_CANCEL
-    default:
-      return null
-  }
 }
 
 function mapFinalOutcome(
@@ -522,7 +501,6 @@ function mapListItem(
     status: mapCaseStatus(record.status),
     reason: record.reason,
     reason_category: record.reason_category,
-    recommended_action: mapRecommendedAction(record.recommended_action),
     final_outcome: mapFinalOutcome(record.final_outcome),
     subscription,
     created_at: record.created_at,

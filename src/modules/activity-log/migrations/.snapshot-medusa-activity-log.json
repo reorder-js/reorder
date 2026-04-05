@@ -58,7 +58,6 @@
             "dunning.unrecovered",
             "dunning.retry_schedule_updated",
             "cancellation.case_started",
-            "cancellation.recommendation_generated",
             "cancellation.offer_applied",
             "cancellation.reason_updated",
             "cancellation.finalized"

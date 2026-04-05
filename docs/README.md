@@ -40,7 +40,7 @@ Completed:
 - `Dunning` operational hardening for scheduler and manual retry flows
 - `Cancellation & Retention` domain model
 - `Cancellation & Retention` admin API routes
-- `Cancellation & Retention` Admin UI: queue, detail, smart-cancel, apply-offer, finalize, and reason-update flows
+- `Cancellation & Retention` Admin UI: queue, detail, apply-offer, finalize, and reason-update flows
 - `Cancellation & Retention` backend integration tests
 - `Cancellation & Retention` admin flow integration coverage
 - smoke-level integration between `Cancellation & Retention`, `Subscriptions`, `Renewals`, and `Dunning`
@@ -173,7 +173,6 @@ This area includes:
 This area includes:
 - cancellation case list in Admin
 - cancellation case detail page
-- smart cancellation recommendation flow
 - apply retention offer flow for `pause`, `discount`, and `bonus`
 - update reason flow
 - finalize cancellation flow

@@ -78,21 +78,6 @@
           "nullable": true,
           "mappedType": "text"
         },
-        "recommended_action": {
-          "name": "recommended_action",
-          "type": "text",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": true,
-          "enumItems": [
-            "pause_offer",
-            "discount_offer",
-            "bonus_offer",
-            "direct_cancel"
-          ],
-          "mappedType": "enum"
-        },
         "final_outcome": {
           "name": "final_outcome",
           "type": "text",

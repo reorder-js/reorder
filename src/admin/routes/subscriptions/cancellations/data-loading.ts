@@ -14,9 +14,7 @@ import { invalidateAdminActivityLogQueries } from "../activity-log/data-loading"
 import {
   CancellationCaseAdminDetailResponse,
   CancellationCaseAdminListResponse,
-  CancellationCaseAdminStatus,
   CancellationFinalOutcomeAdmin,
-  CancellationRecommendedActionAdmin,
 } from "../../../types/cancellation"
 
 type UseAdminCancellationsDisplayQueryInput = {
@@ -26,10 +24,7 @@ type UseAdminCancellationsDisplayQueryInput = {
   sorting: DataTableSortingState | null
 }
 
-type OfferTypeFilter =
-  | CancellationRecommendedActionAdmin.PAUSE_OFFER
-  | CancellationRecommendedActionAdmin.DISCOUNT_OFFER
-  | CancellationRecommendedActionAdmin.BONUS_OFFER
+type OfferTypeFilter = "pause_offer" | "discount_offer" | "bonus_offer"
 
 export const adminCancellationsQueryKeys = {
   all: ["admin-cancellations"] as const,

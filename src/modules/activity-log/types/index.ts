@@ -22,7 +22,6 @@ export enum ActivityLogEventType {
   DUNNING_UNRECOVERED = "dunning.unrecovered",
   DUNNING_RETRY_SCHEDULE_UPDATED = "dunning.retry_schedule_updated",
   CANCELLATION_CASE_STARTED = "cancellation.case_started",
-  CANCELLATION_RECOMMENDATION_GENERATED = "cancellation.recommendation_generated",
   CANCELLATION_OFFER_APPLIED = "cancellation.offer_applied",
   CANCELLATION_REASON_UPDATED = "cancellation.reason_updated",
   CANCELLATION_FINALIZED = "cancellation.finalized",

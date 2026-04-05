@@ -9,7 +9,6 @@ import type CancellationModuleService from "../../src/modules/cancellation/servi
 import {
   CancellationCaseStatus,
   CancellationFinalOutcome,
-  CancellationRecommendedAction,
   CancellationReasonCategory,
   RetentionOfferDecisionStatus,
   RetentionOfferType,
@@ -20,11 +19,8 @@ import {
   ActivityLogActorType,
   ActivityLogEventType,
 } from "../../src/modules/activity-log/types"
-import { DUNNING_MODULE } from "../../src/modules/dunning"
-import type DunningModuleService from "../../src/modules/dunning/service"
 import { DunningCaseStatus } from "../../src/modules/dunning/types"
 import { RENEWAL_MODULE } from "../../src/modules/renewal"
-import type RenewalModuleService from "../../src/modules/renewal/service"
 import { RenewalCycleStatus } from "../../src/modules/renewal/types"
 import { SUBSCRIPTION_MODULE } from "../../src/modules/subscription"
 import type SubscriptionModuleService from "../../src/modules/subscription/service"
@@ -32,7 +28,6 @@ import { SubscriptionStatus } from "../../src/modules/subscription/types"
 import {
   applyRetentionOfferWorkflow,
   finalizeCancellationWorkflow,
-  smartCancellationWorkflow,
   startCancellationCaseWorkflow,
   updateCancellationReasonWorkflow,
 } from "../../src/workflows"
@@ -77,7 +72,6 @@ medusaIntegrationTestRunner({
           status: CancellationCaseStatus.EVALUATING_RETENTION,
           reason: "Price too high",
           reason_category: CancellationReasonCategory.PRICE,
-          recommended_action: CancellationRecommendedAction.DISCOUNT_OFFER,
           metadata: {
             source: "query-test",
           },
@@ -102,7 +96,6 @@ medusaIntegrationTestRunner({
         expect(listResponse.cancellations[0]).toMatchObject({
           id: cancellationCase.id,
           status: CancellationCaseStatus.EVALUATING_RETENTION,
-          recommended_action: CancellationRecommendedAction.DISCOUNT_OFFER,
           subscription: expect.objectContaining({
             reference: "SUB-CAN-QUERY-001",
           }),
@@ -216,78 +209,6 @@ medusaIntegrationTestRunner({
         })
       })
 
-      it("branches smart cancellation recommendations based on subscription state and churn reason", async () => {
-        const container = getContainer()
-        const activityLogModule =
-          container.resolve<ActivityLogModuleService>(ACTIVITY_LOG_MODULE)
-        const renewal = container.resolve<RenewalModuleService>(RENEWAL_MODULE)
-
-        const priceSubscription = await createSubscriptionSeed(container, {
-          reference: "SUB-CAN-WF-002",
-          status: SubscriptionStatus.ACTIVE,
-        })
-        const priceCase = await createCancellationCaseSeed(container, {
-          subscription_id: priceSubscription.id,
-          status: CancellationCaseStatus.REQUESTED,
-          reason_category: CancellationReasonCategory.PRICE,
-        })
-
-        const priceRun = await smartCancellationWorkflow(container).run({
-          input: {
-            cancellation_case_id: priceCase.id,
-            evaluated_by: "admin_pricing",
-          },
-        })
-
-        expect(priceRun.result).toMatchObject({
-          cancellation_case_id: priceCase.id,
-          status: CancellationCaseStatus.EVALUATING_RETENTION,
-          recommended_action: CancellationRecommendedAction.DISCOUNT_OFFER,
-          has_active_dunning: false,
-        })
-
-        const pausedSubscription = await createSubscriptionSeed(container, {
-          reference: "SUB-CAN-WF-003",
-          status: SubscriptionStatus.PAUSED,
-        })
-        const pausedCase = await createCancellationCaseSeed(container, {
-          subscription_id: pausedSubscription.id,
-          status: CancellationCaseStatus.REQUESTED,
-          reason_category: CancellationReasonCategory.BILLING,
-        })
-
-        const pausedRun = await smartCancellationWorkflow(container).run({
-          input: {
-            cancellation_case_id: pausedCase.id,
-            evaluated_by: "admin_ops",
-          },
-        })
-
-        expect(pausedRun.result).toMatchObject({
-          cancellation_case_id: pausedCase.id,
-          status: CancellationCaseStatus.EVALUATING_RETENTION,
-          recommended_action: CancellationRecommendedAction.DIRECT_CANCEL,
-        })
-
-        const priceLogs = await activityLogModule.listSubscriptionLogs({
-          subscription_id: priceSubscription.id,
-          event_type: ActivityLogEventType.CANCELLATION_RECOMMENDATION_GENERATED,
-        } as any)
-
-        expect(priceLogs).toHaveLength(1)
-        expect(priceLogs[0]).toMatchObject({
-          subscription_id: priceSubscription.id,
-          event_type: ActivityLogEventType.CANCELLATION_RECOMMENDATION_GENERATED,
-          actor_type: ActivityLogActorType.USER,
-          actor_id: "admin_pricing",
-        })
-
-        const futureCycles = await renewal.listRenewalCycles({
-          subscription_id: priceSubscription.id,
-        } as any)
-        expect(futureCycles).toEqual([])
-      })
-
       it("accepts a pause offer and materializes paused subscription state", async () => {
         const container = getContainer()
         const activityLogModule =
@@ -305,7 +226,6 @@ medusaIntegrationTestRunner({
           subscription_id: subscription.id,
           status: CancellationCaseStatus.EVALUATING_RETENTION,
           reason_category: CancellationReasonCategory.TEMPORARY_PAUSE,
-          recommended_action: CancellationRecommendedAction.PAUSE_OFFER,
         })
 
         const { result } = await applyRetentionOfferWorkflow(container).run({
@@ -448,7 +368,6 @@ medusaIntegrationTestRunner({
           subscription_id: subscription.id,
           status: CancellationCaseStatus.EVALUATING_RETENTION,
           reason_category: CancellationReasonCategory.PRICE,
-          recommended_action: CancellationRecommendedAction.DIRECT_CANCEL,
         })
 
         await expect(

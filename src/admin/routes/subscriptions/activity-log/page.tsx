@@ -82,7 +82,6 @@ const domainPresetOptions = [
     value: "cancellation",
     eventTypes: [
       "cancellation.case_started",
-      "cancellation.recommendation_generated",
       "cancellation.offer_applied",
       "cancellation.reason_updated",
       "cancellation.finalized",
@@ -909,7 +908,6 @@ function getEventColor(value: string) {
       return "orange"
     case "subscription.paused":
     case "subscription.plan_change_scheduled":
-    case "cancellation.recommendation_generated":
       return "blue"
     default:
       return "grey"

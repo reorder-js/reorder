@@ -37,7 +37,6 @@ import {
 import {
   CancellationCaseAdminStatus,
   CancellationFinalOutcomeAdmin,
-  CancellationRecommendedActionAdmin,
 } from "../../../../types/cancellation"
 import type {
   ApplyRetentionOfferAdminRequest,
@@ -45,7 +44,6 @@ import type {
   CancellationCaseAdminDetail,
   CancellationCaseAdminDetailResponse,
   FinalizeCancellationAdminRequest,
-  SmartCancellationAdminRequest,
   UpdateCancellationReasonAdminRequest,
 } from "../../../../types/cancellation"
 
@@ -141,28 +139,6 @@ const CancellationDetailPage = () => {
   )
   const actionFormCancellation = actionFormData?.cancellation ?? cancellation
   const isActionFormLoading = actionDrawerOpen && !actionFormData && Boolean(id)
-
-  const smartCancelMutation = useMutation({
-    mutationFn: async (body: SmartCancellationAdminRequest) =>
-      sdk.client.fetch<CancellationCaseAdminDetailResponse>(
-        `/admin/cancellations/${id}/smart-cancel`,
-        {
-          method: "POST",
-          body,
-        }
-      ),
-    onSuccess: async () => {
-      await invalidateAdminCancellationQueries(
-        queryClient,
-        id,
-        cancellation?.subscription.subscription_id
-      )
-      toast.success("Recommendation updated")
-    },
-    onError: (mutationError) => {
-      toast.error(getAdminErrorMessage(mutationError, "Failed to run smart cancellation"))
-    },
-  })
 
   const applyOfferMutation = useMutation({
     mutationFn: async (body: ApplyRetentionOfferAdminRequest) =>
@@ -260,24 +236,12 @@ const CancellationDetailPage = () => {
     }))
   }, [cancellation])
 
-  const smartCancellationSnapshot = useMemo(() => {
-    const value = cancellation?.metadata?.smart_cancellation
-
-    if (!value || typeof value !== "object") {
-      return null
-    }
-
-    return value as Record<string, unknown>
-  }, [cancellation])
-
-  const canRunSmartCancellation = cancellation
+  const canApplyOffer = cancellation
     ? !terminalStatuses.has(cancellation.status)
     : false
-  const canApplyOffer = canRunSmartCancellation
-  const canFinalize = canRunSmartCancellation
-  const canEditReason = canRunSmartCancellation
+  const canFinalize = canApplyOffer
+  const canEditReason = canApplyOffer
   const isActionPending =
-    smartCancelMutation.isPending ||
     applyOfferMutation.isPending ||
     finalizeMutation.isPending ||
     updateReasonMutation.isPending
@@ -336,16 +300,7 @@ const CancellationDetailPage = () => {
     setFormError(null)
 
     if (actionDrawerMode === "apply_offer") {
-      const recommendedAction =
-        actionFormCancellation.recommended_action ===
-        CancellationRecommendedActionAdmin.BONUS_OFFER
-          ? "bonus_offer"
-          : actionFormCancellation.recommended_action ===
-                CancellationRecommendedActionAdmin.DISCOUNT_OFFER
-            ? "discount_offer"
-            : "pause_offer"
-
-      setOfferType(recommendedAction)
+      setOfferType("pause_offer")
       setDecisionReason("")
       setPauseCycles("2")
       setResumeAt("")
@@ -386,22 +341,6 @@ const CancellationDetailPage = () => {
   const closeDrawer = () => {
     setActionDrawerOpen(false)
     setFormError(null)
-  }
-
-  const handleRunSmartCancellation = async () => {
-    const confirmed = await prompt({
-      title: "Run smart cancellation?",
-      description:
-        "You are about to evaluate the current cancellation case and refresh its recommendation.",
-      confirmText: "Run evaluation",
-      cancelText: "Cancel",
-    })
-
-    if (!confirmed) {
-      return
-    }
-
-    await smartCancelMutation.mutateAsync({})
   }
 
   const handleSubmitDrawer = async () => {
@@ -642,22 +581,6 @@ const CancellationDetailPage = () => {
                 </IconButton>
               </DropdownMenu.Trigger>
               <DropdownMenu.Content align="end">
-                {canRunSmartCancellation ? (
-                  <DropdownMenu.Item
-                    className="flex items-center gap-x-2"
-                    disabled={isActionPending}
-                    onClick={() => {
-                      void handleRunSmartCancellation()
-                    }}
-                  >
-                    <TriangleRightMini className="text-ui-fg-subtle" />
-                    <span>
-                      {smartCancelMutation.isPending
-                        ? "Running recommendation..."
-                        : "Run smart cancellation"}
-                    </span>
-                  </DropdownMenu.Item>
-                ) : null}
                 {canApplyOffer ? (
                   <DropdownMenu.Item
                     className="flex items-center gap-x-2"
@@ -728,10 +651,6 @@ const CancellationDetailPage = () => {
                   label="Reason"
                   value={cancellation.reason || "No reason recorded"}
                 />
-                <DetailRow
-                  label="Recommended action"
-                  value={formatRecommendedAction(cancellation.recommended_action)}
-                />
                 <DetailRow label="Finalized by" value={cancellation.finalized_by || "-"} />
                 <DetailRow
                   label="Finalized at"
@@ -741,53 +660,6 @@ const CancellationDetailPage = () => {
                   label="Cancellation effective at"
                   value={formatDateTime(cancellation.cancellation_effective_at)}
                 />
-              </div>
-            </div>
-          </Container>
-
-          <Container className="divide-y p-0">
-            <div className="px-6 py-4">
-              <Heading level="h2">Smart cancellation</Heading>
-            </div>
-            <div className="grid grid-cols-1 gap-4 px-6 py-4 md:grid-cols-[1fr_auto] md:items-start">
-              <div className="grid gap-4 md:grid-cols-2">
-                <DetailRow
-                  label="Current recommendation"
-                  value={formatRecommendedAction(cancellation.recommended_action)}
-                />
-                <DetailRow
-                  label="Eligible actions"
-                  value={formatEligibleActions(smartCancellationSnapshot?.eligible_actions)}
-                />
-                <DetailRow
-                  label="Rationale"
-                  value={
-                    typeof smartCancellationSnapshot?.rationale === "string"
-                      ? smartCancellationSnapshot.rationale
-                      : "No smart-cancellation rationale recorded yet."
-                  }
-                />
-                <DetailRow
-                  label="Evaluated at"
-                  value={formatDateTime(
-                    typeof smartCancellationSnapshot?.evaluated_at === "string"
-                      ? smartCancellationSnapshot.evaluated_at
-                      : null
-                  )}
-                />
-              </div>
-              <div className="flex justify-start md:justify-end">
-                <Button
-                  size="small"
-                  type="button"
-                  onClick={() => {
-                    void handleRunSmartCancellation()
-                  }}
-                  isLoading={smartCancelMutation.isPending}
-                  disabled={!canRunSmartCancellation || isActionPending}
-                >
-                  Run smart cancellation
-                </Button>
               </div>
             </div>
           </Container>
@@ -1629,23 +1501,6 @@ function getFinalOutcomeColor(value: CancellationFinalOutcomeAdmin) {
   }
 }
 
-function formatRecommendedAction(value: CancellationRecommendedActionAdmin | null) {
-  if (!value) {
-    return "No recommendation yet"
-  }
-
-  switch (value) {
-    case "pause_offer":
-      return "Pause offer"
-    case "discount_offer":
-      return "Discount offer"
-    case "bonus_offer":
-      return "Bonus offer"
-    case "direct_cancel":
-      return "Direct cancel"
-  }
-}
-
 function formatReasonCategory(value: string | null) {
   if (!value) {
     return "Unclassified"
@@ -1836,16 +1691,6 @@ function describeOfferPayload(offer: CancellationAdminOfferEventRecord) {
   }
 
   return null
-}
-
-function formatEligibleActions(value: unknown) {
-  if (!Array.isArray(value) || !value.length) {
-    return "No eligible actions recorded"
-  }
-
-  return value
-    .map((entry) => formatRecommendedAction(entry as CancellationRecommendedActionAdmin))
-    .join(", ")
 }
 
 function getAdminErrorMessage(error: unknown, fallback: string) {

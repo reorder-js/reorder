@@ -87,7 +87,6 @@ Covered through integration tests:
 - `start-cancellation-case` success path
 - idempotent reuse or update of an existing active case
 - duplicate active case guard
-- `smart-cancellation` branching based on subscription state and reason category
 - `apply-retention-offer` success paths
 - `apply-retention-offer` policy failures
 - `finalize-cancellation` success path
@@ -99,7 +98,6 @@ Covered through integration tests:
 Covered through HTTP integration tests:
 - `GET /admin/cancellations`
 - `GET /admin/cancellations/:id`
-- `POST /admin/cancellations/:id/smart-cancel`
 - `POST /admin/cancellations/:id/apply-offer`
 - `POST /admin/cancellations/:id/finalize`
 - `POST /admin/cancellations/:id/reason`
@@ -116,7 +114,6 @@ This includes:
 The file [cancellations-admin-flow.spec.ts](../../integration-tests/http/cancellations-admin-flow.spec.ts) covers the main scenario-style backend flows used by the Admin UI:
 - list cancellation cases
 - open case detail
-- run smart cancellation
 - apply retention offer
 - finalize cancellation
 - refresh detail and list

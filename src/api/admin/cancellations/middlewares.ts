@@ -8,7 +8,6 @@ import {
   GetAdminCancellationsSchema,
   PostAdminApplyRetentionOfferSchema,
   PostAdminFinalizeCancellationSchema,
-  PostAdminSmartCancelSchema,
   PostAdminUpdateCancellationReasonSchema,
 } from "./validators"
 
@@ -24,7 +23,6 @@ export const adminCancellationsMiddlewares: MiddlewareRoute[] = [
           "status",
           "reason",
           "reason_category",
-          "recommended_action",
           "final_outcome",
           "finalized_at",
           "created_at",
@@ -43,11 +41,6 @@ export const adminCancellationsMiddlewares: MiddlewareRoute[] = [
         isList: false,
       }),
     ],
-  },
-  {
-    matcher: "/admin/cancellations/:id/smart-cancel",
-    method: "POST",
-    middlewares: [validateAndTransformBody(PostAdminSmartCancelSchema)],
   },
   {
     matcher: "/admin/cancellations/:id/apply-offer",

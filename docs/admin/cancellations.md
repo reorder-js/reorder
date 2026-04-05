@@ -10,7 +10,6 @@ The `Cancellation & Retention` Admin UI gives operators a dedicated workspace to
 - browse active and historical cancellation cases
 - inspect linked subscription, dunning, and renewal context
 - review churn reasons and retention outcomes
-- run smart cancellation recommendation
 - apply retention offers
 - finalize cancellation
 - update churn reason classification
@@ -49,10 +48,8 @@ The page includes:
 
 The queue currently displays:
 - `Subscription`
-- `Reason`
 - `Reason category`
 - `Outcome`
-- `Retention decision`
 - `Created`
 
 Column rendering uses compact Medusa-style cells:
@@ -118,7 +115,7 @@ The detail page is the main operational screen for one cancellation case.
 It combines:
 - churn and retention state visibility
 - linked operational context
-- recommendation and outcome visibility
+- outcome visibility
 - offer history
 - manual actions
 
@@ -139,7 +136,6 @@ The detail page currently renders:
 - `Subscription summary`
 - `Dunning summary`
 - `Renewal summary`
-- `Smart cancellation`
 - `Decision timeline`
 - `Offer history`
 - `Technical metadata`
@@ -151,7 +147,6 @@ These sections are read-oriented and designed for quick operator inspection.
 ### Action Menu
 
 The detail page action menu includes:
-- `Run smart cancellation`
 - `Apply retention offer`
 - `Update reason`
 - `Finalize cancellation`
@@ -160,8 +155,6 @@ The detail page action menu includes:
 
 Current action rules in the UI:
 
-- `Run smart cancellation`
-  Available for active, non-terminal cases.
 - `Apply retention offer`
   Available for active, non-terminal cases.
 - `Update reason`
@@ -181,15 +174,6 @@ Actions are disabled while the corresponding mutation is pending.
 The detail page uses Drawers for mutation forms and confirmation prompts for risky actions.
 
 This follows the Medusa pattern of keeping edit flows in Drawers rather than inline.
-
-### Smart Cancellation Confirmation
-
-Purpose:
-- guard recalculation of the recommendation state
-
-Behavior:
-- the action opens a confirm prompt before mutation
-- the action is disabled while the mutation is pending
 
 ### Apply Offer Drawer
 

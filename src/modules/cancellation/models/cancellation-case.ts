@@ -4,7 +4,6 @@ import {
   CancellationCaseStatus,
   CancellationFinalOutcome,
   CancellationReasonCategory,
-  CancellationRecommendedAction,
 } from "../types"
 
 const CancellationCase = model
@@ -17,9 +16,6 @@ const CancellationCase = model
     reason: model.text().nullable(),
     reason_category: model.enum(CancellationReasonCategory).nullable(),
     notes: model.text().nullable(),
-    recommended_action: model
-      .enum(CancellationRecommendedAction)
-      .nullable(),
     final_outcome: model.enum(CancellationFinalOutcome).nullable(),
     finalized_at: model.dateTime().nullable(),
     finalized_by: model.text().nullable(),

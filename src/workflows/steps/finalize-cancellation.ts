@@ -27,7 +27,6 @@ type CancellationCaseRecord = {
   reason: string | null
   reason_category: CancellationReasonCategory | null
   notes: string | null
-  recommended_action: string | null
   final_outcome: CancellationFinalOutcome | null
   finalized_at: Date | null
   finalized_by: string | null

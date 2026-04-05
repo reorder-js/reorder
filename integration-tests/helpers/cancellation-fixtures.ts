@@ -4,7 +4,6 @@ import type CancellationModuleService from "../../src/modules/cancellation/servi
 import {
   CancellationCaseStatus,
   CancellationFinalOutcome,
-  CancellationRecommendedAction,
   CancellationReasonCategory,
   RetentionOfferDecisionStatus,
   RetentionOfferType,
@@ -24,7 +23,6 @@ type CancellationCaseSeedInput = {
   reason?: string | null
   reason_category?: CancellationReasonCategory | null
   notes?: string | null
-  recommended_action?: CancellationRecommendedAction | null
   final_outcome?: CancellationFinalOutcome | null
   finalized_at?: Date | null
   finalized_by?: string | null
@@ -67,8 +65,6 @@ export async function createCancellationCaseSeed(
     reason_category:
       input.reason_category === undefined ? null : input.reason_category,
     notes: input.notes === undefined ? null : input.notes,
-    recommended_action:
-      input.recommended_action === undefined ? null : input.recommended_action,
     final_outcome:
       input.final_outcome === undefined ? null : input.final_outcome,
     finalized_at: input.finalized_at === undefined ? null : input.finalized_at,

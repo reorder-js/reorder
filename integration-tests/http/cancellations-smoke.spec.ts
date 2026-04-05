@@ -5,13 +5,9 @@ import type CancellationModuleService from "../../src/modules/cancellation/servi
 import {
   CancellationCaseStatus,
   CancellationFinalOutcome,
-  CancellationRecommendedAction,
   CancellationReasonCategory,
   RetentionOfferType,
 } from "../../src/modules/cancellation/types"
-import { DUNNING_MODULE } from "../../src/modules/dunning"
-import type DunningModuleService from "../../src/modules/dunning/service"
-import { DunningCaseStatus } from "../../src/modules/dunning/types"
 import { RENEWAL_MODULE } from "../../src/modules/renewal"
 import type RenewalModuleService from "../../src/modules/renewal/service"
 import { RenewalCycleStatus } from "../../src/modules/renewal/types"
@@ -22,11 +18,9 @@ import {
   applyRetentionOfferWorkflow,
   ensureNextRenewalCycleWorkflow,
   finalizeCancellationWorkflow,
-  smartCancellationWorkflow,
 } from "../../src/workflows"
 import {
   createCancellationCaseSeed,
-  createDunningCaseSeed,
   createRenewalCycleSeed,
   createSubscriptionSeed,
 } from "../helpers/cancellation-fixtures"
@@ -74,7 +68,6 @@ medusaIntegrationTestRunner({
           subscription_id: subscription.id,
           status: CancellationCaseStatus.EVALUATING_RETENTION,
           reason_category: CancellationReasonCategory.TEMPORARY_PAUSE,
-          recommended_action: CancellationRecommendedAction.PAUSE_OFFER,
         })
 
         await applyRetentionOfferWorkflow(container).run({
@@ -152,7 +145,6 @@ medusaIntegrationTestRunner({
           status: CancellationCaseStatus.EVALUATING_RETENTION,
           reason: "Customer requested final cancel",
           reason_category: CancellationReasonCategory.OTHER,
-          recommended_action: CancellationRecommendedAction.DIRECT_CANCEL,
         })
 
         const { result } = await finalizeCancellationWorkflow(container).run({
@@ -197,61 +189,6 @@ medusaIntegrationTestRunner({
         ).toHaveLength(0)
       })
 
-      it("supports smart cancellation on past_due subscriptions with an active dunning case without taking over dunning ownership", async () => {
-        const container = getContainer()
-        const dunningModule =
-          container.resolve<DunningModuleService>(DUNNING_MODULE)
-        const subscriptionModule =
-          container.resolve<SubscriptionModuleService>(SUBSCRIPTION_MODULE)
-
-        const subscription = await createSubscriptionSeed(container, {
-          reference: "SUB-CAN-SMOKE-003",
-          status: SubscriptionStatus.PAST_DUE,
-        })
-        const renewal = await createRenewalCycleSeed(container, {
-          subscription_id: subscription.id,
-          status: RenewalCycleStatus.FAILED,
-        })
-        const dunningCase = await createDunningCaseSeed(container, {
-          subscription_id: subscription.id,
-          renewal_cycle_id: renewal.id,
-          status: DunningCaseStatus.RETRY_SCHEDULED,
-          attempt_count: 1,
-          last_payment_error_message: "Retry scheduled",
-        })
-        const cancellationCase = await createCancellationCaseSeed(container, {
-          subscription_id: subscription.id,
-          status: CancellationCaseStatus.REQUESTED,
-          reason_category: CancellationReasonCategory.PRICE,
-        })
-
-        const { result } = await smartCancellationWorkflow(container).run({
-          input: {
-            cancellation_case_id: cancellationCase.id,
-            evaluated_by: "smoke_admin",
-          },
-        })
-
-        const updatedSubscription = await subscriptionModule.retrieveSubscription(
-          subscription.id
-        )
-        const updatedDunningCase = await dunningModule.retrieveDunningCase(
-          dunningCase.id
-        )
-
-        expect(result).toMatchObject({
-          cancellation_case_id: cancellationCase.id,
-          status: CancellationCaseStatus.EVALUATING_RETENTION,
-          recommended_action: CancellationRecommendedAction.DIRECT_CANCEL,
-          has_active_dunning: true,
-        })
-        expect(updatedSubscription.status).toEqual(SubscriptionStatus.PAST_DUE)
-        expect(updatedDunningCase).toMatchObject({
-          id: dunningCase.id,
-          status: DunningCaseStatus.RETRY_SCHEDULED,
-          attempt_count: 1,
-        })
-      })
     })
   },
 })

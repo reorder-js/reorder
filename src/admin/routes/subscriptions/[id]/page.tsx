@@ -125,7 +125,6 @@ const activityLogDomainFilterOptions = [
     value: "cancellation",
     eventTypes: [
       "cancellation.case_started",
-      "cancellation.recommendation_generated",
       "cancellation.offer_applied",
       "cancellation.reason_updated",
       "cancellation.finalized",
@@ -2127,7 +2126,6 @@ function getActivityEventColor(eventType: string) {
       return "orange" as const;
     case "subscription.paused":
     case "subscription.plan_change_scheduled":
-    case "cancellation.recommendation_generated":
       return "blue" as const;
     default:
       return "grey" as const;

@@ -514,13 +514,11 @@ Subscription reference:
 Purpose:
 - validate the cancellation queue and detail for an active case
 - validate linked dunning summary
-- validate smart-cancel behavior when billing issues and active dunning coexist
 
 Implementation note:
 - subscription is already `past_due`
 - an active `DunningCase` exists for the same subscription
 - the cancellation case is in `evaluating_retention`
-- the seeded recommendation favors `pause_offer`
 
 ### 13. Cancellation: retained after discount offer
 
@@ -586,8 +584,7 @@ Subscription reference:
 - `SUB-QA-CAN-OPEN-PRICE`
 
 Purpose:
-- run `smart cancellation`
-- validate price-driven recommendation behavior
+- validate price-driven open-case behavior
 - use as a clean base for manual `apply-offer` testing
 
 Implementation note:
@@ -602,7 +599,7 @@ Subscription reference:
 
 Purpose:
 - validate an active cancellation case on top of an already paused subscription
-- verify detail context and recommendation boundary for paused subscriptions
+- verify detail context for paused subscriptions
 
 Implementation note:
 - subscription is already `paused`
@@ -665,7 +662,6 @@ For `Cancellation & Retention`:
    - linked dunning / renewal summary
    - decision timeline
    - offer history
-   - smart cancellation
    - apply offer
    - finalize cancellation
    - update reason
@@ -678,7 +674,7 @@ The seeded cancellation scenarios intentionally cover:
 - paused outcome through `pause_offer`
 - immediate canceled outcome
 - end-of-cycle canceled outcome
-- open price-driven case for smart-cancel testing
+- open price-driven case before any retention action
 - open case on already paused subscription
    - timeline rendering
    - linked renewal summary

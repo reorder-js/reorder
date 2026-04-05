@@ -4,7 +4,6 @@ import type CancellationModuleService from "../../modules/cancellation/service"
 import {
   CancellationCaseStatus,
   CancellationFinalOutcome,
-  CancellationRecommendedAction,
   RetentionOfferDecisionStatus,
   RetentionOfferType,
   type CancellationReasonCategory,
@@ -13,9 +12,9 @@ import {
 import { appendCancellationManualAction } from "../../modules/cancellation/utils/audit"
 import { cancellationErrors } from "../../modules/cancellation/utils/errors"
 import {
-  getEligibleCancellationActions,
+  getEligibleRetentionOfferTypes,
   isActiveDunningCase,
-} from "../../modules/cancellation/utils/smart-cancellation"
+} from "../../modules/cancellation/utils/retention-offer-policy"
 import { DUNNING_MODULE } from "../../modules/dunning"
 import type DunningModuleService from "../../modules/dunning/service"
 import { DunningCaseStatus } from "../../modules/dunning/types"
@@ -37,7 +36,6 @@ type CancellationCaseRecord = {
   reason: string | null
   reason_category: CancellationReasonCategory | null
   notes: string | null
-  recommended_action: CancellationRecommendedAction | null
   final_outcome: CancellationFinalOutcome | null
   finalized_at: Date | null
   finalized_by: string | null
@@ -199,25 +197,12 @@ function validateOfferPolicy(params: {
   activeDunningCase: DunningCaseRecord | undefined
   offerType: RetentionOfferType
 }) {
-  const eligibleActions = getEligibleCancellationActions({
+  const eligibleOfferTypes = getEligibleRetentionOfferTypes({
     subscription_status: params.subscription.status,
-    reason_category: params.cancellationCase.reason_category,
     has_active_dunning: Boolean(params.activeDunningCase),
   })
 
-  const requiredActionByOfferType: Record<
-    RetentionOfferType,
-    CancellationRecommendedAction
-  > = {
-    [RetentionOfferType.PAUSE_OFFER]: CancellationRecommendedAction.PAUSE_OFFER,
-    [RetentionOfferType.DISCOUNT_OFFER]:
-      CancellationRecommendedAction.DISCOUNT_OFFER,
-    [RetentionOfferType.BONUS_OFFER]: CancellationRecommendedAction.BONUS_OFFER,
-  }
-
-  const requiredAction = requiredActionByOfferType[params.offerType]
-
-  if (!eligibleActions.includes(requiredAction)) {
+  if (!eligibleOfferTypes.includes(params.offerType)) {
     throw cancellationErrors.offerOutOfPolicy(
       params.cancellationCase.id,
       params.offerType

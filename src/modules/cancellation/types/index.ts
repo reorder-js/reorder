@@ -17,13 +17,6 @@ export enum CancellationReasonCategory {
   OTHER = "other",
 }
 
-export enum CancellationRecommendedAction {
-  PAUSE_OFFER = "pause_offer",
-  DISCOUNT_OFFER = "discount_offer",
-  BONUS_OFFER = "bonus_offer",
-  DIRECT_CANCEL = "direct_cancel",
-}
-
 export enum CancellationFinalOutcome {
   RETAINED = "retained",
   PAUSED = "paused",
@@ -83,7 +76,6 @@ export type CancellationCaseData = {
   reason: string | null
   reason_category: CancellationReasonCategory | null
   notes: string | null
-  recommended_action: CancellationRecommendedAction | null
   final_outcome: CancellationFinalOutcome | null
   finalized_at: string | null
   finalized_by: string | null

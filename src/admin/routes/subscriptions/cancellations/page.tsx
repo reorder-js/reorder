@@ -22,9 +22,7 @@ import { useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import {
   CancellationCaseAdminListItem,
-  CancellationCaseAdminStatus,
   CancellationFinalOutcomeAdmin,
-  CancellationRecommendedActionAdmin,
 } from "../../../types/cancellation"
 import { useAdminCancellationsDisplayQuery } from "./data-loading"
 
@@ -56,12 +54,9 @@ const finalOutcomeFilterOptions = [
 ] as const
 
 const offerTypeFilterOptions = [
-  { label: "Pause offer", value: CancellationRecommendedActionAdmin.PAUSE_OFFER },
-  {
-    label: "Discount offer",
-    value: CancellationRecommendedActionAdmin.DISCOUNT_OFFER,
-  },
-  { label: "Bonus offer", value: CancellationRecommendedActionAdmin.BONUS_OFFER },
+  { label: "Pause offer", value: "pause_offer" },
+  { label: "Discount offer", value: "discount_offer" },
+  { label: "Bonus offer", value: "bonus_offer" },
 ] as const
 
 const baseColumns = [
@@ -109,14 +104,6 @@ const baseColumns = [
       </StatusBadge>
     ),
   }),
-  columnHelper.accessor("recommended_action", {
-    header: "Retention decision",
-    cell: ({ getValue }) => (
-      <Text size="small" leading="compact">
-        {formatRecommendedAction(getValue())}
-      </Text>
-    ),
-  }),
   columnHelper.accessor("created_at", {
     header: "Created",
     enableSorting: true,
@@ -162,7 +149,7 @@ const CancellationsPage = () => {
   const offerTypeFilters = useMemo(
     () =>
       Array.isArray(filtering.offer_type)
-        ? (filtering.offer_type as CancellationRecommendedActionAdmin[])
+        ? (filtering.offer_type as Array<"pause_offer" | "discount_offer" | "bonus_offer">)
         : [],
     [filtering]
   )
@@ -649,16 +636,16 @@ function formatFinalOutcomeFilter(value: CancellationFinalOutcomeAdmin) {
   }
 }
 
-function formatOfferTypeFilter(value: CancellationRecommendedActionAdmin) {
+function formatOfferTypeFilter(
+  value: "pause_offer" | "discount_offer" | "bonus_offer"
+) {
   switch (value) {
-    case CancellationRecommendedActionAdmin.PAUSE_OFFER:
+    case "pause_offer":
       return "Pause offer"
-    case CancellationRecommendedActionAdmin.DISCOUNT_OFFER:
+    case "discount_offer":
       return "Discount offer"
-    case CancellationRecommendedActionAdmin.BONUS_OFFER:
+    case "bonus_offer":
       return "Bonus offer"
-    case CancellationRecommendedActionAdmin.DIRECT_CANCEL:
-      return "Direct cancel"
   }
 }
 
@@ -708,24 +695,5 @@ function getOutcomeColor(item: CancellationCaseAdminListItem) {
       return "orange"
     default:
       return "grey"
-  }
-}
-
-function formatRecommendedAction(
-  value: CancellationRecommendedActionAdmin | null
-) {
-  if (!value) {
-    return "No recommendation"
-  }
-
-  switch (value) {
-    case CancellationRecommendedActionAdmin.PAUSE_OFFER:
-      return "Pause offer"
-    case CancellationRecommendedActionAdmin.DISCOUNT_OFFER:
-      return "Discount offer"
-    case CancellationRecommendedActionAdmin.BONUS_OFFER:
-      return "Bonus offer"
-    case CancellationRecommendedActionAdmin.DIRECT_CANCEL:
-      return "Direct cancel"
   }
 }

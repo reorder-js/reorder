@@ -7,13 +7,6 @@ export enum CancellationCaseAdminStatus {
   CANCELED = "canceled",
 }
 
-export enum CancellationRecommendedActionAdmin {
-  PAUSE_OFFER = "pause_offer",
-  DISCOUNT_OFFER = "discount_offer",
-  BONUS_OFFER = "bonus_offer",
-  DIRECT_CANCEL = "direct_cancel",
-}
-
 export enum CancellationFinalOutcomeAdmin {
   RETAINED = "retained",
   PAUSED = "paused",
@@ -84,7 +77,6 @@ export type CancellationCaseAdminListItem = {
   status: CancellationCaseAdminStatus
   reason: string | null
   reason_category: string | null
-  recommended_action: CancellationRecommendedActionAdmin | null
   final_outcome: CancellationFinalOutcomeAdmin | null
   subscription: CancellationAdminSubscriptionSummary
   created_at: string
@@ -111,11 +103,6 @@ export type CancellationCaseAdminListResponse = {
 
 export type CancellationCaseAdminDetailResponse = {
   cancellation: CancellationCaseAdminDetail
-}
-
-export type SmartCancellationAdminRequest = {
-  evaluated_by?: string
-  metadata?: Record<string, unknown>
 }
 
 export type ApplyRetentionOfferAdminRequest =

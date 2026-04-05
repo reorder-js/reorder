@@ -3,7 +3,6 @@ import path from "path"
 import {
   CancellationCaseStatus,
   CancellationFinalOutcome,
-  CancellationRecommendedAction,
   CancellationReasonCategory,
   RetentionOfferDecisionStatus,
   RetentionOfferType,
@@ -23,7 +22,7 @@ medusaIntegrationTestRunner({
   },
   testSuite: ({ api, getContainer }) => {
     describe("admin cancellations flow", () => {
-      it("covers list to detail to smart-cancel to apply-offer to refresh verification", async () => {
+      it("covers list to detail to apply-offer to refresh verification", async () => {
         const container = getContainer()
         const headers = await createAdminAuthHeaders(container)
         const subscription = await createSubscriptionSeed(container, {
@@ -70,21 +69,6 @@ medusaIntegrationTestRunner({
           offers: [],
         })
 
-        const smartCancelResponse = await api.post(
-          `/admin/cancellations/${cancellationCase.id}/smart-cancel`,
-          {
-            evaluated_by: "admin_flow_user",
-          },
-          { headers }
-        )
-
-        expect(smartCancelResponse.status).toEqual(200)
-        expect(smartCancelResponse.data.cancellation).toMatchObject({
-          id: cancellationCase.id,
-          status: CancellationCaseStatus.EVALUATING_RETENTION,
-          recommended_action: CancellationRecommendedAction.DISCOUNT_OFFER,
-        })
-
         const applyOfferResponse = await api.post(
           `/admin/cancellations/${cancellationCase.id}/apply-offer`,
           {
@@ -127,7 +111,6 @@ medusaIntegrationTestRunner({
           id: cancellationCase.id,
           status: CancellationCaseStatus.RETAINED,
           final_outcome: CancellationFinalOutcome.RETAINED,
-          recommended_action: CancellationRecommendedAction.DISCOUNT_OFFER,
           subscription: expect.objectContaining({
             reference: "SUB-CAN-ADMIN-FLOW-001",
             status: SubscriptionStatus.ACTIVE,
@@ -152,13 +135,12 @@ medusaIntegrationTestRunner({
               id: cancellationCase.id,
               status: CancellationCaseStatus.RETAINED,
               final_outcome: CancellationFinalOutcome.RETAINED,
-              recommended_action: CancellationRecommendedAction.DISCOUNT_OFFER,
             }),
           ])
         )
       })
 
-      it("covers list to detail to smart-cancel to finalize to refresh verification", async () => {
+      it("covers list to detail to finalize to refresh verification", async () => {
         const container = getContainer()
         const headers = await createAdminAuthHeaders(container)
         const subscription = await createSubscriptionSeed(container, {
@@ -198,21 +180,6 @@ medusaIntegrationTestRunner({
 
         expect(detailResponse.status).toEqual(200)
         expect(detailResponse.data.cancellation.id).toEqual(cancellationCase.id)
-
-        const smartCancelResponse = await api.post(
-          `/admin/cancellations/${cancellationCase.id}/smart-cancel`,
-          {
-            evaluated_by: "admin_flow_user",
-          },
-          { headers }
-        )
-
-        expect(smartCancelResponse.status).toEqual(200)
-        expect(smartCancelResponse.data.cancellation).toMatchObject({
-          id: cancellationCase.id,
-          status: CancellationCaseStatus.EVALUATING_RETENTION,
-          recommended_action: CancellationRecommendedAction.DIRECT_CANCEL,
-        })
 
         const finalizeResponse = await api.post(
           `/admin/cancellations/${cancellationCase.id}/finalize`,
