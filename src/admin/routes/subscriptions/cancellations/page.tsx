@@ -21,6 +21,7 @@ import { flexRender } from "@tanstack/react-table"
 import { useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import {
+  CancellationCaseAdminStatus,
   CancellationCaseAdminListItem,
   CancellationFinalOutcomeAdmin,
 } from "../../../types/cancellation"
