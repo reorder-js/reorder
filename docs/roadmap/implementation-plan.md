@@ -8,7 +8,7 @@ This document describes product direction, not a promise of delivery dates.
 
 ## Current Status
 
-The first six major areas of the plugin, `Subscriptions`, `Plans & Offers`, `Renewals`, `Dunning`, `Cancellation & Retention`, and `Activity Log`, are complete and tested.
+The first seven major areas of the plugin, `Subscriptions`, `Plans & Offers`, `Renewals`, `Dunning`, `Cancellation & Retention`, `Activity Log`, and `Analytics`, are complete and tested.
 
 Implemented today:
 - subscription domain model and storage
@@ -39,6 +39,11 @@ Implemented today:
 - backend integration tests and admin flow integration coverage for `Dunning`
 - smoke-level integration between `Dunning`, `Renewals`, and `Subscriptions`
 - production hardening for dunning scheduler and manual retry flows
+- analytics daily snapshot domain model and storage
+- admin API routes for analytics KPI, trends, export, and rebuild flows
+- Admin UI for the analytics reporting page nested under `Subscriptions`
+- backend integration tests and admin flow integration coverage for `Analytics`
+- cross-module cache invalidation hooks so reporting stays aligned after subscription lifecycle mutations
 
 Planned next:
 - dedicated analytics page and reporting views for `Cancellation & Retention`
@@ -168,6 +173,36 @@ Deferred scope:
 
 This area now provides the operator-facing audit trail for subscription lifecycle events without taking ownership away from the underlying domain modules.
 
+### 7. Analytics
+
+Status: `Completed`
+
+This area provides reporting-oriented KPI and trend views for recurring-commerce operations in Admin.
+
+Implemented scope:
+- derived analytics snapshot model for daily recurring-commerce facts
+- Admin API routes for:
+  - KPI summary
+  - trends
+  - export
+  - rebuild
+- Admin UI for:
+  - analytics page nested under `Subscriptions`
+  - filter-driven KPI cards
+  - trend visualization
+  - on-demand CSV and JSON export
+- backend tests for formulas, bucket semantics, filters, rebuild behavior, and route contracts
+- admin flow integration coverage for analytics reporting scenarios
+- cache invalidation integration with `Subscriptions`, `Renewals`, `Dunning`, and `Cancellation & Retention`
+
+Deferred scope:
+- dedicated cancellation-specific analytics page and reporting views for churn-operations drill-down
+- compare-period reporting
+- saved views
+- async export queueing
+
+This area now provides the core reporting surface for recurring-commerce KPI review without taking ownership away from the source domain modules.
+
 ## Roadmap Principles
 
 The roadmap follows a few project-level principles:
@@ -227,3 +262,7 @@ If you want to contribute:
 - [Admin Activity Log UI](../admin/activity-log.md)
 - [Activity Log Testing](../testing/activity-log.md)
 - [Activity Log Roadmap](./activity-log.md)
+- [Analytics Architecture](../architecture/analytics.md)
+- [Admin Analytics API](../api/admin-analytics.md)
+- [Admin Analytics UI](../admin/analytics.md)
+- [Analytics Testing](../testing/analytics.md)

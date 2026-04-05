@@ -21,7 +21,6 @@ import { flexRender } from "@tanstack/react-table"
 import { useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import {
-  CancellationCaseAdminStatus,
   CancellationCaseAdminListItem,
   CancellationFinalOutcomeAdmin,
 } from "../../../types/cancellation"
@@ -663,12 +662,18 @@ function formatOutcome(item: CancellationCaseAdminListItem) {
   }
 
   switch (item.status) {
-    case CancellationCaseAdminStatus.REQUESTED:
+    case "requested":
       return "Requested"
-    case CancellationCaseAdminStatus.EVALUATING_RETENTION:
+    case "evaluating_retention":
       return "Evaluating"
-    case CancellationCaseAdminStatus.RETENTION_OFFERED:
+    case "retention_offered":
       return "Retention offered"
+    case "retained":
+      return "Retained"
+    case "paused":
+      return "Paused"
+    case "canceled":
+      return "Canceled"
     default:
       return item.status
   }
@@ -688,12 +693,18 @@ function getOutcomeColor(item: CancellationCaseAdminListItem) {
   }
 
   switch (item.status) {
-    case CancellationCaseAdminStatus.REQUESTED:
+    case "requested":
       return "grey"
-    case CancellationCaseAdminStatus.EVALUATING_RETENTION:
+    case "evaluating_retention":
       return "blue"
-    case CancellationCaseAdminStatus.RETENTION_OFFERED:
+    case "retention_offered":
       return "orange"
+    case "retained":
+      return "green"
+    case "paused":
+      return "orange"
+    case "canceled":
+      return "red"
     default:
       return "grey"
   }

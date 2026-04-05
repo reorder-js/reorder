@@ -1,6 +1,6 @@
 # Admin Analytics API
 
-This document describes the intended Admin API contract for the `Analytics` area of the `Reorder` plugin.
+This document describes the implemented Admin API contract for the `Analytics` area of the `Reorder` plugin.
 
 It is intended to be the current source of truth for:
 - request parameters

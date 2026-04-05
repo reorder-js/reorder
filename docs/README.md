@@ -9,6 +9,7 @@ At the moment, the following areas are implemented and tested:
 - `Dunning`
 - `Cancellation & Retention`
 - `Activity Log`
+- `Analytics`
 
 ## Current Status
 
@@ -51,6 +52,11 @@ Completed:
 - `Activity Log` Admin UI: global list, event detail, and per-subscription timeline
 - `Activity Log` backend integration tests and admin flow integration coverage
 - `Activity Log` operational documentation for retention, monitoring, and roadmap boundaries
+- `Analytics` domain model and daily snapshot storage
+- `Analytics` admin API routes for KPI, trends, export, and rebuild flows
+- `Analytics` Admin UI: dedicated analytics page with filters, KPI cards, trend visualization, and export actions
+- `Analytics` backend integration tests and admin flow integration coverage
+- `Analytics` cache invalidation integration with `Subscriptions`, `Renewals`, `Dunning`, and `Cancellation & Retention`
 
 In progress:
 - dedicated analytics page and reporting views for `Cancellation & Retention`
@@ -104,6 +110,11 @@ Runtime source-of-truth documents currently exist for:
   - `admin/activity-log.md`
   - `testing/activity-log.md`
   - `roadmap/activity-log.md`
+- `Analytics`
+  - `architecture/analytics.md`
+  - `api/admin-analytics.md`
+  - `admin/analytics.md`
+  - `testing/analytics.md`
 
 ## Recommended Reading Order
 
@@ -116,7 +127,7 @@ For a new developer joining the project:
 
 ## Implemented Areas
 
-The currently implemented areas are `Subscriptions`, `Plans & Offers`, `Renewals`, `Dunning`, `Cancellation & Retention`, and `Activity Log`.
+The currently implemented areas are `Subscriptions`, `Plans & Offers`, `Renewals`, `Dunning`, `Cancellation & Retention`, `Activity Log`, and `Analytics`.
 
 `Activity Log` is now implemented end-to-end as a business audit trail with Admin read APIs, a dedicated Admin page, and a subscription-level timeline.
 
@@ -191,6 +202,16 @@ This area includes:
 - per-subscription timeline on the subscription detail page
 - snapshot-first read model and Admin read API routes
 - backend coverage for normalization, event creation, API contracts, and admin flow integration
+
+### Analytics
+
+This area includes:
+- daily analytics snapshot storage and rebuild workflow support
+- KPI reporting for `MRR`, `Churn Rate`, `LTV`, and `Active Subscriptions`
+- trends reporting grouped by `day`, `week`, and `month`
+- Admin analytics page with filters, KPI cards, trend visualization, and export actions
+- Admin API routes for KPI, trends, export, and rebuild flows
+- backend coverage for analytics formulas, read models, API contracts, and admin reporting flows
 
 ## Notes
 

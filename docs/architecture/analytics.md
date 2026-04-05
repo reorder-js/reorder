@@ -1,6 +1,6 @@
 # Analytics Architecture
 
-This document describes the intended architectural boundary for the `Analytics` area in the `Reorder` plugin.
+This document describes the current runtime architecture of the `Analytics` area in the `Reorder` plugin.
 
 It is the runtime source of truth for:
 - ownership and source-of-truth rules
@@ -24,7 +24,7 @@ Its purpose is not to replace the source modules that already own subscription, 
 
 `Analytics` is a derived, read-oriented reporting layer.
 
-It should aggregate and precompute reporting data from the recurring-commerce domains implemented in the plugin.
+It aggregates and precomputes reporting data from the recurring-commerce domains implemented in the plugin.
 
 The key architectural decision is:
 
