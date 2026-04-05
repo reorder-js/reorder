@@ -29,8 +29,12 @@ import {
 import { useAdminCancellationsDisplayQuery } from "./data-loading"
 
 const PAGE_SIZE = 20
-const DEFAULT_CREATED_FROM = toLocalDateTimeInputValue(addDays(new Date(), -30))
-const DEFAULT_CREATED_TO = toLocalDateTimeInputValue(addDays(new Date(), 30))
+const DEFAULT_CREATED_FROM = toLocalDateTimeInputValue(
+  startOfDay(addDays(new Date(), -30))
+)
+const DEFAULT_CREATED_TO = toLocalDateTimeInputValue(
+  startOfDay(addDays(new Date(), 30))
+)
 
 const columnHelper =
   createDataTableColumnHelper<CancellationCaseAdminListItem>()
@@ -81,19 +85,6 @@ const baseColumns = [
           ]
             .filter(Boolean)
             .join(" · ")}
-        </Text>
-      </div>
-    ),
-  }),
-  columnHelper.accessor("reason", {
-    header: "Reason",
-    cell: ({ row }) => (
-      <div className="flex flex-col gap-y-0.5">
-        <Text size="small" leading="compact" weight="plus">
-          {row.original.reason || "No reason provided"}
-        </Text>
-        <Text size="small" leading="compact" className="text-ui-fg-subtle">
-          {formatReasonCategory(row.original.reason_category)}
         </Text>
       </div>
     ),
@@ -613,6 +604,12 @@ function toLocalDateTimeInputValue(date: Date) {
 function addDays(date: Date, amount: number) {
   const next = new Date(date)
   next.setDate(next.getDate() + amount)
+  return next
+}
+
+function startOfDay(date: Date) {
+  const next = new Date(date)
+  next.setHours(0, 0, 0, 0)
   return next
 }
 

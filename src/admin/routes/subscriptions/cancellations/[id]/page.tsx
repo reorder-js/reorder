@@ -1,3 +1,4 @@
+import { defineRouteConfig } from "@medusajs/admin-sdk"
 import {
   Alert,
   Button,
@@ -694,325 +695,421 @@ const CancellationDetailPage = () => {
             </DropdownMenu>
           </div>
         </div>
-        <div className="grid grid-cols-1 gap-4 px-6 py-4 md:grid-cols-2">
-          <DetailBlock
-            title="Case overview"
-            rows={[
-              {
-                label: "Status",
-                value: (
-                  <StatusBadge color={getCaseStatusColor(cancellation.status)}>
-                    {formatCaseStatus(cancellation.status)}
-                  </StatusBadge>
-                ),
-              },
-              {
-                label: "Outcome",
-                value: cancellation.final_outcome
-                  ? formatFinalOutcome(cancellation.final_outcome)
-                  : "No final outcome yet",
-              },
-              {
-                label: "Reason category",
-                value: formatReasonCategory(cancellation.reason_category),
-              },
-              { label: "Reason", value: cancellation.reason || "No reason recorded" },
-              {
-                label: "Recommended action",
-                value: formatRecommendedAction(cancellation.recommended_action),
-              },
-              {
-                label: "Finalized by",
-                value: cancellation.finalized_by || "-",
-              },
-              {
-                label: "Finalized at",
-                value: formatDateTime(cancellation.finalized_at),
-              },
-              {
-                label: "Cancellation effective at",
-                value: formatDateTime(cancellation.cancellation_effective_at),
-              },
-            ]}
-          />
-          <DetailBlock
-            title="Subscription summary"
-            rows={[
-              {
-                label: "Reference",
-                value: (
-                  <Link
-                    to={`/subscriptions/${cancellation.subscription.subscription_id}`}
-                    className="text-ui-fg-interactive hover:text-ui-fg-interactive-hover"
-                  >
-                    {cancellation.subscription.reference}
-                  </Link>
-                ),
-              },
-              {
-                label: "Status",
-                value: formatSubscriptionStatus(cancellation.subscription.status),
-              },
-              { label: "Customer", value: cancellation.subscription.customer_name },
-              { label: "Product", value: cancellation.subscription.product_title },
-              { label: "Variant", value: cancellation.subscription.variant_title },
-              { label: "SKU", value: cancellation.subscription.sku || "-" },
-              {
-                label: "Next renewal",
-                value: formatDateTime(cancellation.subscription.next_renewal_at),
-              },
-              {
-                label: "Cancelled at",
-                value: formatDateTime(cancellation.subscription.cancelled_at),
-              },
-            ]}
-          />
-          <DetailBlock
-            title="Linked dunning summary"
-            rows={
-              cancellation.dunning
-                ? [
-                    {
-                      label: "Dunning case",
-                      value: (
-                        <Link
-                          to={`/subscriptions/dunning/${cancellation.dunning.dunning_case_id}`}
-                          className="text-ui-fg-interactive hover:text-ui-fg-interactive-hover"
-                        >
-                          {cancellation.dunning.dunning_case_id}
-                        </Link>
-                      ),
-                    },
-                    {
-                      label: "Status",
-                      value: formatDunningStatus(cancellation.dunning.status),
-                    },
-                    {
-                      label: "Attempt count",
-                      value: cancellation.dunning.attempt_count.toString(),
-                    },
-                    {
-                      label: "Next retry",
-                      value: formatDateTime(cancellation.dunning.next_retry_at),
-                    },
-                    {
-                      label: "Last error",
-                      value: cancellation.dunning.last_payment_error_message || "-",
-                    },
-                  ]
-                : [{ label: "Summary", value: "No active dunning case linked" }]
-            }
-          />
-          <DetailBlock
-            title="Linked renewal summary"
-            rows={
-              cancellation.renewal
-                ? [
-                    {
-                      label: "Renewal cycle",
-                      value: (
-                        <Link
-                          to={`/subscriptions/renewals/${cancellation.renewal.renewal_cycle_id}`}
-                          className="text-ui-fg-interactive hover:text-ui-fg-interactive-hover"
-                        >
-                          {cancellation.renewal.renewal_cycle_id}
-                        </Link>
-                      ),
-                    },
-                    {
-                      label: "Status",
-                      value: formatRenewalStatus(cancellation.renewal.status),
-                    },
-                    {
-                      label: "Scheduled for",
-                      value: formatDateTime(cancellation.renewal.scheduled_for),
-                    },
-                    {
-                      label: "Approval",
-                      value: cancellation.renewal.approval_status
-                        ? formatApprovalStatus(cancellation.renewal.approval_status)
-                        : "-",
-                    },
-                    {
-                      label: "Generated order",
-                      value: cancellation.renewal.generated_order_id || "-",
-                    },
-                  ]
-                : [{ label: "Summary", value: "No linked renewal cycle" }]
-            }
-          />
-        </div>
       </Container>
-
-      <Container className="divide-y p-0">
-        <div className="px-6 py-4">
-          <Heading level="h2">Smart cancellation</Heading>
-        </div>
-        <div className="grid grid-cols-1 gap-4 px-6 py-4 md:grid-cols-[1fr_auto] md:items-start">
-          <div className="grid gap-4 md:grid-cols-2">
-            <DetailRow
-              label="Current recommendation"
-              value={formatRecommendedAction(cancellation.recommended_action)}
-            />
-            <DetailRow
-              label="Eligible actions"
-              value={formatEligibleActions(smartCancellationSnapshot?.eligible_actions)}
-            />
-            <DetailRow
-              label="Rationale"
-              value={
-                typeof smartCancellationSnapshot?.rationale === "string"
-                  ? smartCancellationSnapshot.rationale
-                  : "No smart-cancellation rationale recorded yet."
-              }
-            />
-            <DetailRow
-              label="Evaluated at"
-              value={formatDateTime(
-                typeof smartCancellationSnapshot?.evaluated_at === "string"
-                  ? smartCancellationSnapshot.evaluated_at
-                  : null
-              )}
-            />
-          </div>
-          <div className="flex justify-start md:justify-end">
-            <Button
-              size="small"
-              type="button"
-              onClick={() => {
-                void handleRunSmartCancellation()
-              }}
-              isLoading={smartCancelMutation.isPending}
-              disabled={!canRunSmartCancellation || isActionPending}
-            >
-              Run smart cancellation
-            </Button>
-          </div>
-        </div>
-      </Container>
-
-      <Container className="divide-y p-0">
-        <div className="px-6 py-4">
-          <Heading level="h2">Decision timeline</Heading>
-        </div>
-        <div className="px-6 py-4">
-          {timelineItems.length ? (
-            <div className="flex flex-col gap-y-3">
-              {timelineItems.map((item) => (
-                <div
-                  key={item.id}
-                  className="rounded-lg border border-ui-border-base p-4"
-                >
-                  <div className="flex flex-col gap-y-2 md:flex-row md:items-start md:justify-between">
-                    <div className="flex flex-col gap-y-1">
-                      <Text size="small" leading="compact" weight="plus">
-                        {item.title}
-                      </Text>
-                      <Text
-                        size="small"
-                        leading="compact"
-                        className="text-ui-fg-subtle"
-                      >
-                        {item.description}
-                      </Text>
-                    </div>
-                    <div className="flex flex-col items-start gap-y-2 md:items-end">
-                      <StatusBadge color={item.color}>{item.status}</StatusBadge>
-                      <Text
-                        size="small"
-                        leading="compact"
-                        className="text-ui-fg-subtle"
-                      >
-                        {formatDateTime(item.date)}
-                      </Text>
-                    </div>
-                  </div>
-                </div>
-              ))}
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
+        <div className="flex min-w-0 flex-col gap-4">
+          <Container className="divide-y p-0">
+            <div className="px-6 py-4">
+              <Heading level="h2">Case overview</Heading>
             </div>
-          ) : (
-            <Alert variant="info">
-              <Text size="small" leading="compact">
-                No retention offers or final outcome entries have been recorded yet.
-              </Text>
-            </Alert>
-          )}
-        </div>
-      </Container>
+            <div className="px-6 py-4">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <DetailRow
+                  label="Status"
+                  value={(
+                    <StatusBadge color={getCaseStatusColor(cancellation.status)}>
+                      {formatCaseStatus(cancellation.status)}
+                    </StatusBadge>
+                  )}
+                />
+                <DetailRow
+                  label="Outcome"
+                  value={
+                    cancellation.final_outcome
+                      ? formatFinalOutcome(cancellation.final_outcome)
+                      : "No final outcome yet"
+                  }
+                />
+                <DetailRow
+                  label="Reason category"
+                  value={formatReasonCategory(cancellation.reason_category)}
+                />
+                <DetailRow
+                  label="Reason"
+                  value={cancellation.reason || "No reason recorded"}
+                />
+                <DetailRow
+                  label="Recommended action"
+                  value={formatRecommendedAction(cancellation.recommended_action)}
+                />
+                <DetailRow label="Finalized by" value={cancellation.finalized_by || "-"} />
+                <DetailRow
+                  label="Finalized at"
+                  value={formatDateTime(cancellation.finalized_at)}
+                />
+                <DetailRow
+                  label="Cancellation effective at"
+                  value={formatDateTime(cancellation.cancellation_effective_at)}
+                />
+              </div>
+            </div>
+          </Container>
 
-      <Container className="divide-y p-0">
-        <div className="px-6 py-4">
-          <Heading level="h2">Offer history</Heading>
+          <Container className="divide-y p-0">
+            <div className="px-6 py-4">
+              <Heading level="h2">Smart cancellation</Heading>
+            </div>
+            <div className="grid grid-cols-1 gap-4 px-6 py-4 md:grid-cols-[1fr_auto] md:items-start">
+              <div className="grid gap-4 md:grid-cols-2">
+                <DetailRow
+                  label="Current recommendation"
+                  value={formatRecommendedAction(cancellation.recommended_action)}
+                />
+                <DetailRow
+                  label="Eligible actions"
+                  value={formatEligibleActions(smartCancellationSnapshot?.eligible_actions)}
+                />
+                <DetailRow
+                  label="Rationale"
+                  value={
+                    typeof smartCancellationSnapshot?.rationale === "string"
+                      ? smartCancellationSnapshot.rationale
+                      : "No smart-cancellation rationale recorded yet."
+                  }
+                />
+                <DetailRow
+                  label="Evaluated at"
+                  value={formatDateTime(
+                    typeof smartCancellationSnapshot?.evaluated_at === "string"
+                      ? smartCancellationSnapshot.evaluated_at
+                      : null
+                  )}
+                />
+              </div>
+              <div className="flex justify-start md:justify-end">
+                <Button
+                  size="small"
+                  type="button"
+                  onClick={() => {
+                    void handleRunSmartCancellation()
+                  }}
+                  isLoading={smartCancelMutation.isPending}
+                  disabled={!canRunSmartCancellation || isActionPending}
+                >
+                  Run smart cancellation
+                </Button>
+              </div>
+            </div>
+          </Container>
+
+          <Container className="divide-y p-0">
+            <div className="px-6 py-4">
+              <Heading level="h2">Decision timeline</Heading>
+            </div>
+            <div className="px-6 py-4">
+              {timelineItems.length ? (
+                <div className="flex flex-col gap-y-3">
+                  {timelineItems.map((item) => (
+                    <div
+                      key={item.id}
+                      className="rounded-lg border border-ui-border-base p-4"
+                    >
+                      <div className="flex flex-col gap-y-2 md:flex-row md:items-start md:justify-between">
+                        <div className="flex flex-col gap-y-1">
+                          <Text size="small" leading="compact" weight="plus">
+                            {item.title}
+                          </Text>
+                          <Text
+                            size="small"
+                            leading="compact"
+                            className="text-ui-fg-subtle"
+                          >
+                            {item.description}
+                          </Text>
+                        </div>
+                        <div className="flex flex-col items-start gap-y-2 md:items-end">
+                          <StatusBadge color={item.color}>{item.status}</StatusBadge>
+                          <Text
+                            size="small"
+                            leading="compact"
+                            className="text-ui-fg-subtle"
+                          >
+                            {formatDateTime(item.date)}
+                          </Text>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <Alert variant="info">
+                  <Text size="small" leading="compact">
+                    No retention offers or final outcome entries have been recorded yet.
+                  </Text>
+                </Alert>
+              )}
+            </div>
+          </Container>
+
+          <Container className="divide-y p-0">
+            <div className="px-6 py-4">
+              <Heading level="h2">Offer history</Heading>
+            </div>
+            <div className="px-6 py-4">
+              {cancellation.offers.length ? (
+                <Table>
+                  <Table.Header>
+                    <Table.Row>
+                      <Table.HeaderCell>Offer</Table.HeaderCell>
+                      <Table.HeaderCell>Status</Table.HeaderCell>
+                      <Table.HeaderCell>Decided</Table.HeaderCell>
+                      <Table.HeaderCell>Applied</Table.HeaderCell>
+                      <Table.HeaderCell>Reason</Table.HeaderCell>
+                    </Table.Row>
+                  </Table.Header>
+                  <Table.Body>
+                    {cancellation.offers.map((offer) => (
+                      <Table.Row key={offer.id}>
+                        <Table.Cell>
+                          <div className="flex flex-col gap-y-1">
+                            <Text size="small" leading="compact" weight="plus">
+                              {formatOfferType(offer.offer_type)}
+                            </Text>
+                            <Text
+                              size="small"
+                              leading="compact"
+                              className="text-ui-fg-subtle"
+                            >
+                              {describeOfferPayload(offer) || "No payload summary"}
+                            </Text>
+                          </div>
+                        </Table.Cell>
+                        <Table.Cell>
+                          <StatusBadge color={getOfferDecisionColor(offer.decision_status)}>
+                            {formatOfferDecisionStatus(offer.decision_status)}
+                          </StatusBadge>
+                        </Table.Cell>
+                        <Table.Cell>{formatDateTime(offer.decided_at)}</Table.Cell>
+                        <Table.Cell>{formatDateTime(offer.applied_at)}</Table.Cell>
+                        <Table.Cell>{offer.decision_reason || "-"}</Table.Cell>
+                      </Table.Row>
+                    ))}
+                  </Table.Body>
+                </Table>
+              ) : (
+                <Alert variant="info">
+                  <Text size="small" leading="compact">
+                    No retention offers have been recorded for this case yet.
+                  </Text>
+                </Alert>
+              )}
+            </div>
+          </Container>
+
+          <Container className="divide-y p-0">
+            <div className="px-6 py-4">
+              <Heading level="h2">Technical metadata</Heading>
+            </div>
+            <div className="px-6 py-4">
+              {metadataRows.length ? (
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  {metadataRows.map((row) => (
+                    <DetailRow key={row.key} label={row.key} value={row.value} mono />
+                  ))}
+                </div>
+              ) : (
+                <Text size="small" leading="compact" className="text-ui-fg-subtle">
+                  No metadata was stored for this case.
+                </Text>
+              )}
+            </div>
+          </Container>
         </div>
-        <div className="px-6 py-4">
-          {cancellation.offers.length ? (
-            <Table>
-              <Table.Header>
-                <Table.Row>
-                  <Table.HeaderCell>Offer</Table.HeaderCell>
-                  <Table.HeaderCell>Status</Table.HeaderCell>
-                  <Table.HeaderCell>Decided</Table.HeaderCell>
-                  <Table.HeaderCell>Applied</Table.HeaderCell>
-                  <Table.HeaderCell>Reason</Table.HeaderCell>
-                </Table.Row>
-              </Table.Header>
-              <Table.Body>
-                {cancellation.offers.map((offer) => (
-                  <Table.Row key={offer.id}>
-                    <Table.Cell>
-                      <div className="flex flex-col gap-y-1">
+
+        <div className="flex min-w-0 flex-col gap-4">
+          <Container className="divide-y p-0">
+            <div className="px-6 py-4">
+              <Heading level="h2">Subscription summary</Heading>
+            </div>
+            <div className="px-6 py-4">
+              <div className="grid gap-4">
+                <Link
+                  to={`/subscriptions/${cancellation.subscription.subscription_id}`}
+                  className="outline-none focus-within:shadow-borders-interactive-with-focus rounded-md [&:hover>div]:bg-ui-bg-component-hover"
+                >
+                  <div className="shadow-elevation-card-rest bg-ui-bg-component rounded-md px-4 py-2 transition-colors">
+                    <div className="flex items-center gap-3">
+                      <div className="shadow-elevation-card-rest flex h-14 w-14 items-center justify-center rounded-md text-ui-fg-muted">
                         <Text size="small" leading="compact" weight="plus">
-                          {formatOfferType(offer.offer_type)}
+                          SUB
+                        </Text>
+                      </div>
+                      <div className="flex flex-1 flex-col">
+                        <Text size="small" leading="compact" weight="plus">
+                          {cancellation.subscription.reference}
                         </Text>
                         <Text
                           size="small"
                           leading="compact"
                           className="text-ui-fg-subtle"
                         >
-                          {describeOfferPayload(offer) || "No payload summary"}
+                          {cancellation.subscription.customer_name}
                         </Text>
                       </div>
-                    </Table.Cell>
-                    <Table.Cell>
-                      <StatusBadge color={getOfferDecisionColor(offer.decision_status)}>
-                        {formatOfferDecisionStatus(offer.decision_status)}
-                      </StatusBadge>
-                    </Table.Cell>
-                    <Table.Cell>{formatDateTime(offer.decided_at)}</Table.Cell>
-                    <Table.Cell>{formatDateTime(offer.applied_at)}</Table.Cell>
-                    <Table.Cell>{offer.decision_reason || "-"}</Table.Cell>
-                  </Table.Row>
-                ))}
-              </Table.Body>
-            </Table>
-          ) : (
-            <Alert variant="info">
-              <Text size="small" leading="compact">
-                No retention offers have been recorded for this case yet.
-              </Text>
-            </Alert>
-          )}
-        </div>
-      </Container>
-
-      <Container className="divide-y p-0">
-        <div className="px-6 py-4">
-          <Heading level="h2">Technical metadata</Heading>
-        </div>
-        <div className="px-6 py-4">
-          {metadataRows.length ? (
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              {metadataRows.map((row) => (
-                <DetailRow key={row.key} label={row.key} value={row.value} mono />
-              ))}
+                      <div className="size-7 flex items-center justify-center">
+                        <TriangleRightMini className="text-ui-fg-muted rtl:rotate-180" />
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+                <DetailRow
+                  label="Status"
+                  value={formatSubscriptionStatus(cancellation.subscription.status)}
+                />
+                <DetailRow
+                  label="Customer"
+                  value={cancellation.subscription.customer_name}
+                />
+                <DetailRow label="Product" value={cancellation.subscription.product_title} />
+                <DetailRow label="Variant" value={cancellation.subscription.variant_title} />
+                <DetailRow label="SKU" value={cancellation.subscription.sku || "-"} />
+                <DetailRow
+                  label="Next renewal"
+                  value={formatDateTime(cancellation.subscription.next_renewal_at)}
+                />
+                <DetailRow
+                  label="Cancelled at"
+                  value={formatDateTime(cancellation.subscription.cancelled_at)}
+                />
+              </div>
             </div>
-          ) : (
-            <Text size="small" leading="compact" className="text-ui-fg-subtle">
-              No metadata was stored for this case.
-            </Text>
-          )}
+          </Container>
+
+          <Container className="divide-y p-0">
+            <div className="px-6 py-4">
+              <Heading level="h2">Linked dunning summary</Heading>
+            </div>
+            <div className="px-6 py-4">
+              <div className="grid gap-4">
+                {cancellation.dunning ? (
+                  <Link
+                    to={`/subscriptions/dunning/${cancellation.dunning.dunning_case_id}`}
+                    className="outline-none focus-within:shadow-borders-interactive-with-focus rounded-md [&:hover>div]:bg-ui-bg-component-hover"
+                  >
+                    <div className="shadow-elevation-card-rest bg-ui-bg-component rounded-md px-4 py-2 transition-colors">
+                      <div className="flex items-center gap-3">
+                        <div className="shadow-elevation-card-rest flex h-14 w-14 items-center justify-center rounded-md text-ui-fg-muted">
+                          <Text size="small" leading="compact" weight="plus">
+                            DUN
+                          </Text>
+                        </div>
+                        <div className="flex flex-1 flex-col">
+                          <Text size="small" leading="compact" weight="plus">
+                            {cancellation.dunning.dunning_case_id}
+                          </Text>
+                          <Text
+                            size="small"
+                            leading="compact"
+                            className="text-ui-fg-subtle"
+                          >
+                            {formatDunningStatus(cancellation.dunning.status)}
+                          </Text>
+                        </div>
+                        <div className="size-7 flex items-center justify-center">
+                          <TriangleRightMini className="text-ui-fg-muted rtl:rotate-180" />
+                        </div>
+                      </div>
+                    </div>
+                  </Link>
+                ) : (
+                  <Text size="small" leading="compact" className="text-ui-fg-subtle">
+                    No active dunning case linked
+                  </Text>
+                )}
+                <DetailRow
+                  label="Status"
+                  value={
+                    cancellation.dunning
+                      ? formatDunningStatus(cancellation.dunning.status)
+                      : "-"
+                  }
+                />
+                <DetailRow
+                  label="Attempt count"
+                  value={cancellation.dunning?.attempt_count.toString() || "-"}
+                />
+                <DetailRow
+                  label="Next retry"
+                  value={formatDateTime(cancellation.dunning?.next_retry_at ?? null)}
+                />
+                <DetailRow
+                  label="Last error"
+                  value={cancellation.dunning?.last_payment_error_message || "-"}
+                />
+              </div>
+            </div>
+          </Container>
+
+          <Container className="divide-y p-0">
+            <div className="px-6 py-4">
+              <Heading level="h2">Linked renewal summary</Heading>
+            </div>
+            <div className="px-6 py-4">
+              <div className="grid gap-4">
+                {cancellation.renewal ? (
+                  <Link
+                    to={`/subscriptions/renewals/${cancellation.renewal.renewal_cycle_id}`}
+                    className="outline-none focus-within:shadow-borders-interactive-with-focus rounded-md [&:hover>div]:bg-ui-bg-component-hover"
+                  >
+                    <div className="shadow-elevation-card-rest bg-ui-bg-component rounded-md px-4 py-2 transition-colors">
+                      <div className="flex items-center gap-3">
+                        <div className="shadow-elevation-card-rest flex h-14 w-14 items-center justify-center rounded-md text-ui-fg-muted">
+                          <Text size="small" leading="compact" weight="plus">
+                            REN
+                          </Text>
+                        </div>
+                        <div className="flex flex-1 flex-col">
+                          <Text size="small" leading="compact" weight="plus">
+                            {cancellation.renewal.renewal_cycle_id}
+                          </Text>
+                          <Text
+                            size="small"
+                            leading="compact"
+                            className="text-ui-fg-subtle"
+                          >
+                            {formatRenewalStatus(cancellation.renewal.status)}
+                          </Text>
+                        </div>
+                        <div className="size-7 flex items-center justify-center">
+                          <TriangleRightMini className="text-ui-fg-muted rtl:rotate-180" />
+                        </div>
+                      </div>
+                    </div>
+                  </Link>
+                ) : (
+                  <Text size="small" leading="compact" className="text-ui-fg-subtle">
+                    No linked renewal cycle
+                  </Text>
+                )}
+                <DetailRow
+                  label="Status"
+                  value={
+                    cancellation.renewal
+                      ? formatRenewalStatus(cancellation.renewal.status)
+                      : "-"
+                  }
+                />
+                <DetailRow
+                  label="Scheduled for"
+                  value={formatDateTime(cancellation.renewal?.scheduled_for ?? null)}
+                />
+                <DetailRow
+                  label="Approval"
+                  value={
+                    cancellation.renewal?.approval_status
+                      ? formatApprovalStatus(cancellation.renewal.approval_status)
+                      : "-"
+                  }
+                />
+                <DetailRow
+                  label="Generated order"
+                  value={cancellation.renewal?.generated_order_id || "-"}
+                />
+              </div>
+            </div>
+          </Container>
         </div>
-      </Container>
+      </div>
 
       <Drawer open={actionDrawerOpen} onOpenChange={setActionDrawerOpen}>
         <Drawer.Content>
@@ -1369,29 +1466,6 @@ export default CancellationDetailPage
 export const handle = {
   breadcrumb: ({ params, data }: UIMatch<CancellationCaseAdminDetailResponse>) =>
     params?.id || data?.cancellation?.id || "Cancellation",
-}
-
-const DetailBlock = ({
-  title,
-  rows,
-}: {
-  title: string
-  rows: Array<{ label: string; value: ReactNode }>
-}) => {
-  return (
-    <div className="rounded-lg border border-ui-border-base p-4">
-      <div className="mb-4">
-        <Text size="small" leading="compact" weight="plus">
-          {title}
-        </Text>
-      </div>
-      <div className="grid gap-4">
-        {rows.map((row) => (
-          <DetailRow key={row.label} label={row.label} value={row.value} />
-        ))}
-      </div>
-    </div>
-  )
 }
 
 const DetailRow = ({

@@ -31,6 +31,9 @@ Navigation behavior:
 - clicking a row in the list navigates to the detail route
 - the detail route shows breadcrumbs back to the list
 
+Current limitation:
+- on dynamic detail routes under this custom navigation group, the sidebar active state falls back to `Subscriptions`
+
 ## 1. List Page
 
 ### Purpose

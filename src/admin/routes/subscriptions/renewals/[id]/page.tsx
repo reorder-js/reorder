@@ -1,3 +1,4 @@
+import { defineRouteConfig } from "@medusajs/admin-sdk";
 import {
   Alert,
   Button,
