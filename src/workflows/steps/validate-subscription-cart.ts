@@ -1,6 +1,6 @@
-import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import type { IPaymentModuleService, MedusaContainer } from "@medusajs/framework/types"
+import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
-import type { MedusaContainer } from "@medusajs/framework/types"
 import type { PlanOfferDiscountPerFrequency } from "../../modules/plan-offer/types"
 import { resolveProductSubscriptionConfig } from "../../modules/plan-offer/utils/effective-config"
 import {
@@ -43,6 +43,14 @@ type CartRecord = {
     email: string | null
     first_name?: string | null
     last_name?: string | null
+    account_holders?: Array<{
+      id: string
+      provider_id: string
+      external_id: string
+      email?: string | null
+      data?: Record<string, unknown>
+      metadata?: Record<string, unknown> | null
+    }> | null
   } | null
   payment_collection?: {
     id: string
@@ -163,7 +171,7 @@ export const validateSubscriptionCartStep = createStep(
       frequencyValue
     )
 
-    const paymentContext = buildPaymentContext(cart)
+    const paymentContext = await buildPaymentContext(container, cart)
 
     return new StepResponse<ValidatedSubscriptionCart>({
       cart_id: cart.id,
@@ -209,6 +217,7 @@ async function loadCart(
       "customer.email",
       "customer.first_name",
       "customer.last_name",
+      "customer.account_holders.*",
       "shipping_address.*",
       "payment_collection.id",
       "payment_collection.payment_sessions.*",
@@ -368,7 +377,10 @@ function buildShippingAddress(
   }
 }
 
-function buildPaymentContext(cart: CartRecord): SubscriptionPaymentContext {
+async function buildPaymentContext(
+  container: MedusaContainer,
+  cart: CartRecord
+): Promise<SubscriptionPaymentContext> {
   const paymentCollectionId = cart.payment_collection?.id ?? null
   const session =
     cart.payment_collection?.payment_sessions?.find((entry) => {
@@ -379,16 +391,19 @@ function buildPaymentContext(cart: CartRecord): SubscriptionPaymentContext {
     cart.payment_collection?.payment_sessions?.[0] ??
     null
 
-  const paymentMethodReference =
-    typeof session?.data?.payment_method === "string"
-      ? session.data.payment_method
-      : null
-
   if (!paymentCollectionId || !session?.id || !session.provider_id) {
     throw subscriptionErrors.invalidData(
       "Subscription checkout requires an initialized payment session"
     )
   }
+
+  const paymentMethodReference =
+    readNullableString(session.data?.payment_method) ??
+    (await resolveSavedPaymentMethodReference(
+      container,
+      cart.customer,
+      session.provider_id
+    ))
 
   if (!paymentMethodReference) {
     throw subscriptionErrors.invalidData(
@@ -406,6 +421,72 @@ function buildPaymentContext(cart: CartRecord): SubscriptionPaymentContext {
       readNullableString(session.data?.customer_id) ??
       null,
   }
+}
+
+async function resolveSavedPaymentMethodReference(
+  container: MedusaContainer,
+  customer: CartRecord["customer"],
+  providerId: string
+) {
+  if (!customer?.id) {
+    throw subscriptionErrors.invalidData(
+      "Subscription checkout requires a customer record to resolve a reusable payment method"
+    )
+  }
+
+  const accountHolder =
+    customer.account_holders?.find((entry) => entry.provider_id === providerId) ??
+    null
+
+  if (!accountHolder?.id) {
+    throw subscriptionErrors.invalidData(
+      `Subscription checkout requires a saved payment account holder for provider '${providerId}'`
+    )
+  }
+
+  const paymentModule =
+    container.resolve<IPaymentModuleService>(Modules.PAYMENT)
+  const paymentMethods = await paymentModule.listPaymentMethods({
+    provider_id: providerId,
+    context: {
+      account_holder: {
+        ...accountHolder,
+        data: accountHolder.data ?? {},
+      },
+    },
+  })
+  const latestPaymentMethod = paymentMethods
+    .slice()
+    .sort((left, right) => {
+      const leftCreated = readNumericTimestamp(left.data?.created)
+      const rightCreated = readNumericTimestamp(right.data?.created)
+
+      return rightCreated - leftCreated
+    })[0]
+
+  if (!latestPaymentMethod?.id) {
+    throw subscriptionErrors.invalidData(
+      `Subscription checkout requires at least one saved payment method for provider '${providerId}'`
+    )
+  }
+
+  return latestPaymentMethod.id
+}
+
+function readNumericTimestamp(value: unknown) {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value
+  }
+
+  if (typeof value === "string") {
+    const parsed = Number.parseInt(value, 10)
+
+    if (Number.isFinite(parsed)) {
+      return parsed
+    }
+  }
+
+  return 0
 }
 
 function readString(value: unknown) {
