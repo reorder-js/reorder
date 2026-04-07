@@ -7,60 +7,185 @@
     </picture>
   </a>
 </p>
+
 <h1 align="center">
-  Medusa Plugin Starter
+    Reorder
+</h1>
+<h1 align="center">
+    Open Source Medusa Subscription Plugin
 </h1>
 
+<p align="center">
+  <a href="https://github.com/tkasperski/reorder?tab=MIT-1-ov-file">
+    <img alt="License" src="https://img.shields.io/badge/license-MIT-blue.svg" />
+  </a>
+  <a href="https://github.com/tkasperski/reorder/issues">
+    <img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat" alt="PRs welcome!" />
+  <a href="https://www.reorderjs.com/contact">
+    <img alt="Support" src="https://img.shields.io/badge/support-contact%20author-blueviolet.svg" />
+  </a>
+</p>
+
 <h4 align="center">
-  <a href="https://docs.medusajs.com">Documentation</a> |
-  <a href="https://www.medusajs.com">Website</a>
+  <a href="https://docs.reorderjs.com">Documentation</a> |
+  <a href="https://www.reorderjs.com">Website</a>
 </h4>
 
-<p align="center">
-  Building blocks for digital commerce
-</p>
-<p align="center">
-  <a href="https://github.com/medusajs/medusa/blob/master/CONTRIBUTING.md">
-    <img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat" alt="PRs welcome!" />
-  </a>
-    <a href="https://www.producthunt.com/posts/medusa"><img src="https://img.shields.io/badge/Product%20Hunt-%231%20Product%20of%20the%20Day-%23DA552E" alt="Product Hunt"></a>
-  <a href="https://discord.gg/xpCwq3Kfn8">
-    <img src="https://img.shields.io/badge/chat-on%20discord-7289DA.svg" alt="Discord Chat" />
-  </a>
-  <a href="https://twitter.com/intent/follow?screen_name=medusajs">
-    <img src="https://img.shields.io/twitter/follow/medusajs.svg?label=Follow%20@medusajs" alt="Follow @medusajs" />
-  </a>
-</p>
+## What is Reorder?
 
-## Compatibility
+`Reorder` is an open source Medusa subscription plugin.
 
-This starter is compatible with versions >= 2.4.0 of `@medusajs/medusa`. 
+It adds recurring commerce capabilities to a Medusa store, including subscriptions, plans and offers, renewals, dunning, cancellation and retention flows, activity logs, and analytics.
 
-## Getting Started
+`Reorder` is built as a Medusa plugin with Medusa modules, workflow-backed mutations, Admin API routes, scheduled jobs, and Admin UI extensions.
 
-Visit the [Quickstart Guide](https://docs.medusajs.com/learn/installation) to set up a server.
+## What it includes
 
-Visit the [Plugins documentation](https://docs.medusajs.com/learn/fundamentals/plugins) to learn more about plugins and how to create them.
+- `Subscriptions`
+- `Plans & Offers`
+- `Renewals`
+- `Dunning`
+- `Cancellation & Retention`
+- `Activity Log`
+- `Analytics`
 
-Visit the [Docs](https://docs.medusajs.com/learn/installation#get-started) to learn more about our system requirements.
+## Current scope
 
-## What is Medusa
+`Reorder` currently focuses on recurring commerce operations managed from the Medusa Admin.
 
-Medusa is a set of commerce modules and tools that allow you to build rich, reliable, and performant commerce applications without reinventing core commerce logic. The modules can be customized and used to build advanced ecommerce stores, marketplaces, or any product that needs foundational commerce primitives. All modules are open-source and freely available on npm.
+Today, the plugin provides strong Admin coverage across the implemented domains. Customer self-service flows will be introduced in the near future as a `Reorder Subscription Starter`.
 
-Learn more about [Medusa’s architecture](https://docs.medusajs.com/learn/introduction/architecture) and [commerce modules](https://docs.medusajs.com/learn/fundamentals/modules/commerce-modules) in the Docs.
+## Feature highlights
 
-## Community & Contributions
+- Subscription lifecycle management
+- Configurable plans and offers
+- Renewal orchestration
+- Dunning retries and recovery tooling
+- Cancellation flows with retention offers
+- Operational activity logs
+- Subscription analytics and reporting
 
-The community and core team are available in [GitHub Discussions](https://github.com/medusajs/medusa/discussions), where you can ask for support, discuss roadmap, and share ideas.
+## Installation
 
-Join our [Discord server](https://discord.com/invite/medusajs) to meet other community members.
+`Reorder` is meant to be installed into an existing Medusa project.
 
-## Other channels
+### 1. Install the plugin
 
-- [GitHub Issues](https://github.com/medusajs/medusa/issues)
-- [Twitter](https://twitter.com/medusajs)
-- [LinkedIn](https://www.linkedin.com/company/medusajs)
-- [Medusa Blog](https://medusajs.com/blog/)
-=======
-# reorder
+With `npm`:
+
+```bash
+npm install reorder
+```
+
+With `yarn`:
+
+```bash
+yarn add reorder
+```
+
+### 2. Add the plugin to `medusa-config.ts`
+
+```ts
+plugins: [
+  // other plugins
+  {
+    resolve: "reorder",
+    options: {},
+  },
+]
+```
+
+### 3. Start your Medusa app
+
+After adding the plugin, run your normal Medusa setup flow in your store project.
+
+## Local development
+
+If you want to work on the plugin itself locally:
+
+### 1. Clone the repository
+
+```bash
+git clone <your-repository-url>
+cd reorder
+```
+
+### 2. Install dependencies
+
+```bash
+yarn install
+```
+
+### 3. Publish the local plugin
+
+```bash
+yarn medusa plugin:publish
+```
+
+### 4. Add the plugin in your Medusa store
+
+```bash
+yarn medusa plugin:add reorder
+```
+
+### 5. Add the plugin configuration to `medusa-config.ts`
+
+```ts
+plugins: [
+  // other plugins
+  {
+    resolve: "reorder",
+    options: {},
+  },
+]
+```
+
+### 6. Install store dependencies
+
+```bash
+yarn install
+```
+
+### 7. Start your Medusa store
+
+```bash
+yarn dev
+```
+
+## Requirements
+
+- Minimum: Medusa `2.3+`
+- Recommended: compatible with `@medusajs/medusa >= 2.4.0`
+
+## Architecture
+
+`Reorder` is organized around Medusa-native building blocks:
+
+- domain modules for subscription data and operational records
+- workflows for business mutations and orchestration
+- Admin API routes for plugin operations
+- Admin UI extensions for management flows
+- scheduled jobs for renewals, dunning, and analytics processing
+
+## Documentation
+
+Project documentation lives in `docs/`.
+
+Useful starting points:
+
+- `docs/README.md`
+- `docs/architecture/`
+- `docs/api/`
+- `docs/admin/`
+- `docs/testing/`
+- `docs/roadmap/implementation-plan.md`
+
+## Contributing
+
+Issues and pull requests are welcome.
+
+Before changing behavior:
+
+- read the runtime docs in `docs/`
+- keep implementation aligned with documented behavior
+- follow Medusa best practices for modules, workflows, routes, and Admin UI extensions
