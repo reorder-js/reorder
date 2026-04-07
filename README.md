@@ -1,21 +1,12 @@
-<p align="center">
-  <a href="https://www.medusajs.com">
+<div align="center">
+  <a href="https://www.reorderjs.com">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://user-images.githubusercontent.com/59018053/229103275-b5e482bb-4601-46e6-8142-244f531cebdb.svg">
-    <source media="(prefers-color-scheme: light)" srcset="https://user-images.githubusercontent.com/59018053/229103726-e5b529a3-9b3f-4970-8a1f-c6af37f087bf.svg">
-    <img alt="Medusa logo" src="https://user-images.githubusercontent.com/59018053/229103726-e5b529a3-9b3f-4970-8a1f-c6af37f087bf.svg">
-    </picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/f3420397-bfb7-4358-be41-aa2d9d22623c">
+    <source media="(prefers-color-scheme: light)" srcset="https://github.com/user-attachments/assets/60cebea7-3f45-40cb-8382-301b52376e82">
+    <img alt="Reorder logo" src="https://github.com/user-attachments/assets/f3420397-bfb7-4358-be41-aa2d9d22623c">
+  </picture>
   </a>
-</p>
-
-<h1 align="center">
-    Reorder
-</h1>
-<h1 align="center">
-    Open Source Medusa Subscription Plugin
-</h1>
-
-<p align="center">
+  <h1> Open Source Subscription Medusa Plugin </h1> 
   <a href="https://github.com/tkasperski/reorder?tab=MIT-1-ov-file">
     <img alt="License" src="https://img.shields.io/badge/license-MIT-blue.svg" />
   </a>
@@ -24,12 +15,14 @@
   <a href="https://www.reorderjs.com/contact">
     <img alt="Support" src="https://img.shields.io/badge/support-contact%20author-blueviolet.svg" />
   </a>
-</p>
+</div>
 
 <h4 align="center">
-  <a href="https://docs.reorderjs.com">Documentation</a> |
-  <a href="https://www.reorderjs.com">Website</a>
+  <a href="https://www.reorderjs.com">Website</a> | 
+  <a href="https://docs.reorderjs.com">Documentation</a>
 </h4>
+
+&nbsp;
 
 ## What is Reorder?
 
@@ -38,6 +31,8 @@
 It adds recurring commerce capabilities to a Medusa store, including subscriptions, plans and offers, renewals, dunning, cancellation and retention flows, activity logs, and analytics.
 
 `Reorder` is built as a Medusa plugin with Medusa modules, workflow-backed mutations, Admin API routes, scheduled jobs, and Admin UI extensions.
+
+&nbsp;
 
 ## What it includes
 
@@ -49,11 +44,15 @@ It adds recurring commerce capabilities to a Medusa store, including subscriptio
 - `Activity Log`
 - `Analytics`
 
+&nbsp;
+
 ## Current scope
 
 `Reorder` currently focuses on recurring commerce operations managed from the Medusa Admin.
 
 Today, the plugin provides strong Admin coverage across the implemented domains. Customer self-service flows will be introduced in the near future as a `Reorder Subscription Starter`.
+
+&nbsp;
 
 ## Feature highlights
 
@@ -64,6 +63,8 @@ Today, the plugin provides strong Admin coverage across the implemented domains.
 - Cancellation flows with retention offers
 - Operational activity logs
 - Subscription analytics and reporting
+
+&nbsp;
 
 ## Installation
 
@@ -152,10 +153,14 @@ yarn install
 yarn dev
 ```
 
+&nbsp;
+
 ## Requirements
 
 - Minimum: Medusa `2.3+`
 - Recommended: compatible with `@medusajs/medusa >= 2.4.0`
+
+&nbsp;
 
 ## Architecture
 
@@ -166,6 +171,8 @@ yarn dev
 - Admin API routes for plugin operations
 - Admin UI extensions for management flows
 - scheduled jobs for renewals, dunning, and analytics processing
+
+&nbsp;
 
 ## Documentation
 
@@ -179,6 +186,8 @@ Useful starting points:
 - `docs/admin/`
 - `docs/testing/`
 - `docs/roadmap/implementation-plan.md`
+
+&nbsp;
 
 ## Contributing
 
