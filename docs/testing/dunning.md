@@ -93,6 +93,10 @@ Covered through integration tests:
 - retry-schedule override
 - dunning read-model query helpers
 
+Current payment classification assumptions:
+- `insufficient_funds`, `generic_decline`, and `do_not_honor` are retryable and should reschedule the case
+- `requires_more`, missing payment method, and expired payment details are terminal and should close the case as `unrecovered`
+
 ### Admin API Coverage
 
 Covered through HTTP integration tests:

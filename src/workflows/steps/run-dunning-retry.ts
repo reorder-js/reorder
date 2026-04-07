@@ -289,6 +289,7 @@ function classifyPaymentRetryFailure(
     error instanceof Error ? error.message : "Dunning payment retry failed"
   const normalizedMessage = message.toLowerCase()
   const normalizedStatus = String(paymentSessionStatus ?? "").toLowerCase()
+  const normalizedErrorCode = readPaymentErrorCode(error)
 
   if (
     normalizedStatus === "requires_more" ||
@@ -304,13 +305,24 @@ function classifyPaymentRetryFailure(
   }
 
   if (
+    normalizedErrorCode === "insufficient_funds" ||
+    normalizedErrorCode === "generic_decline" ||
+    normalizedErrorCode === "do_not_honor"
+  ) {
+    return {
+      kind: "temporary_failure",
+      payment_reference: null,
+      error_code: normalizedErrorCode,
+      error_message: message,
+    }
+  }
+
+  if (
     normalizedMessage.includes("missing payment retry context") ||
     normalizedMessage.includes("doesn't have a collectible total") ||
     normalizedMessage.includes("no payment collection is available") ||
     normalizedMessage.includes("expired") ||
-    normalizedMessage.includes("insufficient") ||
     normalizedMessage.includes("declined") ||
-    normalizedMessage.includes("do_not_honor") ||
     normalizedMessage.includes("requires payment method") ||
     normalizedMessage.includes("requires more")
   ) {
@@ -325,6 +337,9 @@ function classifyPaymentRetryFailure(
   if (
     normalizedStatus === "pending" ||
     normalizedStatus === "error" ||
+    normalizedMessage.includes("insufficient") ||
+    normalizedMessage.includes("generic_decline") ||
+    normalizedMessage.includes("do_not_honor") ||
     normalizedMessage.includes("timeout") ||
     normalizedMessage.includes("temporar") ||
     normalizedMessage.includes("network") ||
@@ -341,9 +356,60 @@ function classifyPaymentRetryFailure(
   return {
     kind: "temporary_failure",
     payment_reference: null,
-    error_code: normalizedStatus || "payment_retry_failed",
+    error_code:
+      normalizedErrorCode || normalizedStatus || "payment_retry_failed",
     error_message: message,
   }
+}
+
+function readPaymentErrorCode(error: unknown) {
+  if (!error || typeof error !== "object") {
+    return null
+  }
+
+  const record = error as Record<string, unknown>
+  const candidates = [
+    record.code,
+    record.decline_code,
+    (record.cause as Record<string, unknown> | undefined)?.code,
+    (record.cause as Record<string, unknown> | undefined)?.decline_code,
+    (record.payment_intent as Record<string, unknown> | undefined)?.last_payment_error,
+    (record.raw as Record<string, unknown> | undefined)?.code,
+    (record.raw as Record<string, unknown> | undefined)?.decline_code,
+  ]
+
+  for (const candidate of candidates) {
+    const value = readNestedErrorCode(candidate)
+
+    if (value) {
+      return value
+    }
+  }
+
+  return null
+}
+
+function readNestedErrorCode(value: unknown): string | null {
+  if (!value) {
+    return null
+  }
+
+  if (typeof value === "string" && value.trim()) {
+    return value.trim().toLowerCase()
+  }
+
+  if (typeof value === "object") {
+    const record = value as Record<string, unknown>
+    const candidates = [record.code, record.decline_code]
+
+    for (const candidate of candidates) {
+      if (typeof candidate === "string" && candidate.trim()) {
+        return candidate.trim().toLowerCase()
+      }
+    }
+  }
+
+  return null
 }
 
 async function executePaymentRetry(

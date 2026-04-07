@@ -51,6 +51,10 @@ Supported dunning case statuses:
 - `recovered`
 - `unrecovered`
 
+Current runtime meaning:
+- `retry_scheduled`: the last retry failed with a retryable payment error and a future `next_retry_at` is scheduled
+- `unrecovered`: the case is terminal and closed, either because the payment failure is treated as permanent or because retries are exhausted
+
 ### Attempt Status Values
 
 Supported dunning attempt statuses:
@@ -265,6 +269,10 @@ Shape:
 ### Purpose
 
 Runs the shared dunning payment retry workflow immediately, ignoring `next_retry_at`.
+
+Current runtime behavior:
+- retryable payment failures keep the case in `retry_scheduled`
+- permanent payment failures close the case as `unrecovered`
 
 ### Request Body
 

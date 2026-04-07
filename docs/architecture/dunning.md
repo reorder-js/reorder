@@ -117,6 +117,10 @@ The current implementation follows these rules:
 - successful recovery closes the case as `recovered` and restores the subscription to `active`
 - unrecovered closure leaves the originating renewal cycle as `failed` and keeps the subscription in `past_due`
 
+Current retry classification:
+- retryable failures include `insufficient_funds`, `generic_decline`, `do_not_honor`, and temporary provider/network errors
+- terminal failures include `requires_more`, missing payment method or retry context, expired payment details, and other cases that require manual resolution
+
 This means:
 - `Renewals` own the failed billing event
 - `Dunning` owns the later payment recovery journey
