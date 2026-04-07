@@ -55,8 +55,57 @@ export async function getAdminCancellationsListResponse(
   )
 }
 
+function getNestedMessage(value: unknown): string | null {
+  if (!value) {
+    return null
+  }
+
+  if (typeof value === "string") {
+    return value
+  }
+
+  if (value instanceof Error) {
+    const causeMessage = getNestedMessage((value as Error & { cause?: unknown }).cause)
+    return value.message || causeMessage || null
+  }
+
+  if (typeof value === "object") {
+    const record = value as Record<string, unknown>
+
+    const candidates = [
+      record.message,
+      record.error,
+      record.details,
+      record.cause,
+      (record.response as Record<string, unknown> | undefined)?.data,
+      (record.response as Record<string, unknown> | undefined)?.message,
+      (record.data as Record<string, unknown> | undefined)?.message,
+      (record.body as Record<string, unknown> | undefined)?.message,
+    ]
+
+    for (const candidate of candidates) {
+      const nested = getNestedMessage(candidate)
+
+      if (nested) {
+        return nested
+      }
+    }
+  }
+
+  return null
+}
+
 export function mapCancellationAdminRouteError(error: unknown) {
-  if (error instanceof MedusaError) {
+  const errorCause =
+    error instanceof Error ? (error as Error & { cause?: unknown }).cause : null
+  const medusaError =
+    error instanceof MedusaError
+      ? error
+      : errorCause instanceof MedusaError
+        ? errorCause
+        : null
+
+  if (medusaError) {
     const typeToStatus: Record<string, number> = {
       [MedusaError.Types.NOT_FOUND]: 404,
       [MedusaError.Types.INVALID_DATA]: 400,
@@ -64,14 +113,13 @@ export function mapCancellationAdminRouteError(error: unknown) {
     }
 
     return {
-      status: typeToStatus[error.type] ?? 500,
-      type: error.type,
-      message: error.message,
+      status: typeToStatus[medusaError.type] ?? 500,
+      type: medusaError.type,
+      message: medusaError.message,
     }
   }
 
-  const message =
-    error instanceof Error ? error.message : "Unexpected cancellation admin error"
+  const message = getNestedMessage(error) || "Unexpected cancellation admin error"
   const normalized = message.toLowerCase()
 
   if (normalized.includes("was not found")) {

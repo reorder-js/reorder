@@ -80,6 +80,13 @@ const offerTypeOptions: Array<{ label: string; value: OfferType }> = [
   { label: "Bonus offer", value: "bonus_offer" },
 ]
 
+const activeDunningStatuses = new Set([
+  "open",
+  "retry_scheduled",
+  "retrying",
+  "awaiting_manual_resolution",
+])
+
 const effectiveAtOptions = [
   { label: "Immediately", value: "immediately" },
   { label: "End of cycle", value: "end_of_cycle" },
@@ -139,6 +146,29 @@ const CancellationDetailPage = () => {
   )
   const actionFormCancellation = actionFormData?.cancellation ?? cancellation
   const isActionFormLoading = actionDrawerOpen && !actionFormData && Boolean(id)
+  const eligibleOfferTypes = useMemo(() => {
+    const subscriptionStatus = actionFormCancellation?.subscription.status
+    const hasActiveDunning = actionFormCancellation?.dunning
+      ? activeDunningStatuses.has(actionFormCancellation.dunning.status)
+      : false
+
+    if (!subscriptionStatus || subscriptionStatus === "paused") {
+      return [] as OfferType[]
+    }
+
+    if (subscriptionStatus === "past_due" || hasActiveDunning) {
+      return ["pause_offer", "bonus_offer"] as OfferType[]
+    }
+
+    return ["pause_offer", "discount_offer", "bonus_offer"] as OfferType[]
+  }, [actionFormCancellation])
+  const visibleOfferTypeOptions = useMemo(
+    () =>
+      offerTypeOptions.filter((option) =>
+        eligibleOfferTypes.includes(option.value)
+      ),
+    [eligibleOfferTypes]
+  )
 
   const applyOfferMutation = useMutation({
     mutationFn: async (body: ApplyRetentionOfferAdminRequest) =>
@@ -300,7 +330,7 @@ const CancellationDetailPage = () => {
     setFormError(null)
 
     if (actionDrawerMode === "apply_offer") {
-      setOfferType("pause_offer")
+      setOfferType(eligibleOfferTypes[0] ?? "pause_offer")
       setDecisionReason("")
       setPauseCycles("2")
       setResumeAt("")
@@ -331,7 +361,17 @@ const CancellationDetailPage = () => {
       setNotes(actionFormCancellation.notes || "")
       setUpdateReasonExplanation("")
     }
-  }, [actionDrawerMode, actionDrawerOpen, actionFormCancellation])
+  }, [actionDrawerMode, actionDrawerOpen, actionFormCancellation, eligibleOfferTypes])
+
+  useEffect(() => {
+    if (!eligibleOfferTypes.length) {
+      return
+    }
+
+    if (!eligibleOfferTypes.includes(offerType)) {
+      setOfferType(eligibleOfferTypes[0])
+    }
+  }, [eligibleOfferTypes, offerType])
 
   const openDrawer = (mode: ActionDrawerMode) => {
     setActionDrawerMode(mode)
@@ -363,6 +403,12 @@ const CancellationDetailPage = () => {
     }
 
     if (actionDrawerMode === "apply_offer") {
+      if (!eligibleOfferTypes.includes(offerType)) {
+        setFormError("Selected retention offer is not allowed for this case")
+        toast.error("Selected retention offer is not allowed for this case")
+        return
+      }
+
       const normalizedDecisionReason = normalizeOptionalString(decisionReason)
 
       if (offerType === "pause_offer") {
@@ -1061,13 +1107,18 @@ const CancellationDetailPage = () => {
                       <Select.Value placeholder="Select offer type" />
                     </Select.Trigger>
                     <Select.Content>
-                      {offerTypeOptions.map((option) => (
+                      {visibleOfferTypeOptions.map((option) => (
                         <Select.Item key={option.value} value={option.value}>
                           {option.label}
                         </Select.Item>
                       ))}
                     </Select.Content>
                   </Select>
+                  {!visibleOfferTypeOptions.length ? (
+                    <Text size="small" leading="compact" className="text-ui-fg-subtle">
+                      No retention offers are available for the current subscription state.
+                    </Text>
+                  ) : null}
                 </div>
 
                 {offerType === "pause_offer" ? (

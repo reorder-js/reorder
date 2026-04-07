@@ -105,9 +105,31 @@ type RenewalCycleRecord = {
   id: string
   subscription_id: string
   status: "scheduled" | "processing" | "succeeded" | "failed"
-  scheduled_for: string
+  scheduled_for: string | Date
   approval_status: "pending" | "approved" | "rejected" | null
   generated_order_id: string | null
+}
+
+function toIsoStringOrNull(value: string | Date | null | undefined) {
+  if (!value) {
+    return null
+  }
+
+  const parsed = value instanceof Date ? value : new Date(value)
+
+  return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString()
+}
+
+function toTimestamp(value: string | Date | null | undefined) {
+  if (!value) {
+    return Number.POSITIVE_INFINITY
+  }
+
+  const parsed = value instanceof Date ? value : new Date(value)
+
+  return Number.isNaN(parsed.getTime())
+    ? Number.POSITIVE_INFINITY
+    : parsed.getTime()
 }
 
 const caseListFields = [
@@ -439,8 +461,8 @@ async function getRenewalSummaryMap(
   const result = new Map<string, CancellationAdminRenewalSummary>()
 
   for (const [subscriptionId, records] of grouped.entries()) {
-    const selected = [...records].sort((left, right) =>
-      left.scheduled_for.localeCompare(right.scheduled_for)
+    const selected = [...records].sort(
+      (left, right) => toTimestamp(left.scheduled_for) - toTimestamp(right.scheduled_for)
     )[0]
 
     if (!selected) {
@@ -450,7 +472,7 @@ async function getRenewalSummaryMap(
     result.set(subscriptionId, {
       renewal_cycle_id: selected.id,
       status: selected.status,
-      scheduled_for: selected.scheduled_for,
+      scheduled_for: toIsoStringOrNull(selected.scheduled_for) ?? "",
       approval_status: selected.approval_status,
       generated_order_id: selected.generated_order_id,
     })
