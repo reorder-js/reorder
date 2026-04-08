@@ -7,13 +7,13 @@
   </picture>
   </a>
   <h1> Open Source Subscription Medusa Plugin </h1> 
-  <a href="https://github.com/tkasperski/reorder?tab=MIT-1-ov-file">
+  <a href="https://github.com/reorder-js/reorder?tab=MIT-1-ov-file">
     <img alt="License" src="https://img.shields.io/badge/license-MIT-blue.svg" />
   </a>
-  <a href="https://github.com/tkasperski/reorder/issues">
+  <a href="https://github.com/reorder-js/reorder/issues">
     <img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat" alt="PRs welcome!" />
   <a href="https://www.reorderjs.com/contact">
-    <img alt="Support" src="https://img.shields.io/badge/support-contact%20author-blueviolet.svg" />
+    <img alt="Support" src="https://img.shields.io/badge/support-contact%20author-blue.svg" />
   </a>
 </div>
 
@@ -75,13 +75,13 @@ Today, the plugin provides strong Admin coverage across the implemented domains.
 With `npm`:
 
 ```bash
-npm install reorder
+npm install @reorderjs/reorder
 ```
 
 With `yarn`:
 
 ```bash
-yarn add reorder
+yarn add @reorderjs/reorder
 ```
 
 ### 2. Add the plugin to `medusa-config.ts`
@@ -90,7 +90,7 @@ yarn add reorder
 plugins: [
   // other plugins
   {
-    resolve: "reorder",
+    resolve: "@reorderjs/reorder",
     options: {},
   },
 ]
@@ -107,7 +107,7 @@ If you want to work on the plugin itself locally:
 ### 1. Clone the repository
 
 ```bash
-git clone <your-repository-url>
+git clone https://github.com/reorder-js/reorder.git
 cd reorder
 ```
 
