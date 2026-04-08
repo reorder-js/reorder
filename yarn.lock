@@ -7716,6 +7716,42 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@reorderjs/reorder@workspace:.":
+  version: 0.0.0-use.local
+  resolution: "@reorderjs/reorder@workspace:."
+  dependencies:
+    "@medusajs/admin-sdk": "npm:2.12.4"
+    "@medusajs/cli": "npm:2.12.4"
+    "@medusajs/framework": "npm:2.12.4"
+    "@medusajs/icons": "npm:2.12.4"
+    "@medusajs/medusa": "npm:2.12.4"
+    "@medusajs/test-utils": "npm:2.12.4"
+    "@medusajs/ui": "npm:4.0.25"
+    "@swc/core": "npm:^1.7.28"
+    "@swc/jest": "npm:^0.2.39"
+    "@types/jest": "npm:^29.5.14"
+    "@types/node": "npm:^20.0.0"
+    "@types/react": "npm:^18.3.2"
+    "@types/react-dom": "npm:^18.2.25"
+    jest: "npm:^29.7.0"
+    prop-types: "npm:^15.8.1"
+    react: "npm:^18.2.0"
+    react-dom: "npm:^18.2.0"
+    ts-node: "npm:^10.9.2"
+    typescript: "npm:^5.6.2"
+    vite: "npm:^5.2.11"
+    yalc: "npm:^1.0.0-pre.53"
+  peerDependencies:
+    "@medusajs/admin-sdk": 2.12.4
+    "@medusajs/cli": 2.12.4
+    "@medusajs/framework": 2.12.4
+    "@medusajs/icons": 2.12.4
+    "@medusajs/medusa": 2.12.4
+    "@medusajs/test-utils": 2.12.4
+    "@medusajs/ui": 4.0.25
+  languageName: unknown
+  linkType: soft
+
 "@rollup/rollup-android-arm-eabi@npm:4.32.0":
   version: 4.32.0
   resolution: "@rollup/rollup-android-arm-eabi@npm:4.32.0"
@@ -15810,42 +15846,6 @@ __metadata:
   checksum: 10c0/6fa91e7b89e0675fdca6ce54af5fad9bd612d51e2251913a2e113b521b157647f1f8c694b55447780b489b30a63ebe949ccda7411ef383d09136bb27121c6c09
   languageName: node
   linkType: hard
-
-"reorder@workspace:.":
-  version: 0.0.0-use.local
-  resolution: "reorder@workspace:."
-  dependencies:
-    "@medusajs/admin-sdk": "npm:2.12.4"
-    "@medusajs/cli": "npm:2.12.4"
-    "@medusajs/framework": "npm:2.12.4"
-    "@medusajs/icons": "npm:2.12.4"
-    "@medusajs/medusa": "npm:2.12.4"
-    "@medusajs/test-utils": "npm:2.12.4"
-    "@medusajs/ui": "npm:4.0.25"
-    "@swc/core": "npm:^1.7.28"
-    "@swc/jest": "npm:^0.2.39"
-    "@types/jest": "npm:^29.5.14"
-    "@types/node": "npm:^20.0.0"
-    "@types/react": "npm:^18.3.2"
-    "@types/react-dom": "npm:^18.2.25"
-    jest: "npm:^29.7.0"
-    prop-types: "npm:^15.8.1"
-    react: "npm:^18.2.0"
-    react-dom: "npm:^18.2.0"
-    ts-node: "npm:^10.9.2"
-    typescript: "npm:^5.6.2"
-    vite: "npm:^5.2.11"
-    yalc: "npm:^1.0.0-pre.53"
-  peerDependencies:
-    "@medusajs/admin-sdk": 2.12.4
-    "@medusajs/cli": 2.12.4
-    "@medusajs/framework": 2.12.4
-    "@medusajs/icons": 2.12.4
-    "@medusajs/medusa": 2.12.4
-    "@medusajs/test-utils": 2.12.4
-    "@medusajs/ui": 4.0.25
-  languageName: unknown
-  linkType: soft
 
 "request-ip@npm:^3.3.0":
   version: 3.3.0
