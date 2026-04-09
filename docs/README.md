@@ -2,6 +2,8 @@
 
 `Reorder` is a Medusa.js plugin for recurring commerce flows managed from the Admin.
 
+It now also exposes customer-facing Store API routes for subscription checkout, subscription account actions, and PDP subscription offer resolution.
+
 At the moment, the following areas are implemented and tested:
 - `Subscriptions`
 - `Plans & Offers`
@@ -82,6 +84,9 @@ Runtime source-of-truth documents currently exist for:
 - `Subscriptions`
   - `architecture/subscriptions.md`
   - `api/admin-subscriptions.md`
+  - `api/store-subscription-checkout.md`
+  - `api/store-customer-cancellations.md`
+  - `api/store-subscription-offers.md`
   - `admin/subscriptions.md`
   - `testing/subscriptions.md`
 - `Plans & Offers`

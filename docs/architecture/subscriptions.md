@@ -18,21 +18,24 @@ The current implementation supports:
 - scheduling plan changes
 - editing the shipping address
 - creating subscriptions from store carts
+- customer-facing Store API for subscription account actions
 
 ## Architectural Overview
 
-The implementation is split into four main layers:
+The implementation is split into five main layers:
 
 1. domain module
 2. workflows
 3. admin API
-4. admin UI
+4. store API
+5. admin UI
 
 Each layer has a clear responsibility:
 
 - the domain module owns the subscription data model and persistence
 - workflows own business mutations
 - admin API exposes read and write endpoints for the dashboard
+- store API exposes storefront-safe read and write endpoints for customer account and PDP
 - admin UI renders list and detail views and calls the admin endpoints
 
 ## 1. Domain Module
@@ -154,6 +157,33 @@ The store create flow uses:
 
 The flow validates subscription metadata on the line item, blocks mixed cart usage, completes the cart into a standard Medusa `order`, checks idempotency through the `subscription-order` link, creates the `subscription`, links it to `customer`, `cart`, and `order`, and creates the first upcoming `renewal_cycle`.
 
+### Store customer account flow
+
+The current store account flow uses:
+- `GET /store/customers/me/subscriptions`
+- `GET /store/customers/me/subscriptions/:id`
+- `POST /store/customers/me/subscriptions/:id/pause`
+- `POST /store/customers/me/subscriptions/:id/resume`
+- `POST /store/customers/me/subscriptions/:id/change-frequency`
+- `POST /store/customers/me/subscriptions/:id/change-address`
+- `POST /store/customers/me/subscriptions/:id/skip-next-delivery`
+- `POST /store/customers/me/subscriptions/:id/swap-product`
+- `POST /store/customers/me/subscriptions/:id/retry-payment`
+- `POST /store/customers/me/subscriptions/:id/cancellation`
+
+These routes:
+- require customer auth
+- validate ownership against the authenticated customer
+- reuse existing workflows where possible
+- return storefront-safe DTOs instead of admin detail contracts
+
+### Store PDP offer flow
+
+The current PDP offer flow uses:
+- `GET /store/products/:id/subscription-offer`
+
+The route resolves effective `Plans & Offers` config with `variant > product` precedence and returns storefront-safe offer data for PDP pricing and cadence selection.
+
 ## 5. Workflows
 
 Workflows are the mutation boundary of the `Subscriptions` area.
@@ -188,7 +218,37 @@ The API layer uses:
 - query helpers for reads
 - workflows for writes
 
-## 7. Admin UI Architecture
+## 7. Store API Architecture
+
+The Store API exposes custom storefront routes dedicated to:
+- subscription checkout
+- customer account subscription list and detail
+- customer account subscription actions
+- PDP subscription offer resolution
+
+Implemented read routes:
+- `GET /store/customers/me/subscriptions`
+- `GET /store/customers/me/subscriptions/:id`
+- `GET /store/products/:id/subscription-offer`
+
+Implemented mutation routes:
+- `POST /store/carts/:id/subscribe`
+- `POST /store/customers/me/subscriptions/:id/pause`
+- `POST /store/customers/me/subscriptions/:id/resume`
+- `POST /store/customers/me/subscriptions/:id/change-frequency`
+- `POST /store/customers/me/subscriptions/:id/change-address`
+- `POST /store/customers/me/subscriptions/:id/skip-next-delivery`
+- `POST /store/customers/me/subscriptions/:id/swap-product`
+- `POST /store/customers/me/subscriptions/:id/retry-payment`
+- `POST /store/customers/me/subscriptions/:id/cancellation`
+
+The Store API layer uses:
+- customer authentication middleware
+- storefront-specific DTO mapping
+- workflow-backed mutations
+- ownership checks before mutation execution
+
+## 8. Admin UI Architecture
 
 The Admin UI is implemented as custom Medusa Admin routes.
 
@@ -229,7 +289,7 @@ It also provides two edit flows through Drawers:
 
 This matches the Medusa pattern of using Drawers for editing existing data.
 
-## 8. Query Invalidation Strategy
+## 9. Query Invalidation Strategy
 
 The Admin UI uses explicit query invalidation after mutations.
 
@@ -241,7 +301,7 @@ This ensures that:
 - the detail page stays fresh after edits
 - the list reflects the latest status after navigation back
 
-## 9. Error and Loading Handling
+## 10. Error and Loading Handling
 
 The `Subscriptions` UI follows Medusa-style state handling:
 - list pages use DataTable loading and empty states
@@ -250,7 +310,7 @@ The `Subscriptions` UI follows Medusa-style state handling:
 
 This avoids coupling the main display state to drawer-only data loading.
 
-## 10. Testing Strategy
+## 11. Testing Strategy
 
 The area is covered by:
 - module/service tests
