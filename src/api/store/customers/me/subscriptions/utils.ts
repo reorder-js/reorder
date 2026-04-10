@@ -6,6 +6,7 @@ import type {
 import { ContainerRegistrationKeys, MedusaError } from "@medusajs/framework/utils"
 import { CancellationCaseStatus } from "../../../../../modules/cancellation/types"
 import { DunningCaseStatus } from "../../../../../modules/dunning/types"
+import { resolveProductSubscriptionConfig } from "../../../../../modules/plan-offer/utils/effective-config"
 import { SubscriptionStatus } from "../../../../../modules/subscription/types"
 
 const ACTIVE_CANCELLATION_STATUSES = [
@@ -18,6 +19,7 @@ type SubscriptionStoreListItem = {
   id: string
   reference: string
   status: string
+  created_at?: string | Date | null
   next_renewal_at: string | null
   product_snapshot?: {
     product_title?: string | null
@@ -32,6 +34,8 @@ type ActiveCancellationRecord = {
 }
 
 type SubscriptionStoreDetailRecord = SubscriptionStoreListItem & {
+  product_id: string
+  variant_id: string
   frequency_interval: "week" | "month" | "year"
   frequency_value: number
   last_renewal_at?: string | Date | null
@@ -39,6 +43,16 @@ type SubscriptionStoreDetailRecord = SubscriptionStoreListItem & {
     payment_provider_id?: string | null
   } | null
   shipping_address?: Record<string, unknown> | null
+  pending_update_data?: {
+    variant_id: string
+    variant_title: string | null
+    sku: string | null
+    frequency_interval: "week" | "month" | "year"
+    frequency_value: number
+    effective_at: string | null
+    requested_at: string
+    requested_by: string | null
+  } | null
 }
 
 type DunningCaseRecord = {
@@ -109,11 +123,17 @@ export async function listStoreCustomerSubscriptions(
       "reference",
       "status",
       "customer_id",
+      "created_at",
       "next_renewal_at",
       "product_snapshot",
     ],
     filters: {
       customer_id: customerId,
+    },
+    pagination: {
+      order: {
+        created_at: "DESC",
+      },
     },
   })
 
@@ -147,6 +167,7 @@ export async function listStoreCustomerSubscriptions(
       id: subscription.id,
       reference: subscription.reference,
       status: subscription.status,
+      created_at: toIsoStringOrNull(subscription.created_at),
       product_title: subscription.product_snapshot?.product_title ?? null,
       variant_title: subscription.product_snapshot?.variant_title ?? null,
       next_renewal_at: toIsoStringOrNull(subscription.next_renewal_at),
@@ -352,6 +373,8 @@ export async function getStoreSubscriptionDetailResponse(
         "reference",
         "status",
         "customer_id",
+        "product_id",
+        "variant_id",
         "frequency_interval",
         "frequency_value",
         "next_renewal_at",
@@ -359,6 +382,7 @@ export async function getStoreSubscriptionDetailResponse(
         "product_snapshot",
         "shipping_address",
         "payment_context",
+        "pending_update_data",
       ],
       filters: {
         id: [input.subscription_id],
@@ -393,6 +417,8 @@ export async function getStoreSubscriptionDetailResponse(
       id: subscription.id,
       reference: subscription.reference,
       status: subscription.status,
+      product_id: subscription.product_id,
+      variant_id: subscription.variant_id,
       product_title: subscription.product_snapshot?.product_title ?? null,
       variant_title: subscription.product_snapshot?.variant_title ?? null,
       frequency_interval: subscription.frequency_interval,
@@ -405,6 +431,31 @@ export async function getStoreSubscriptionDetailResponse(
         subscription.payment_context?.payment_provider_id ?? null,
       payment_recovery: mapPaymentRecovery(dunningCase, latestDunningAttempt),
       active_cancellation_case: activeCancellationCase,
+      scheduled_frequency_change: subscription.pending_update_data
+        ? {
+            frequency_interval: subscription.pending_update_data.frequency_interval,
+            frequency_value: subscription.pending_update_data.frequency_value,
+            effective_at: toIsoStringOrNull(
+              subscription.pending_update_data.effective_at
+            ),
+            requested_at: toIsoStringOrNull(
+              subscription.pending_update_data.requested_at
+            ),
+          }
+        : null,
+      available_frequencies: (
+        await resolveProductSubscriptionConfig(scope, {
+          product_id: subscription.product_id,
+          variant_id: subscription.variant_id,
+        })
+      ).allowed_frequencies.map((frequency) => ({
+        frequency_interval: String(frequency.interval),
+        frequency_value: frequency.value,
+        label:
+          frequency.value === 1
+            ? `Every ${frequency.interval}`
+            : `Every ${frequency.value} ${frequency.interval}s`,
+      })),
     },
   }
 }
