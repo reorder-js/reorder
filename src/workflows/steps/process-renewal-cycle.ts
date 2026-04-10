@@ -36,6 +36,7 @@ import {
   SubscriptionPendingUpdateData,
   SubscriptionStatus,
 } from "../../modules/subscription/types"
+import { addSubscriptionCadence } from "../../modules/subscription/utils/effective-next-renewal"
 import { subscriptionErrors } from "../../modules/subscription/utils/errors"
 import { startDunningWorkflow } from "../start-dunning"
 import { persistSubscriptionLogEvent } from "./create-subscription-log-event"
@@ -151,27 +152,6 @@ function getRenewalActivityLogActorType(triggerType: "scheduler" | "manual") {
   return triggerType === "manual"
     ? ActivityLogActorType.USER
     : ActivityLogActorType.SCHEDULER
-}
-
-function addCadence(
-  anchor: Date,
-  interval: SubscriptionFrequencyInterval,
-  value: number
-) {
-  const next = new Date(anchor)
-
-  if (interval === SubscriptionFrequencyInterval.WEEK) {
-    next.setUTCDate(next.getUTCDate() + value * 7)
-    return next
-  }
-
-  if (interval === SubscriptionFrequencyInterval.MONTH) {
-    next.setUTCMonth(next.getUTCMonth() + value)
-    return next
-  }
-
-  next.setUTCFullYear(next.getUTCFullYear() + value)
-  return next
 }
 
 function isPendingUpdateApplicable(
@@ -761,7 +741,7 @@ export const processRenewalCycleStep = createStep(
         subscription.frequency_interval
       const nextValue =
         appliedPendingChanges?.frequency_value ?? subscription.frequency_value
-      const nextRenewalAt = addCadence(
+      const nextRenewalAt = addSubscriptionCadence(
         scheduledAnchor,
         nextInterval,
         nextValue

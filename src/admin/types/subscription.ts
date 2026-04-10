@@ -70,6 +70,7 @@ export type AdminOrderSubscriptionSummary = {
     status: SubscriptionAdminStatus
     frequency_label: string
     next_renewal_at: string | null
+    effective_next_renewal_at: string | null
   }
 }
 
@@ -94,6 +95,7 @@ export type SubscriptionAdminListItem = {
   product: SubscriptionAdminProduct
   frequency: SubscriptionAdminFrequency
   next_renewal_at: string | null
+  effective_next_renewal_at: string | null
   trial: SubscriptionAdminTrial
   discount: SubscriptionAdminDiscount | null
   skip_next_cycle: boolean

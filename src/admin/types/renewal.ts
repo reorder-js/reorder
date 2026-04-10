@@ -66,6 +66,7 @@ export type RenewalCycleAdminListItem = {
   status: RenewalCycleAdminStatus
   subscription: RenewalAdminSubscriptionSummary
   scheduled_for: string
+  effective_scheduled_for: string
   last_attempt_status: RenewalAttemptAdminStatus | null
   last_attempt_at: string | null
   approval: RenewalAdminApprovalSummary

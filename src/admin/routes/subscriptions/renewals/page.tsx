@@ -60,10 +60,12 @@ const baseColumns = [
     cell: ({ getValue, row }) => (
       <div className="flex flex-col">
         <Text size="small" leading="compact" weight="plus">
-          {formatDateTime(getValue())}
+          {formatDateTime(row.original.effective_scheduled_for)}
         </Text>
         <Text size="small" leading="compact" className="text-ui-fg-subtle">
-          {formatRelativeCycleStatus(row.original.status)}
+          {row.original.effective_scheduled_for !== getValue()
+            ? `Operational cycle: ${formatDateTime(getValue())}`
+            : formatRelativeCycleStatus(row.original.status)}
         </Text>
       </div>
     ),

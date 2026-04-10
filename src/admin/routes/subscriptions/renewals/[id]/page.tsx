@@ -358,7 +358,11 @@ const RenewalDetailPage = () => {
                   )}
                 />
                 <DetailRow
-                  label="Scheduled for"
+                  label="Projected delivery"
+                  value={formatDateTime(renewal.effective_scheduled_for)}
+                />
+                <DetailRow
+                  label="Operational cycle"
                   value={formatDateTime(renewal.scheduled_for)}
                 />
                 <DetailRow

@@ -7,7 +7,11 @@ import { ContainerRegistrationKeys, MedusaError } from "@medusajs/framework/util
 import { CancellationCaseStatus } from "../../../../../modules/cancellation/types"
 import { DunningCaseStatus } from "../../../../../modules/dunning/types"
 import { resolveProductSubscriptionConfig } from "../../../../../modules/plan-offer/utils/effective-config"
-import { SubscriptionStatus } from "../../../../../modules/subscription/types"
+import {
+  SubscriptionFrequencyInterval,
+  SubscriptionStatus,
+} from "../../../../../modules/subscription/types"
+import { getEffectiveNextRenewalAt } from "../../../../../modules/subscription/utils/effective-next-renewal"
 
 const ACTIVE_CANCELLATION_STATUSES = [
   CancellationCaseStatus.REQUESTED,
@@ -21,6 +25,9 @@ type SubscriptionStoreListItem = {
   status: string
   created_at?: string | Date | null
   next_renewal_at: string | null
+  frequency_interval: "week" | "month" | "year"
+  frequency_value: number
+  skip_next_cycle: boolean
   product_snapshot?: {
     product_title?: string | null
     variant_title?: string | null
@@ -38,6 +45,7 @@ type SubscriptionStoreDetailRecord = SubscriptionStoreListItem & {
   variant_id: string
   frequency_interval: "week" | "month" | "year"
   frequency_value: number
+  skip_next_cycle: boolean
   last_renewal_at?: string | Date | null
   payment_context?: {
     payment_provider_id?: string | null
@@ -125,6 +133,9 @@ export async function listStoreCustomerSubscriptions(
       "customer_id",
       "created_at",
       "next_renewal_at",
+      "frequency_interval",
+      "frequency_value",
+      "skip_next_cycle",
       "product_snapshot",
     ],
     filters: {
@@ -171,6 +182,15 @@ export async function listStoreCustomerSubscriptions(
       product_title: subscription.product_snapshot?.product_title ?? null,
       variant_title: subscription.product_snapshot?.variant_title ?? null,
       next_renewal_at: toIsoStringOrNull(subscription.next_renewal_at),
+      effective_next_renewal_at: toIsoStringOrNull(
+        getEffectiveNextRenewalAt({
+          next_renewal_at: subscription.next_renewal_at,
+          skip_next_cycle: subscription.skip_next_cycle,
+          frequency_interval:
+            subscription.frequency_interval as SubscriptionFrequencyInterval,
+          frequency_value: subscription.frequency_value,
+        })
+      ),
       active_cancellation_case: activeCases.get(subscription.id)
         ? {
             id: activeCases.get(subscription.id)!.id,
@@ -377,6 +397,7 @@ export async function getStoreSubscriptionDetailResponse(
         "variant_id",
         "frequency_interval",
         "frequency_value",
+        "skip_next_cycle",
         "next_renewal_at",
         "last_renewal_at",
         "product_snapshot",
@@ -423,7 +444,17 @@ export async function getStoreSubscriptionDetailResponse(
       variant_title: subscription.product_snapshot?.variant_title ?? null,
       frequency_interval: subscription.frequency_interval,
       frequency_value: subscription.frequency_value,
+      skip_next_cycle: subscription.skip_next_cycle,
       next_renewal_at: toIsoStringOrNull(subscription.next_renewal_at),
+      effective_next_renewal_at: toIsoStringOrNull(
+        getEffectiveNextRenewalAt({
+          next_renewal_at: subscription.next_renewal_at,
+          skip_next_cycle: subscription.skip_next_cycle,
+          frequency_interval:
+            subscription.frequency_interval as SubscriptionFrequencyInterval,
+          frequency_value: subscription.frequency_value,
+        })
+      ),
       last_renewal_at: toIsoStringOrNull(subscription.last_renewal_at),
       shipping_address: subscription.shipping_address ?? null,
       payment_status: mapPaymentStatus(subscription.status, dunningCase),

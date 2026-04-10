@@ -151,6 +151,10 @@ For the queue view:
 4. the query layer reads renewal cycles and latest attempts
 5. the response is mapped to Admin DTOs used by the queue DataTable
 
+The Admin read model distinguishes between:
+- `scheduled_for` as the operational cycle date owned by `renewal_cycle`
+- `effective_scheduled_for` as the projected delivery date shown when the linked subscription has `skip_next_cycle = true`
+
 Supported queue capabilities include:
 - pagination
 - search
@@ -174,6 +178,8 @@ The detail payload represents:
 - pending changes
 - attempt history
 - metadata
+
+This keeps the operational cycle source of truth intact while allowing the Admin UI to show the projected post-skip delivery date.
 
 ### Scheduler Read Flow
 

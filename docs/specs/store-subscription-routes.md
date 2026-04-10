@@ -36,7 +36,8 @@
   - returns updated status summary
 - `skip-next-delivery`
   - optional body
-  - returns new `next_renewal_at`
+  - returns unchanged technical `next_renewal_at`
+  - returns projected `effective_next_renewal_at`
 - `change-frequency`
   - body:
     - `frequency_interval`
@@ -61,6 +62,7 @@
 - `frequency_interval`
 - `frequency_value`
 - `next_renewal_at`
+- `effective_next_renewal_at`
 - `shipping_address`
 - `payment_status`
 - `payment_recovery`
@@ -93,6 +95,7 @@
   - `product_title`
   - `variant_title`
   - `next_renewal_at`
+  - `effective_next_renewal_at`
   - `active_cancellation_case`
 - subscription detail:
   - `id`
@@ -103,6 +106,7 @@
   - `frequency_interval`
   - `frequency_value`
   - `next_renewal_at`
+  - `effective_next_renewal_at`
   - `shipping_address`
   - `payment_status`
   - `payment_recovery`

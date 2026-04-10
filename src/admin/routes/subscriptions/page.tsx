@@ -127,10 +127,10 @@ const baseColumns = [
     cell: ({ getValue, row }) => (
       <div className="flex flex-col">
         <Text size="small" leading="compact" weight="plus">
-          {formatDateTime(getValue())}
+          {formatDateTime(row.original.effective_next_renewal_at ?? getValue())}
         </Text>
         <Text size="small" leading="compact" className="text-ui-fg-subtle">
-          {row.original.skip_next_cycle ? "Next cycle skipped" : "Scheduled"}
+          {row.original.skip_next_cycle ? "Projected after skipped cycle" : "Scheduled"}
         </Text>
       </div>
     ),

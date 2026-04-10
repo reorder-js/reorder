@@ -125,6 +125,7 @@ Shape:
         "label": "Every month"
       },
       "next_renewal_at": "2026-04-15T10:00:00.000Z",
+      "effective_next_renewal_at": "2026-04-15T10:00:00.000Z",
       "trial": {
         "is_trial": false,
         "trial_ends_at": null
@@ -197,6 +198,7 @@ Shape:
       "label": "Every month"
     },
     "next_renewal_at": "2026-04-15T10:00:00.000Z",
+    "effective_next_renewal_at": "2026-04-15T10:00:00.000Z",
     "trial": {
       "is_trial": false,
       "trial_ends_at": null
@@ -235,6 +237,10 @@ Shape:
   }
 }
 ```
+
+Notes:
+- `next_renewal_at` remains the technical billing anchor used by renewals
+- `effective_next_renewal_at` is the projected next renewal date shown in Admin when `skip_next_cycle` is enabled
 
 ### Common Errors
 

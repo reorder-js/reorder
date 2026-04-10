@@ -95,6 +95,7 @@ const activityLogDomainFilterOptions = [
       "subscription.canceled",
       "subscription.plan_change_scheduled",
       "subscription.shipping_address_updated",
+      "subscription.next_delivery_skipped",
     ],
   },
   {
@@ -773,7 +774,10 @@ const SubscriptionDetailPage = () => {
                 <DetailRow label="Frequency" value={subscription.frequency.label} />
                 <DetailRow
                   label="Next renewal"
-                  value={formatDateTime(subscription.next_renewal_at)}
+                  value={formatDateTime(
+                    subscription.effective_next_renewal_at ??
+                      subscription.next_renewal_at
+                  )}
                 />
                 <DetailRow
                   label="Started at"

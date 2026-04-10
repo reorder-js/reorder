@@ -138,6 +138,7 @@ Shape:
         "sku": "COFFEE-1KG"
       },
       "scheduled_for": "2026-04-15T10:00:00.000Z",
+      "effective_scheduled_for": "2026-04-15T10:00:00.000Z",
       "last_attempt_status": "failed",
       "last_attempt_at": "2026-04-15T10:02:00.000Z",
       "approval": {
@@ -201,6 +202,7 @@ Shape:
       "sku": "COFFEE-1KG"
     },
     "scheduled_for": "2026-04-15T10:00:00.000Z",
+    "effective_scheduled_for": "2026-04-15T10:00:00.000Z",
     "last_attempt_status": "failed",
     "last_attempt_at": "2026-04-15T10:02:00.000Z",
     "approval": {
@@ -246,6 +248,10 @@ Shape:
   }
 }
 ```
+
+Notes:
+- `scheduled_for` is the operational renewal-cycle date stored in `renewal_cycle`
+- `effective_scheduled_for` is the projected delivery date shown in Admin when the linked subscription currently has a skipped next cycle
 
 ### Common Errors
 

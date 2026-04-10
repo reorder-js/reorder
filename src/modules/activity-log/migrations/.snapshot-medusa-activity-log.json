@@ -46,6 +46,7 @@
             "subscription.canceled",
             "subscription.plan_change_scheduled",
             "subscription.shipping_address_updated",
+            "subscription.next_delivery_skipped",
             "renewal.cycle_created",
             "renewal.approval_approved",
             "renewal.approval_rejected",

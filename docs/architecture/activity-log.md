@@ -100,6 +100,7 @@ Those operational logs remain a separate concern.
 - subscription paused, resumed, canceled
 - plan change scheduled or applied
 - shipping address updated
+- next delivery skipped
 - renewal attempted, succeeded, failed
 - dunning started, retried, recovered, unrecovered
 - cancellation case started
@@ -240,6 +241,7 @@ The `Activity Log` should use a stable, explicit taxonomy grouped by domain pref
 - `subscription.canceled`
 - `subscription.plan_change_scheduled`
 - `subscription.shipping_address_updated`
+- `subscription.next_delivery_skipped`
 
 ### Renewal Events
 

@@ -17,6 +17,7 @@ The current implementation supports:
 - cancelling subscriptions
 - scheduling plan changes
 - editing the shipping address
+- skipping the next delivery
 - creating subscriptions from store carts
 - customer-facing Store API for subscription account actions
 
@@ -128,6 +129,10 @@ For the detail view:
 3. the result is mapped to a detail DTO
 4. the Admin detail page renders the current subscription state and pending plan change preview
 
+Read models now expose both:
+- `next_renewal_at` as the technical billing anchor used by renewal processing
+- `effective_next_renewal_at` as the projected next delivery shown in Admin and Storefront when `skip_next_cycle` is enabled
+
 ## 4. Write Path
 
 All state-changing operations are routed through workflows.
@@ -138,6 +143,7 @@ Implemented mutations:
 - `cancel`
 - `schedule-plan-change`
 - `update-shipping-address`
+- `skip-next-delivery`
 - `create-subscription-from-cart`
 
 Write path pattern:

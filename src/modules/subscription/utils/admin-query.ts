@@ -16,6 +16,8 @@ import {
   SubscriptionDiscountType,
   SubscriptionFrequencyInterval,
 } from "../../../admin/types/subscription"
+import { SubscriptionFrequencyInterval as SourceSubscriptionFrequencyInterval } from "../types"
+import { getEffectiveNextRenewalAt } from "./effective-next-renewal"
 import { subscriptionErrors } from "./errors"
 
 export type ListAdminSubscriptionsInput = {
@@ -91,6 +93,7 @@ type SubscriptionOrderLinkRecord = {
     frequency_interval?: "week" | "month" | "year" | null
     frequency_value?: number | null
     next_renewal_at?: string | null
+    skip_next_cycle?: boolean | null
   } | null
   order?: {
     id?: string | null
@@ -263,6 +266,14 @@ function mapListItem(record: SubscriptionRecord): SubscriptionAdminListItem {
     },
     frequency,
     next_renewal_at: record.next_renewal_at,
+    effective_next_renewal_at:
+      getEffectiveNextRenewalAt({
+        next_renewal_at: record.next_renewal_at,
+        skip_next_cycle: record.skip_next_cycle,
+        frequency_interval:
+          record.frequency_interval as SourceSubscriptionFrequencyInterval,
+        frequency_value: record.frequency_value,
+      })?.toISOString() ?? null,
     trial: {
       is_trial: record.is_trial,
       trial_ends_at: record.trial_ends_at,
@@ -347,6 +358,14 @@ function mapOrderSubscriptionSummary(
         record.frequency_value
       ),
       next_renewal_at: record.next_renewal_at ?? null,
+      effective_next_renewal_at:
+        getEffectiveNextRenewalAt({
+          next_renewal_at: record.next_renewal_at ?? null,
+          skip_next_cycle: Boolean(record.skip_next_cycle),
+          frequency_interval:
+            record.frequency_interval as SourceSubscriptionFrequencyInterval,
+          frequency_value: record.frequency_value,
+        })?.toISOString() ?? null,
     },
   }
 }
@@ -677,6 +696,7 @@ export async function getAdminOrderSubscriptionSummary(
       "subscription.frequency_interval",
       "subscription.frequency_value",
       "subscription.next_renewal_at",
+      "subscription.skip_next_cycle",
       "order.id",
     ],
     filters: {

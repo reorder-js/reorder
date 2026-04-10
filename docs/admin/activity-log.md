@@ -192,6 +192,7 @@ The summary cell is operator-facing:
 - technical keys such as `pending_update_data` are translated before rendering
 - the secondary line is shown only when an explicit `reason` exists
 - shipping-address diffs are shown in a readable `old -> new` form
+- next-delivery-skip events show the `skip_next_cycle` transition in a readable form
 
 ### Timeline Filters
 

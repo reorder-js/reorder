@@ -125,7 +125,10 @@ const OrderSubscriptionSummaryWidget = ({
                   Next renewal
                 </Text>
                 <Text size="small" weight="plus">
-                  {formatDateTime(summary.subscription.next_renewal_at)}
+                  {formatDateTime(
+                    summary.subscription.effective_next_renewal_at ??
+                      summary.subscription.next_renewal_at
+                  )}
                 </Text>
               </div>
             </div>

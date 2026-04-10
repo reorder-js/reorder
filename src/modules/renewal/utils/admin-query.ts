@@ -20,6 +20,8 @@ import {
   RenewalAttemptStatus,
   RenewalCycleStatus,
 } from "../types"
+import { SubscriptionFrequencyInterval } from "../../subscription/types"
+import { getEffectiveNextRenewalAt } from "../../subscription/utils/effective-next-renewal"
 import { renewalErrors } from "./errors"
 
 export type ListAdminRenewalsInput = {
@@ -75,6 +77,10 @@ type SubscriptionRecord = {
   id: string
   reference: string
   status: "active" | "paused" | "cancelled" | "past_due"
+  next_renewal_at: string | null
+  frequency_interval: "week" | "month" | "year"
+  frequency_value: number
+  skip_next_cycle: boolean
   customer_snapshot: {
     full_name?: string | null
   } | null
@@ -94,6 +100,20 @@ type OrderRecord = {
 type LatestAttemptSummary = {
   status: RenewalAttemptAdminStatus
   at: string | null
+}
+
+function toTimestamp(value: string | null | undefined) {
+  if (!value) {
+    return null
+  }
+
+  const date = new Date(value)
+
+  if (Number.isNaN(date.getTime())) {
+    return null
+  }
+
+  return date.getTime()
 }
 
 const cycleListFields = [
@@ -138,9 +158,21 @@ const subscriptionFields = [
   "id",
   "reference",
   "status",
+  "next_renewal_at",
+  "frequency_interval",
+  "frequency_value",
+  "skip_next_cycle",
   "customer_snapshot",
   "product_snapshot",
 ] as const
+
+type RenewalAdminSubscriptionProjection = {
+  summary: RenewalAdminSubscriptionSummary
+  next_renewal_at: string | null
+  frequency_interval: "week" | "month" | "year"
+  frequency_value: number
+  skip_next_cycle: boolean
+}
 
 const orderFields = [
   "id",
@@ -292,7 +324,7 @@ async function getLatestAttemptMap(
 async function getSubscriptionSummaryMap(
   container: MedusaContainer,
   subscriptionIds: string[]
-): Promise<Map<string, RenewalAdminSubscriptionSummary>> {
+): Promise<Map<string, RenewalAdminSubscriptionProjection>> {
   if (!subscriptionIds.length) {
     return new Map()
   }
@@ -312,18 +344,52 @@ async function getSubscriptionSummaryMap(
     records.map((record) => [
       record.id,
       {
-        subscription_id: record.id,
-        reference: record.reference,
-        status: record.status,
-        customer_name:
-          record.customer_snapshot?.full_name ?? "Unknown customer",
-        product_title:
-          record.product_snapshot?.product_title ?? "Unknown product",
-        variant_title:
-          record.product_snapshot?.variant_title ?? "Unknown variant",
-        sku: record.product_snapshot?.sku ?? null,
+        summary: {
+          subscription_id: record.id,
+          reference: record.reference,
+          status: record.status,
+          customer_name:
+            record.customer_snapshot?.full_name ?? "Unknown customer",
+          product_title:
+            record.product_snapshot?.product_title ?? "Unknown product",
+          variant_title:
+            record.product_snapshot?.variant_title ?? "Unknown variant",
+          sku: record.product_snapshot?.sku ?? null,
+        },
+        next_renewal_at: record.next_renewal_at,
+        frequency_interval: record.frequency_interval,
+        frequency_value: record.frequency_value,
+        skip_next_cycle: record.skip_next_cycle,
       },
     ])
+  )
+}
+
+function getEffectiveScheduledFor(
+  cycle: RenewalCycleRecord,
+  subscriptionProjection: RenewalAdminSubscriptionProjection | undefined
+) {
+  if (!subscriptionProjection) {
+    return cycle.scheduled_for
+  }
+
+  const isUpcomingOperationalCycle =
+    cycle.status === RenewalCycleStatus.SCHEDULED &&
+    toTimestamp(subscriptionProjection.next_renewal_at) ===
+      toTimestamp(cycle.scheduled_for)
+
+  if (!isUpcomingOperationalCycle || !subscriptionProjection.skip_next_cycle) {
+    return cycle.scheduled_for
+  }
+
+  return (
+    getEffectiveNextRenewalAt({
+      next_renewal_at: subscriptionProjection.next_renewal_at,
+      skip_next_cycle: subscriptionProjection.skip_next_cycle,
+      frequency_interval:
+        subscriptionProjection.frequency_interval as SubscriptionFrequencyInterval,
+      frequency_value: subscriptionProjection.frequency_value,
+    })?.toISOString() ?? cycle.scheduled_for
   )
 }
 
@@ -383,12 +449,18 @@ async function mapRenewalListItems(
 
   return records.map((record) => {
     const latestAttempt = latestAttemptMap.get(record.id)
+    const subscriptionProjection = subscriptionSummaryMap.get(record.subscription_id)
+    const subscriptionSummary = subscriptionProjection?.summary
+    const effectiveScheduledFor = getEffectiveScheduledFor(
+      record,
+      subscriptionProjection
+    )
 
     return {
       id: record.id,
       status: mapCycleStatus(record.status),
       subscription:
-        subscriptionSummaryMap.get(record.subscription_id) ?? {
+        subscriptionSummary ?? {
           subscription_id: record.subscription_id,
           reference: "Unknown subscription",
           status: "past_due",
@@ -398,6 +470,7 @@ async function mapRenewalListItems(
           sku: null,
         },
       scheduled_for: record.scheduled_for,
+      effective_scheduled_for: effectiveScheduledFor,
       last_attempt_status: latestAttempt?.status ?? null,
       last_attempt_at: latestAttempt?.at ?? null,
       approval: mapApprovalSummary(record),

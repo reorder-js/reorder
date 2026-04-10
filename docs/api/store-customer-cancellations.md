@@ -55,6 +55,7 @@ Request body:
 
 Response:
 - refreshed subscription detail payload
+- payload includes both `next_renewal_at` and projected `effective_next_renewal_at`
 
 ### `POST /store/customers/me/subscriptions/:id/resume`
 
