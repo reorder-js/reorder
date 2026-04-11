@@ -462,6 +462,22 @@ export async function getStoreSubscriptionDetailResponse(
         subscription.payment_context?.payment_provider_id ?? null,
       payment_recovery: mapPaymentRecovery(dunningCase, latestDunningAttempt),
       active_cancellation_case: activeCancellationCase,
+      scheduled_plan_change: subscription.pending_update_data
+        ? {
+            variant_id: subscription.pending_update_data.variant_id,
+            variant_title: subscription.pending_update_data.variant_title,
+            sku: subscription.pending_update_data.sku,
+            frequency_interval:
+              subscription.pending_update_data.frequency_interval,
+            frequency_value: subscription.pending_update_data.frequency_value,
+            effective_at: toIsoStringOrNull(
+              subscription.pending_update_data.effective_at
+            ),
+            requested_at: toIsoStringOrNull(
+              subscription.pending_update_data.requested_at
+            ),
+          }
+        : null,
       scheduled_frequency_change: subscription.pending_update_data
         ? {
             frequency_interval: subscription.pending_update_data.frequency_interval,

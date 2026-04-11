@@ -29,11 +29,13 @@ Returns storefront-safe subscription detail data:
 - `frequency_interval`
 - `frequency_value`
 - `next_renewal_at`
+- `effective_next_renewal_at`
 - `last_renewal_at`
 - `shipping_address`
 - `payment_status`
 - `payment_provider_id`
 - `payment_recovery`
+- `scheduled_plan_change`
 - `active_cancellation_case`
 
 Authentication and ownership:
@@ -55,6 +57,7 @@ Request body:
 
 Response:
 - refreshed subscription detail payload
+- payload includes `scheduled_plan_change` when a pending variant or cadence update exists
 - payload includes both `next_renewal_at` and projected `effective_next_renewal_at`
 
 ### `POST /store/customers/me/subscriptions/:id/resume`

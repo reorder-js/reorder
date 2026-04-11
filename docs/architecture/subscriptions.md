@@ -182,6 +182,8 @@ These routes:
 - validate ownership against the authenticated customer
 - reuse existing workflows where possible
 - return storefront-safe DTOs instead of admin detail contracts
+- expose projected read-model fields such as `effective_next_renewal_at`
+- expose `scheduled_plan_change` when a pending plan update already exists
 
 ### Store PDP offer flow
 
