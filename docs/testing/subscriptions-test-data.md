@@ -154,7 +154,10 @@ The reset script removes the seeded records for the same areas:
 The seed is designed to be idempotent:
 - it uses stable IDs
 - it reuses seeded customers by deterministic email
-- it reuses renewal orders through `renewal_cycle.generated_order_id` or seeded order metadata when a previous run stopped midway
+- it reuses renewal orders through a three-level check on re-runs:
+  1. `renewal_cycle.generated_order_id` — used when a previous run completed fully
+  2. the `renewal_renewal_cycle_order_order` link table — used when `generated_order_id` was reset to `null` by a new upsert but the link still exists; if the linked order also still exists it is reused; if the order was deleted the stale link is dismissed so a fresh order and link can be created
+  3. seeded order metadata — used when a previous run created an order but failed before creating the link
 - rerunning it should update the same records instead of endlessly creating duplicates
 
 Implementation note:

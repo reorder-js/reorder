@@ -610,6 +610,51 @@ async function ensureRenewalOrders(
     renewalOrderIds.set(record.id, record.generated_order_id)
   }
 
+  // On re-runs, upsertRenewalCycle resets generated_order_id to null, so the
+  // generated_order_id check above finds nothing. Check the link table directly
+  // (table name: renewal_renewal_cycle_order_order) to detect any
+  // renewal_cycle -> order links from a previous run.
+  //
+  // Two sub-cases:
+  //  a) The linked order still exists → reuse it (skip order + link creation).
+  //  b) The linked order was deleted → dismiss the stale link so we can
+  //     re-create the order and a fresh link without hitting "Cannot create
+  //     multiple links".
+  const unlinkedCycleIds = scenarios
+    .filter((s) => !renewalOrderIds.has(s.cycle_id))
+    .map((s) => s.cycle_id)
+
+  if (unlinkedCycleIds.length > 0) {
+    const existingRenewalLinks = await pgConnection(
+      "renewal_renewal_cycle_order_order"
+    )
+      .select("renewal_cycle_id", "order_id")
+      .whereIn("renewal_cycle_id", unlinkedCycleIds)
+      .whereNull("deleted_at")
+
+    for (const linkRecord of existingRenewalLinks) {
+      const cycleId = linkRecord.renewal_cycle_id as string
+      const orderId = linkRecord.order_id as string
+
+      const liveOrder = await pgConnection("order")
+        .select("id")
+        .where("id", orderId)
+        .whereNull("deleted_at")
+        .limit(1)
+
+      if (liveOrder.length > 0) {
+        // Order still exists – reuse it
+        renewalOrderIds.set(cycleId, orderId)
+      } else {
+        // Order was deleted – dismiss the stale link so a new one can be created
+        await link.dismiss({
+          [RENEWAL_MODULE]: { renewal_cycle_id: cycleId },
+          [Modules.ORDER]: { order_id: orderId },
+        })
+      }
+    }
+  }
+
   for (const scenario of scenarios) {
     if (renewalOrderIds.has(scenario.cycle_id)) {
       continue
