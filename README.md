@@ -96,7 +96,21 @@ plugins: [
 ]
 ```
 
-### 3. Start your Medusa app
+### 3. Run Migrations
+
+With `npm`:
+
+```bash npm
+npx medusa db:migrate
+```
+
+With `yarn`:
+
+```bash yarn
+yarn medusa db:migrate
+```
+
+### 4. Start your Medusa app
 
 After adding the plugin, run your normal Medusa setup flow in your store project.
 
