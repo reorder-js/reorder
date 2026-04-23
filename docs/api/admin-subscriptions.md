@@ -247,6 +247,64 @@ Notes:
 - `404 not_found`
   Subscription does not exist.
 
+## 2.1 Order Detail Subscription Summary
+
+### Endpoint
+
+- Method: `GET`
+- Path: `/admin/orders/:id/subscription-summary`
+
+### Purpose
+
+Returns the lightweight subscription context used by the custom `Subscription` widget on the Medusa order detail page.
+
+### Path Parameters
+
+- `id: string`
+
+### Success Response
+
+Status:
+- `200 OK`
+
+Shape when the order is linked to a subscription:
+
+```json
+{
+  "summary": {
+    "is_subscription_order": true,
+    "subscription": {
+      "id": "sub_123",
+      "reference": "SUB-001",
+      "status": "active",
+      "frequency_label": "Every 2 weeks",
+      "discount": {
+        "type": "percentage",
+        "value": 5,
+        "label": "5% off"
+      },
+      "next_renewal_at": "2026-05-07T10:00:00.000Z",
+      "effective_next_renewal_at": "2026-05-07T10:00:00.000Z"
+    }
+  }
+}
+```
+
+Shape when the order is not linked to a subscription:
+
+```json
+{
+  "summary": {
+    "is_subscription_order": false,
+    "subscription": null
+  }
+}
+```
+
+Notes:
+- `discount` is derived from the subscription `pricing_snapshot`
+- this route is read-only and intentionally smaller than the full subscription detail response
+
 ## 3. Pause Subscription
 
 ### Endpoint

@@ -71,6 +71,7 @@ export type AdminOrderSubscriptionSummary = {
     frequency_label: string
     next_renewal_at: string | null
     effective_next_renewal_at: string | null
+    discount: SubscriptionAdminDiscount | null
   }
 }
 

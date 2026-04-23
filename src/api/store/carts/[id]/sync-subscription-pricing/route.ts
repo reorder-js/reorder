@@ -1,6 +1,6 @@
-import { MedusaError } from "@medusajs/framework/utils"
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
-import { createSubscriptionFromCartWorkflow } from "../../../../../subscription-flows/create-subscription-from-cart"
+import { MedusaError } from "@medusajs/framework/utils"
+import { syncSubscriptionCartPricingWorkflow } from "../../../../../workflows/sync-subscription-cart-pricing"
 
 export const POST = async (
   req: MedusaRequest,
@@ -13,7 +13,7 @@ export const POST = async (
     )
   }
 
-  const { result } = await createSubscriptionFromCartWorkflow(req.scope).run({
+  const { result } = await syncSubscriptionCartPricingWorkflow(req.scope).run({
     input: {
       cart_id: req.params.id,
     },

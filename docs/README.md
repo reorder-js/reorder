@@ -18,7 +18,7 @@ At the moment, the following areas are implemented and tested:
 Completed:
 - `Subscriptions` domain model
 - `Subscriptions` admin API routes
-- `Subscriptions` Admin UI: list, details, actions, plan change, shipping address edit
+- `Subscriptions` Admin UI: list, details, actions, plan change, shipping address edit, and order-detail subscription widget
 - `Subscriptions` backend integration tests
 - `Subscriptions` admin flow integration test
 - `Plans & Offers` domain model
@@ -84,9 +84,6 @@ Runtime source-of-truth documents currently exist for:
 - `Subscriptions`
   - `architecture/subscriptions.md`
   - `api/admin-subscriptions.md`
-  - `api/store-subscription-checkout.md`
-  - `api/store-customer-cancellations.md`
-  - `api/store-subscription-offers.md`
   - `admin/subscriptions.md`
   - `testing/subscriptions.md`
 - `Plans & Offers`
@@ -141,6 +138,7 @@ The currently implemented areas are `Subscriptions`, `Plans & Offers`, `Renewals
 This area includes:
 - subscription list in Admin
 - subscription details page
+- order-detail subscription widget on the standard Medusa order page
 - pause, resume, and cancel actions
 - schedule plan change
 - edit shipping address

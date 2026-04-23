@@ -12,6 +12,7 @@ The current implementation supports:
 - listing subscriptions
 - viewing subscription details
 - showing subscription context on standard Medusa order details
+- showing subscription discount context on standard Medusa order details
 - pausing subscriptions
 - resuming subscriptions
 - cancelling subscriptions
@@ -158,10 +159,23 @@ This keeps business logic out of HTTP handlers.
 ### Store purchase flow
 
 The store create flow uses:
+- `POST /store/carts/:id/sync-subscription-pricing`
 - `POST /store/carts/:id/subscribe`
 - `create-subscription-from-cart`
 
-The flow validates subscription metadata on the line item, blocks mixed cart usage, completes the cart into a standard Medusa `order`, checks idempotency through the `subscription-order` link, creates the `subscription`, links it to `customer`, `cart`, and `order`, and creates the first upcoming `renewal_cycle`.
+The flow validates subscription metadata on the line item, synchronizes the cart pricing for the selected cadence, blocks mixed cart usage, completes the cart into a standard Medusa `order`, checks idempotency through the `subscription-order` link, creates the `subscription`, links it to `customer`, `cart`, and `order`, and creates the first upcoming `renewal_cycle`.
+
+Pricing synchronization is handled by a dedicated workflow:
+- load subscription line items from the cart
+- resolve effective `Plans & Offers` config for the selected cadence
+- apply or remove the manual line-item adjustment
+- refresh cart items, taxes, and payment collection before checkout continues
+
+Current adjustment semantics:
+- adjustment identity uses `provider_id = "subscription_discount"`
+- adjustment description is `Subscription discount`
+- adjustment amount is stored tax-inclusive
+- cart adjustments intentionally avoid `code`, so Medusa promotion flows do not treat them as promo codes
 
 ### Store customer account flow
 
@@ -240,6 +254,7 @@ Implemented read routes:
 - `GET /store/products/:id/subscription-offer`
 
 Implemented mutation routes:
+- `POST /store/carts/:id/sync-subscription-pricing`
 - `POST /store/carts/:id/subscribe`
 - `POST /store/customers/me/subscriptions/:id/pause`
 - `POST /store/customers/me/subscriptions/:id/resume`

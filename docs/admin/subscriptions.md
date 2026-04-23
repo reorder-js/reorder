@@ -166,6 +166,8 @@ The plugin also extends the standard Medusa `Order detail` page.
 
 The `Subscription` widget shows:
 - `Subscription order` with a linked subscription card when the order is linked to a subscription
+- current subscription discount label derived from `pricing_snapshot`
+- projected next renewal date
 - `One-time order` when no `subscription_order` link exists
 
 ## 3. Detail Actions

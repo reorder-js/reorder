@@ -120,6 +120,15 @@ const OrderSubscriptionSummaryWidget = ({
                   {summary.subscription.frequency_label}
                 </Text>
               </div>
+              <div className="flex flex-col gap-1">
+                <Text size="small" className="text-ui-fg-subtle">
+                  Discount
+                </Text>
+                <Text size="small" weight="plus">
+                  {summary.subscription.discount?.label ??
+                    "subscription_discount"}
+                </Text>
+              </div>
               <div className="flex flex-col gap-1 sm:col-span-2">
                 <Text size="small" className="text-ui-fg-subtle">
                   Next renewal

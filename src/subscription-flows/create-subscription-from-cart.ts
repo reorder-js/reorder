@@ -7,10 +7,13 @@ import {
 import {
   acquireLockStep,
   completeCartWorkflow,
+  refreshCartItemsWorkflow,
   releaseLockStep,
   useQueryGraphStep,
 } from "@medusajs/medusa/core-flows"
+import { syncSubscriptionCartPricingStep } from "../workflows/steps/sync-subscription-cart-pricing"
 import { createInitialRenewalCycleStep } from "../workflows/steps/create-initial-renewal-cycle"
+import { labelSubscriptionOrderAdjustmentsStep } from "../workflows/steps/label-subscription-order-adjustments"
 import {
   createSubscriptionRecordStep,
   type CreateSubscriptionRecordStepInput,
@@ -35,20 +38,37 @@ const SUBSCRIPTION_ORDER_LINK_ENTRY_POINT = "subscription_order"
 export const createSubscriptionFromCartWorkflow = createWorkflow(
   "create-subscription-from-cart",
   function (input: CreateSubscriptionFromCartWorkflowInput) {
-    acquireLockStep({
+    const lockInput = transform({ input }, ({ input }) => ({
       key: input.cart_id,
       timeout: 30,
       ttl: 120,
+    }))
+
+    acquireLockStep(lockInput)
+
+    const pricingSync = syncSubscriptionCartPricingStep({
+      cart_id: input.cart_id,
+    })
+
+    const refreshedCart = refreshCartItemsWorkflow.runAsStep({
+      input: transform({ pricingSync, input }, ({ input }) => ({
+        cart_id: input.cart_id,
+        force_refresh: true,
+      })),
     })
 
     const validatedCart = validateSubscriptionCartStep(input)
     const completedCart = completeCartWorkflow.runAsStep({
-      input: {
+      input: transform({ refreshedCart, input }, ({ input }) => ({
         id: input.cart_id,
-      },
+      })),
     })
     const orderId = transform({ completedCart }, ({ completedCart }) => {
       return completedCart.id
+    })
+
+    labelSubscriptionOrderAdjustmentsStep({
+      order_id: orderId,
     })
 
     const existingLinks = useQueryGraphStep({
@@ -220,9 +240,11 @@ export const createSubscriptionFromCartWorkflow = createWorkflow(
       name: "load-created-subscription",
     })
 
-    releaseLockStep({
-      key: input.cart_id,
-    })
+    releaseLockStep(
+      transform({ subscriptionQuery, input }, ({ input }) => ({
+        key: input.cart_id,
+      }))
+    )
 
     return new WorkflowResponse({
       type: "order" as const,

@@ -94,6 +94,11 @@ type SubscriptionOrderLinkRecord = {
     frequency_value?: number | null
     next_renewal_at?: string | null
     skip_next_cycle?: boolean | null
+    pricing_snapshot?: {
+      discount_type?: "percentage" | "fixed"
+      discount_value?: number
+      label?: string | null
+    } | null
   } | null
   order?: {
     id?: string | null
@@ -357,6 +362,7 @@ function mapOrderSubscriptionSummary(
         record.frequency_interval,
         record.frequency_value
       ),
+      discount: mapDiscount(record.pricing_snapshot ?? null),
       next_renewal_at: record.next_renewal_at ?? null,
       effective_next_renewal_at:
         getEffectiveNextRenewalAt({
@@ -697,6 +703,7 @@ export async function getAdminOrderSubscriptionSummary(
       "subscription.frequency_value",
       "subscription.next_renewal_at",
       "subscription.skip_next_cycle",
+      "subscription.pricing_snapshot",
       "order.id",
     ],
     filters: {

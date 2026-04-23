@@ -6,6 +6,22 @@
 - keep customer subscription actions on Store routes, not admin routes
 - keep mutations workflow-backed and validator-driven
 
+## Current checkout support
+
+Implemented checkout-related Store routes:
+- `POST /store/carts/:id/sync-subscription-pricing`
+- `POST /store/carts/:id/subscribe`
+
+Current intent:
+- `sync-subscription-pricing` is the normalization step used before payment-session creation and before subscription completion
+- `subscribe` is the final subscription checkout mutation and still rejects mixed carts
+
+Current pricing semantics:
+- subscription discount is stored as a manual cart line-item adjustment
+- adjustment identity uses `provider_id = "subscription_discount"`
+- `code` is intentionally not used on the cart adjustment, so Medusa promotion flows do not reinterpret it as a promo code
+- discount amount is stored tax-inclusive and refreshed through cart workflows before payment continues
+
 ## Required routes
 
 - `GET /store/customers/me/subscriptions/:id`
