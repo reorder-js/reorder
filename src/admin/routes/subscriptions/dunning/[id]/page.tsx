@@ -1,4 +1,3 @@
-import { defineRouteConfig } from "@medusajs/admin-sdk"
 import {
   Alert,
   Button,
@@ -191,7 +190,7 @@ const DunningDetailPage = () => {
 
   const canRetryNow = dunningCase
     ? !terminalStatuses.has(dunningCase.status) &&
-      dunningCase.status !== DunningCaseAdminStatus.RETRYING
+    dunningCase.status !== DunningCaseAdminStatus.RETRYING
     : false
   const canMarkRecovered = canRetryNow
   const canMarkUnrecovered = canRetryNow
@@ -214,8 +213,8 @@ const DunningDetailPage = () => {
     setIntervals(retrySchedule?.intervals.join(", ") ?? "1440, 4320, 10080")
     setMaxAttempts(
       retryScheduleMaxAttempts?.toString() ??
-        retrySchedule?.intervals.length.toString() ??
-        "3"
+      retrySchedule?.intervals.length.toString() ??
+      "3"
     )
   }, [actionDrawerOpen, actionDrawerMode, retryScheduleFormData])
 
@@ -404,48 +403,56 @@ const DunningDetailPage = () => {
                 </IconButton>
               </DropdownMenu.Trigger>
               <DropdownMenu.Content align="end">
-                {canRetryNow ? (
-                  <DropdownMenu.Item
-                    className="flex items-center gap-x-2"
-                    disabled={isActionPending}
-                    onClick={() => {
-                      void handleRetryNow()
-                    }}
-                  >
-                    <TriangleRightMini className="text-ui-fg-subtle" />
-                    <span>{retryNowMutation.isPending ? "Retrying..." : "Retry now"}</span>
-                  </DropdownMenu.Item>
-                ) : null}
-                {canMarkRecovered ? (
-                  <DropdownMenu.Item
-                    className="flex items-center gap-x-2"
-                    disabled={isActionPending}
-                    onClick={() => openDrawer("mark_recovered")}
-                  >
-                    <CheckCircle className="text-ui-fg-subtle" />
-                    <span>Mark recovered</span>
-                  </DropdownMenu.Item>
-                ) : null}
-                {canMarkUnrecovered ? (
-                  <DropdownMenu.Item
-                    className="flex items-center gap-x-2"
-                    disabled={isActionPending}
-                    onClick={() => openDrawer("mark_unrecovered")}
-                  >
-                    <XCircle className="text-ui-fg-subtle" />
-                    <span>Mark unrecovered</span>
-                  </DropdownMenu.Item>
-                ) : null}
-                {canEditRetrySchedule ? (
-                  <DropdownMenu.Item
-                    className="flex items-center gap-x-2"
-                    disabled={isActionPending}
-                    onClick={() => openDrawer("retry_schedule")}
-                  >
-                    <EllipsisHorizontal className="text-ui-fg-subtle" />
-                    <span>Edit retry schedule</span>
-                  </DropdownMenu.Item>
-                ) : null}
+                {canRetryNow
+                  ? (
+                      <DropdownMenu.Item
+                        className="flex items-center gap-x-2"
+                        disabled={isActionPending}
+                        onClick={() => {
+                          void handleRetryNow()
+                        }}
+                      >
+                        <TriangleRightMini className="text-ui-fg-subtle" />
+                        <span>{retryNowMutation.isPending ? "Retrying..." : "Retry now"}</span>
+                      </DropdownMenu.Item>
+                    )
+                  : null}
+                {canMarkRecovered
+                  ? (
+                      <DropdownMenu.Item
+                        className="flex items-center gap-x-2"
+                        disabled={isActionPending}
+                        onClick={() => openDrawer("mark_recovered")}
+                      >
+                        <CheckCircle className="text-ui-fg-subtle" />
+                        <span>Mark recovered</span>
+                      </DropdownMenu.Item>
+                    )
+                  : null}
+                {canMarkUnrecovered
+                  ? (
+                      <DropdownMenu.Item
+                        className="flex items-center gap-x-2"
+                        disabled={isActionPending}
+                        onClick={() => openDrawer("mark_unrecovered")}
+                      >
+                        <XCircle className="text-ui-fg-subtle" />
+                        <span>Mark unrecovered</span>
+                      </DropdownMenu.Item>
+                    )
+                  : null}
+                {canEditRetrySchedule
+                  ? (
+                      <DropdownMenu.Item
+                        className="flex items-center gap-x-2"
+                        disabled={isActionPending}
+                        onClick={() => openDrawer("retry_schedule")}
+                      >
+                        <EllipsisHorizontal className="text-ui-fg-subtle" />
+                        <span>Edit retry schedule</span>
+                      </DropdownMenu.Item>
+                    )
+                  : null}
               </DropdownMenu.Content>
             </DropdownMenu>
           </div>
@@ -570,57 +577,60 @@ const DunningDetailPage = () => {
               <Heading level="h2">Attempt timeline</Heading>
             </div>
             <div className="px-6 py-4">
-              {dunningCase.attempts.length ? (
-                <Table>
-                  <Table.Header>
-                    <Table.Row>
-                      <Table.HeaderCell>Attempt</Table.HeaderCell>
-                      <Table.HeaderCell>Status</Table.HeaderCell>
-                      <Table.HeaderCell>Started</Table.HeaderCell>
-                      <Table.HeaderCell>Finished</Table.HeaderCell>
-                      <Table.HeaderCell>Error</Table.HeaderCell>
-                      <Table.HeaderCell>Payment reference</Table.HeaderCell>
-                    </Table.Row>
-                  </Table.Header>
-                  <Table.Body>
-                    {dunningCase.attempts.map((attempt) => (
-                      <Table.Row key={attempt.id}>
-                        <Table.Cell>
-                          <Text size="small" leading="compact" weight="plus">
-                            #{attempt.attempt_no}
-                          </Text>
-                        </Table.Cell>
-                        <Table.Cell>
-                          <StatusBadge color={getAttemptStatusColor(attempt.status)}>
-                            {formatAttemptStatus(attempt.status)}
-                          </StatusBadge>
-                        </Table.Cell>
-                        <Table.Cell>{formatDateTime(attempt.started_at)}</Table.Cell>
-                        <Table.Cell>{formatDateTime(attempt.finished_at)}</Table.Cell>
-                        <Table.Cell>
-                          <div className="flex flex-col gap-y-0.5">
-                            <Text size="small" leading="compact">
-                              {attempt.error_code || "-"}
-                            </Text>
-                            <Text
-                              size="small"
-                              leading="compact"
-                              className="text-ui-fg-subtle"
-                            >
-                              {attempt.error_message || "No error message"}
-                            </Text>
-                          </div>
-                        </Table.Cell>
-                        <Table.Cell>{attempt.payment_reference || "-"}</Table.Cell>
-                      </Table.Row>
-                    ))}
-                  </Table.Body>
-                </Table>
-              ) : (
-                <Text size="small" leading="compact" className="text-ui-fg-subtle">
-                  No attempts have been recorded for this dunning case yet.
-                </Text>
-              )}
+              {dunningCase.attempts.length
+                ? (
+                    <Table>
+                      <Table.Header>
+                        <Table.Row>
+                          <Table.HeaderCell>Attempt</Table.HeaderCell>
+                          <Table.HeaderCell>Status</Table.HeaderCell>
+                          <Table.HeaderCell>Started</Table.HeaderCell>
+                          <Table.HeaderCell>Finished</Table.HeaderCell>
+                          <Table.HeaderCell>Error</Table.HeaderCell>
+                          <Table.HeaderCell>Payment reference</Table.HeaderCell>
+                        </Table.Row>
+                      </Table.Header>
+                      <Table.Body>
+                        {dunningCase.attempts.map((attempt) => (
+                          <Table.Row key={attempt.id}>
+                            <Table.Cell>
+                              <Text size="small" leading="compact" weight="plus">
+                                #
+                                {attempt.attempt_no}
+                              </Text>
+                            </Table.Cell>
+                            <Table.Cell>
+                              <StatusBadge color={getAttemptStatusColor(attempt.status)}>
+                                {formatAttemptStatus(attempt.status)}
+                              </StatusBadge>
+                            </Table.Cell>
+                            <Table.Cell>{formatDateTime(attempt.started_at)}</Table.Cell>
+                            <Table.Cell>{formatDateTime(attempt.finished_at)}</Table.Cell>
+                            <Table.Cell>
+                              <div className="flex flex-col gap-y-0.5">
+                                <Text size="small" leading="compact">
+                                  {attempt.error_code || "-"}
+                                </Text>
+                                <Text
+                                  size="small"
+                                  leading="compact"
+                                  className="text-ui-fg-subtle"
+                                >
+                                  {attempt.error_message || "No error message"}
+                                </Text>
+                              </div>
+                            </Table.Cell>
+                            <Table.Cell>{attempt.payment_reference || "-"}</Table.Cell>
+                          </Table.Row>
+                        ))}
+                      </Table.Body>
+                    </Table>
+                  )
+                : (
+                    <Text size="small" leading="compact" className="text-ui-fg-subtle">
+                      No attempts have been recorded for this dunning case yet.
+                    </Text>
+                  )}
             </div>
           </Container>
 
@@ -629,17 +639,19 @@ const DunningDetailPage = () => {
               <Heading level="h2">Technical metadata</Heading>
             </div>
             <div className="px-6 py-4">
-              {metadataRows.length ? (
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                  {metadataRows.map((row) => (
-                    <DetailRow key={row.key} label={row.key} value={row.value} mono />
-                  ))}
-                </div>
-              ) : (
-                <Text size="small" leading="compact" className="text-ui-fg-subtle">
-                  No metadata was stored for this dunning case.
-                </Text>
-              )}
+              {metadataRows.length
+                ? (
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                      {metadataRows.map((row) => (
+                        <DetailRow key={row.key} label={row.key} value={row.value} mono />
+                      ))}
+                    </div>
+                  )
+                : (
+                    <Text size="small" leading="compact" className="text-ui-fg-subtle">
+                      No metadata was stored for this dunning case.
+                    </Text>
+                  )}
             </div>
           </Container>
         </div>
@@ -707,41 +719,43 @@ const DunningDetailPage = () => {
             </div>
             <div className="px-6 py-4">
               <div className="grid gap-4">
-                {dunningCase.renewal ? (
-                  <Link
-                    to={`/subscriptions/renewals/${dunningCase.renewal.renewal_cycle_id}`}
-                    className="outline-none focus-within:shadow-borders-interactive-with-focus rounded-md [&:hover>div]:bg-ui-bg-component-hover"
-                  >
-                    <div className="shadow-elevation-card-rest bg-ui-bg-component rounded-md px-4 py-2 transition-colors">
-                      <div className="flex items-center gap-3">
-                        <div className="shadow-elevation-card-rest flex h-14 w-14 items-center justify-center rounded-md text-ui-fg-muted">
-                          <Text size="small" leading="compact" weight="plus">
-                            REN
-                          </Text>
+                {dunningCase.renewal
+                  ? (
+                      <Link
+                        to={`/subscriptions/renewals/${dunningCase.renewal.renewal_cycle_id}`}
+                        className="outline-none focus-within:shadow-borders-interactive-with-focus rounded-md [&:hover>div]:bg-ui-bg-component-hover"
+                      >
+                        <div className="shadow-elevation-card-rest bg-ui-bg-component rounded-md px-4 py-2 transition-colors">
+                          <div className="flex items-center gap-3">
+                            <div className="shadow-elevation-card-rest flex h-14 w-14 items-center justify-center rounded-md text-ui-fg-muted">
+                              <Text size="small" leading="compact" weight="plus">
+                                REN
+                              </Text>
+                            </div>
+                            <div className="flex flex-1 flex-col">
+                              <Text size="small" leading="compact" weight="plus">
+                                {dunningCase.renewal.renewal_cycle_id}
+                              </Text>
+                              <Text
+                                size="small"
+                                leading="compact"
+                                className="text-ui-fg-subtle"
+                              >
+                                {formatRenewalStatus(dunningCase.renewal.status)}
+                              </Text>
+                            </div>
+                            <div className="size-7 flex items-center justify-center">
+                              <TriangleRightMini className="text-ui-fg-muted rtl:rotate-180" />
+                            </div>
+                          </div>
                         </div>
-                        <div className="flex flex-1 flex-col">
-                          <Text size="small" leading="compact" weight="plus">
-                            {dunningCase.renewal.renewal_cycle_id}
-                          </Text>
-                          <Text
-                            size="small"
-                            leading="compact"
-                            className="text-ui-fg-subtle"
-                          >
-                            {formatRenewalStatus(dunningCase.renewal.status)}
-                          </Text>
-                        </div>
-                        <div className="size-7 flex items-center justify-center">
-                          <TriangleRightMini className="text-ui-fg-muted rtl:rotate-180" />
-                        </div>
-                      </div>
-                    </div>
-                  </Link>
-                ) : (
-                  <Text size="small" leading="compact" className="text-ui-fg-subtle">
-                    No linked renewal
-                  </Text>
-                )}
+                      </Link>
+                    )
+                  : (
+                      <Text size="small" leading="compact" className="text-ui-fg-subtle">
+                        No linked renewal
+                      </Text>
+                    )}
                 <DetailRow
                   label="Renewal status"
                   value={
@@ -768,39 +782,42 @@ const DunningDetailPage = () => {
             </div>
             <div className="px-6 py-4">
               <div className="grid gap-4">
-                {dunningCase.order ? (
-                  <Link
-                    to={`/orders/${dunningCase.order.order_id}`}
-                    className="outline-none focus-within:shadow-borders-interactive-with-focus rounded-md [&:hover>div]:bg-ui-bg-component-hover"
-                  >
-                    <div className="shadow-elevation-card-rest bg-ui-bg-component rounded-md px-4 py-2 transition-colors">
-                      <div className="flex items-center gap-3">
-                        <div className="shadow-elevation-card-rest flex h-14 w-14 items-center justify-center rounded-md text-ui-fg-muted">
-                          <ShoppingBag />
+                {dunningCase.order
+                  ? (
+                      <Link
+                        to={`/orders/${dunningCase.order.order_id}`}
+                        className="outline-none focus-within:shadow-borders-interactive-with-focus rounded-md [&:hover>div]:bg-ui-bg-component-hover"
+                      >
+                        <div className="shadow-elevation-card-rest bg-ui-bg-component rounded-md px-4 py-2 transition-colors">
+                          <div className="flex items-center gap-3">
+                            <div className="shadow-elevation-card-rest flex h-14 w-14 items-center justify-center rounded-md text-ui-fg-muted">
+                              <ShoppingBag />
+                            </div>
+                            <div className="flex flex-1 flex-col">
+                              <Text size="small" leading="compact" weight="plus">
+                                #
+                                {dunningCase.order.display_id}
+                              </Text>
+                              <Text
+                                size="small"
+                                leading="compact"
+                                className="text-ui-fg-subtle"
+                              >
+                                {dunningCase.order.status}
+                              </Text>
+                            </div>
+                            <div className="size-7 flex items-center justify-center">
+                              <TriangleRightMini className="text-ui-fg-muted rtl:rotate-180" />
+                            </div>
+                          </div>
                         </div>
-                        <div className="flex flex-1 flex-col">
-                          <Text size="small" leading="compact" weight="plus">
-                            #{dunningCase.order.display_id}
-                          </Text>
-                          <Text
-                            size="small"
-                            leading="compact"
-                            className="text-ui-fg-subtle"
-                          >
-                            {dunningCase.order.status}
-                          </Text>
-                        </div>
-                        <div className="size-7 flex items-center justify-center">
-                          <TriangleRightMini className="text-ui-fg-muted rtl:rotate-180" />
-                        </div>
-                      </div>
-                    </div>
-                  </Link>
-                ) : (
-                  <Text size="small" leading="compact" className="text-ui-fg-subtle">
-                    No linked order
-                  </Text>
-                )}
+                      </Link>
+                    )
+                  : (
+                      <Text size="small" leading="compact" className="text-ui-fg-subtle">
+                        No linked order
+                      </Text>
+                    )}
                 <DetailRow label="Order status" value={dunningCase.order?.status || "-"} />
                 <DetailRow label="Order ID" value={dunningCase.order?.order_id || "-"} />
               </div>
@@ -816,34 +833,38 @@ const DunningDetailPage = () => {
           </Drawer.Header>
           <Drawer.Body className="flex flex-1 flex-col gap-y-4 p-4">
             {formError ? <Alert variant="error">{formError}</Alert> : null}
-            {actionDrawerMode === "retry_schedule" ? (
-              <Alert variant="warning">
-                Overriding the retry schedule updates future retry timing for this case.
-              </Alert>
-            ) : null}
-            {actionDrawerMode === "retry_schedule" ? (
-              <>
-                <div className="flex flex-col gap-y-2">
-                  <Label htmlFor="retry-intervals">Retry intervals (minutes)</Label>
-                  <Input
-                    id="retry-intervals"
-                    value={intervals}
-                    onChange={(event) => setIntervals(event.target.value)}
-                    placeholder="1440, 4320, 10080"
-                  />
-                </div>
-                <div className="flex flex-col gap-y-2">
-                  <Label htmlFor="retry-max-attempts">Max attempts</Label>
-                  <Input
-                    id="retry-max-attempts"
-                    type="number"
-                    min={1}
-                    value={maxAttempts}
-                    onChange={(event) => setMaxAttempts(event.target.value)}
-                  />
-                </div>
-              </>
-            ) : null}
+            {actionDrawerMode === "retry_schedule"
+              ? (
+                  <Alert variant="warning">
+                    Overriding the retry schedule updates future retry timing for this case.
+                  </Alert>
+                )
+              : null}
+            {actionDrawerMode === "retry_schedule"
+              ? (
+                  <>
+                    <div className="flex flex-col gap-y-2">
+                      <Label htmlFor="retry-intervals">Retry intervals (minutes)</Label>
+                      <Input
+                        id="retry-intervals"
+                        value={intervals}
+                        onChange={(event) => setIntervals(event.target.value)}
+                        placeholder="1440, 4320, 10080"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-y-2">
+                      <Label htmlFor="retry-max-attempts">Max attempts</Label>
+                      <Input
+                        id="retry-max-attempts"
+                        type="number"
+                        min={1}
+                        value={maxAttempts}
+                        onChange={(event) => setMaxAttempts(event.target.value)}
+                      />
+                    </div>
+                  </>
+                )
+              : null}
             <div className="flex flex-col gap-y-2">
               <Label htmlFor="dunning-reason">
                 {actionDrawerMode === "mark_unrecovered" ? "Reason *" : "Reason"}

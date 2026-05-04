@@ -15,10 +15,8 @@ import {
   createProductWithVariant,
 } from "../helpers/plan-offer-fixtures"
 import {
-  PlanOfferDiscountType,
   PlanOfferFrequencyInterval,
   PlanOfferScope,
-  PlanOfferStackingPolicy,
 } from "../../src/modules/plan-offer/types"
 
 medusaIntegrationTestRunner({

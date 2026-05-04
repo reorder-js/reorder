@@ -2,10 +2,7 @@ import { moduleIntegrationTestRunner } from "@medusajs/test-utils"
 import { ACTIVITY_LOG_MODULE } from ".."
 import SubscriptionLog from "../models/subscription-log"
 import ActivityLogModuleService from "../service"
-import {
-  ActivityLogActorType,
-  ActivityLogEventType,
-} from "../types"
+import { ActivityLogActorType, ActivityLogEventType } from "../types"
 import { normalizeActivityLogEvent } from "../utils/normalize-log-event"
 import {
   compensateCreateSubscriptionLogEventStep,
@@ -16,7 +13,7 @@ moduleIntegrationTestRunner<ActivityLogModuleService>({
   moduleName: ACTIVITY_LOG_MODULE,
   moduleModels: [SubscriptionLog],
   resolve: "./src/modules/activity-log",
-  testSuite: ({ service, container }) => {
+  testSuite: ({ service }) => {
     describe("createSubscriptionLogEventStep", () => {
       const stepContext = {
         container: {
@@ -189,7 +186,8 @@ moduleIntegrationTestRunner<ActivityLogModuleService>({
         const logEvent = normalizeActivityLogEvent({
           subscription_id: "sub_005",
           customer_id: "cus_005",
-          event_type: ActivityLogEventType.SUBSCRIPTION_SHIPPING_ADDRESS_UPDATED,
+          event_type:
+            ActivityLogEventType.SUBSCRIPTION_SHIPPING_ADDRESS_UPDATED,
           actor_type: ActivityLogActorType.USER,
           actor_id: "user_005",
           display: {

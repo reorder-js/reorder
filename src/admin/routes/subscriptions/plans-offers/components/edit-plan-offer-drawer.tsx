@@ -285,305 +285,187 @@ export const EditPlanOfferDrawer = ({
         </Drawer.Header>
         <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
           <Drawer.Body className="flex min-h-0 flex-1 flex-col gap-y-6 overflow-y-auto p-4">
-            {isLoading ? (
-              <div className="flex items-center gap-x-2 text-ui-fg-subtle">
-                <div className="bg-ui-fg-subtle size-2 rounded-full" />
-                <Text size="small" leading="compact" className="text-ui-fg-subtle">
-                  Loading plan offer...
-                </Text>
-              </div>
-            ) : null}
-            {isError ? (
-              <Alert variant="error">
-                {error instanceof Error ? error.message : "Failed to load plan offer."}
-              </Alert>
-            ) : null}
-            {!isLoading && !isError && detail ? (
-              <>
-                <div className="grid gap-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="edit-name">Name</Label>
-                    <Input id="edit-name" {...form.register("name")} />
-                    <FieldError message={form.formState.errors.name?.message} />
+            {isLoading
+              ? (
+                  <div className="flex items-center gap-x-2 text-ui-fg-subtle">
+                    <div className="bg-ui-fg-subtle size-2 rounded-full" />
+                    <Text size="small" leading="compact" className="text-ui-fg-subtle">
+                      Loading plan offer...
+                    </Text>
                   </div>
-
-                  <div className="grid gap-3 rounded-lg border border-ui-border-base p-4">
-                    <div className="grid gap-1">
-                      <Text size="small" leading="compact" weight="plus">
-                        Target
-                      </Text>
-                      <Text
-                        size="small"
-                        leading="compact"
-                        className="text-ui-fg-subtle"
-                      >
-                        {detail.target.product_title}
-                        {detail.target.variant_title
-                          ? ` · ${detail.target.variant_title}`
-                          : ""}
-                      </Text>
-                      <Text
-                        size="small"
-                        leading="compact"
-                        className="text-ui-fg-subtle"
-                      >
-                        {detail.target.scope === "product"
-                          ? "Product-level configuration"
-                          : "Variant-level configuration"}
-                      </Text>
-                    </div>
-                  </div>
-
-                  <div className="grid gap-2">
-                    <div className="flex items-center justify-between rounded-lg border border-ui-border-base px-4 py-3">
-                      <div className="flex flex-col">
-                        <Text size="small" leading="compact" weight="plus">
-                          Offer enabled
-                        </Text>
-                        <Text
-                          size="small"
-                          leading="compact"
-                          className="text-ui-fg-subtle"
-                        >
-                          Enable or disable this configuration.
-                        </Text>
-                      </div>
-                      <Controller
-                        control={form.control}
-                        name="is_enabled"
-                        render={({ field }) => (
-                          <Switch
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
-                        )}
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="grid gap-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex flex-col">
-                      <Heading level="h2">Frequencies</Heading>
-                      <Text
-                        size="small"
-                        leading="compact"
-                        className="text-ui-fg-subtle"
-                      >
-                        Update allowed frequencies and their discounts.
-                      </Text>
-                    </div>
-                    <Button
-                      type="button"
-                      size="small"
-                      variant="secondary"
-                      onClick={() =>
-                        append({
-                          interval: PlanOfferFrequencyInterval.MONTH,
-                          value: 1,
-                          has_discount: false,
-                          discount_type: PlanOfferDiscountType.PERCENTAGE,
-                          discount_value: null,
-                        })
-                      }
-                    >
-                      Add frequency
-                    </Button>
-                  </div>
-
-                  <div className="grid gap-4 rounded-lg border border-ui-border-base p-4">
-                    <div className="flex flex-col gap-y-1">
-                      <Heading level="h2">Offer rules</Heading>
-                      <Text
-                        size="small"
-                        leading="compact"
-                        className="text-ui-fg-subtle"
-                      >
-                        Update minimum period, trial behavior, and stacking
-                        policy.
-                      </Text>
-                    </div>
-
-                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                )
+              : null}
+            {isError
+              ? (
+                  <Alert variant="error">
+                    {error instanceof Error ? error.message : "Failed to load plan offer."}
+                  </Alert>
+                )
+              : null}
+            {!isLoading && !isError && detail
+              ? (
+                  <>
+                    <div className="grid gap-4">
                       <div className="grid gap-2">
-                        <Label htmlFor="edit-minimum-cycles">Minimum cycles</Label>
-                        <Input
-                          id="edit-minimum-cycles"
-                          type="number"
-                          min={1}
-                          step={1}
-                          {...form.register("minimum_cycles", {
-                            setValueAs: (value) =>
-                              value === "" ? null : Number(value),
-                          })}
-                        />
-                        <Text
-                          size="small"
-                          leading="compact"
-                          className="text-ui-fg-subtle"
-                        >
-                          Leave empty if there is no minimum subscription
-                          period.
-                        </Text>
-                        <FieldError
-                          message={form.formState.errors.minimum_cycles?.message}
-                        />
+                        <Label htmlFor="edit-name">Name</Label>
+                        <Input id="edit-name" {...form.register("name")} />
+                        <FieldError message={form.formState.errors.name?.message} />
                       </div>
-                      <div className="grid gap-2">
-                        <Label htmlFor="edit-stacking-policy">Stacking policy</Label>
-                        <Controller
-                          control={form.control}
-                          name="stacking_policy"
-                          render={({ field }) => (
-                            <Select
-                              value={field.value}
-                              onValueChange={field.onChange}
-                            >
-                              <Select.Trigger id="edit-stacking-policy">
-                                <Select.Value />
-                              </Select.Trigger>
-                              <Select.Content>
-                                <Select.Item value="allowed">Allowed</Select.Item>
-                                <Select.Item value="disallow_all">
-                                  Disallow all
-                                </Select.Item>
-                                <Select.Item value="disallow_subscription_discounts">
-                                  Disallow subscription discounts
-                                </Select.Item>
-                              </Select.Content>
-                            </Select>
-                          )}
-                        />
-                        <Text
-                          size="small"
-                          leading="compact"
-                          className="text-ui-fg-subtle"
-                        >
-                          Control whether this offer can stack with other discounts.
-                        </Text>
-                      </div>
-                    </div>
 
-                    <div className="grid gap-3">
-                      <div className="flex items-center justify-between rounded-lg border border-ui-border-base px-4 py-3">
-                        <div className="flex flex-col">
+                      <div className="grid gap-3 rounded-lg border border-ui-border-base p-4">
+                        <div className="grid gap-1">
                           <Text size="small" leading="compact" weight="plus">
-                            Trial enabled
+                            Target
                           </Text>
                           <Text
                             size="small"
                             leading="compact"
                             className="text-ui-fg-subtle"
                           >
-                            Allow a trial period for this offer.
+                            {detail.target.product_title}
+                            {detail.target.variant_title
+                              ? ` · ${detail.target.variant_title}`
+                              : ""}
+                          </Text>
+                          <Text
+                            size="small"
+                            leading="compact"
+                            className="text-ui-fg-subtle"
+                          >
+                            {detail.target.scope === "product"
+                              ? "Product-level configuration"
+                              : "Variant-level configuration"}
                           </Text>
                         </div>
-                        <Controller
-                          control={form.control}
-                          name="trial_enabled"
-                          render={({ field }) => (
-                            <Switch
-                              checked={field.value}
-                              onCheckedChange={(checked) => {
-                                field.onChange(checked)
-
-                                if (!checked) {
-                                  form.setValue("trial_days", null, {
-                                    shouldValidate: true,
-                                  })
-                                }
-                              }}
-                            />
-                          )}
-                        />
                       </div>
 
                       <div className="grid gap-2">
-                        <Label htmlFor="edit-trial-days">Trial days</Label>
-                        <Input
-                          id="edit-trial-days"
-                          type="number"
-                          min={1}
-                          step={1}
-                          disabled={!trialEnabled}
-                          {...form.register("trial_days", {
-                            setValueAs: (value) => {
-                              if (value === "" || value === undefined) {
-                                return null
-                              }
-
-                              const parsed = Number(value)
-
-                              return Number.isNaN(parsed) ? null : parsed
-                            },
-                          })}
-                        />
-                        <FieldError
-                          message={form.formState.errors.trial_days?.message}
-                        />
+                        <div className="flex items-center justify-between rounded-lg border border-ui-border-base px-4 py-3">
+                          <div className="flex flex-col">
+                            <Text size="small" leading="compact" weight="plus">
+                              Offer enabled
+                            </Text>
+                            <Text
+                              size="small"
+                              leading="compact"
+                              className="text-ui-fg-subtle"
+                            >
+                              Enable or disable this configuration.
+                            </Text>
+                          </div>
+                          <Controller
+                            control={form.control}
+                            name="is_enabled"
+                            render={({ field }) => (
+                              <Switch
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            )}
+                          />
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  <div className="grid gap-4">
-                    {fields.map((field, index) => (
-                      <div
-                        key={field.id}
-                        className="grid gap-4 rounded-lg border border-ui-border-base p-4"
-                      >
-                        <div className="grid grid-cols-1 gap-4 md:grid-cols-[1fr_140px_auto]">
+                    <div className="grid gap-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex flex-col">
+                          <Heading level="h2">Frequencies</Heading>
+                          <Text
+                            size="small"
+                            leading="compact"
+                            className="text-ui-fg-subtle"
+                          >
+                            Update allowed frequencies and their discounts.
+                          </Text>
+                        </div>
+                        <Button
+                          type="button"
+                          size="small"
+                          variant="secondary"
+                          onClick={() =>
+                            append({
+                              interval: PlanOfferFrequencyInterval.MONTH,
+                              value: 1,
+                              has_discount: false,
+                              discount_type: PlanOfferDiscountType.PERCENTAGE,
+                              discount_value: null,
+                            })}
+                        >
+                          Add frequency
+                        </Button>
+                      </div>
+
+                      <div className="grid gap-4 rounded-lg border border-ui-border-base p-4">
+                        <div className="flex flex-col gap-y-1">
+                          <Heading level="h2">Offer rules</Heading>
+                          <Text
+                            size="small"
+                            leading="compact"
+                            className="text-ui-fg-subtle"
+                          >
+                            Update minimum period, trial behavior, and stacking
+                            policy.
+                          </Text>
+                        </div>
+
+                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                           <div className="grid gap-2">
-                            <Label>Interval</Label>
+                            <Label htmlFor="edit-minimum-cycles">Minimum cycles</Label>
+                            <Input
+                              id="edit-minimum-cycles"
+                              type="number"
+                              min={1}
+                              step={1}
+                              {...form.register("minimum_cycles", {
+                                setValueAs: (value) =>
+                                  value === "" ? null : Number(value),
+                              })}
+                            />
+                            <Text
+                              size="small"
+                              leading="compact"
+                              className="text-ui-fg-subtle"
+                            >
+                              Leave empty if there is no minimum subscription
+                              period.
+                            </Text>
+                            <FieldError
+                              message={form.formState.errors.minimum_cycles?.message}
+                            />
+                          </div>
+                          <div className="grid gap-2">
+                            <Label htmlFor="edit-stacking-policy">Stacking policy</Label>
                             <Controller
                               control={form.control}
-                              name={`frequency_rows.${index}.interval`}
-                              render={({ field: controllerField }) => (
+                              name="stacking_policy"
+                              render={({ field }) => (
                                 <Select
-                                  value={controllerField.value}
-                                  onValueChange={controllerField.onChange}
+                                  value={field.value}
+                                  onValueChange={field.onChange}
                                 >
-                                  <Select.Trigger>
+                                  <Select.Trigger id="edit-stacking-policy">
                                     <Select.Value />
                                   </Select.Trigger>
                                   <Select.Content>
-                                    <Select.Item value={PlanOfferFrequencyInterval.WEEK}>
-                                      Weekly
+                                    <Select.Item value="allowed">Allowed</Select.Item>
+                                    <Select.Item value="disallow_all">
+                                      Disallow all
                                     </Select.Item>
-                                    <Select.Item value={PlanOfferFrequencyInterval.MONTH}>
-                                      Monthly
-                                    </Select.Item>
-                                    <Select.Item value={PlanOfferFrequencyInterval.YEAR}>
-                                      Yearly
+                                    <Select.Item value="disallow_subscription_discounts">
+                                      Disallow subscription discounts
                                     </Select.Item>
                                   </Select.Content>
                                 </Select>
                               )}
                             />
-                          </div>
-                          <div className="grid gap-2">
-                            <Label>Value</Label>
-                            <Input
-                              type="number"
-                              min={1}
-                              step={1}
-                              {...form.register(`frequency_rows.${index}.value`, {
-                                valueAsNumber: true,
-                              })}
-                            />
-                          </div>
-                          <div className="flex items-end">
-                            <Button
-                              type="button"
+                            <Text
                               size="small"
-                              variant="secondary"
-                              disabled={fields.length === 1}
-                              onClick={() => {
-                                void handleRemoveFrequency(index)
-                              }}
+                              leading="compact"
+                              className="text-ui-fg-subtle"
                             >
-                              <Trash />
-                            </Button>
+                              Control whether this offer can stack with other discounts.
+                            </Text>
                           </div>
                         </div>
 
@@ -591,35 +473,75 @@ export const EditPlanOfferDrawer = ({
                           <div className="flex items-center justify-between rounded-lg border border-ui-border-base px-4 py-3">
                             <div className="flex flex-col">
                               <Text size="small" leading="compact" weight="plus">
-                                Discount for this frequency
+                                Trial enabled
                               </Text>
                               <Text
                                 size="small"
                                 leading="compact"
                                 className="text-ui-fg-subtle"
                               >
-                                Enable only if this frequency should have a discount.
+                                Allow a trial period for this offer.
                               </Text>
                             </div>
                             <Controller
                               control={form.control}
-                              name={`frequency_rows.${index}.has_discount`}
-                              render={({ field: controllerField }) => (
+                              name="trial_enabled"
+                              render={({ field }) => (
                                 <Switch
-                                  checked={controllerField.value}
-                                  onCheckedChange={controllerField.onChange}
+                                  checked={field.value}
+                                  onCheckedChange={(checked) => {
+                                    field.onChange(checked)
+
+                                    if (!checked) {
+                                      form.setValue("trial_days", null, {
+                                        shouldValidate: true,
+                                      })
+                                    }
+                                  }}
                                 />
                               )}
                             />
                           </div>
 
-                          {form.watch(`frequency_rows.${index}.has_discount`) ? (
-                            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                          <div className="grid gap-2">
+                            <Label htmlFor="edit-trial-days">Trial days</Label>
+                            <Input
+                              id="edit-trial-days"
+                              type="number"
+                              min={1}
+                              step={1}
+                              disabled={!trialEnabled}
+                              {...form.register("trial_days", {
+                                setValueAs: (value) => {
+                                  if (value === "" || value === undefined) {
+                                    return null
+                                  }
+
+                                  const parsed = Number(value)
+
+                                  return Number.isNaN(parsed) ? null : parsed
+                                },
+                              })}
+                            />
+                            <FieldError
+                              message={form.formState.errors.trial_days?.message}
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="grid gap-4">
+                        {fields.map((field, index) => (
+                          <div
+                            key={field.id}
+                            className="grid gap-4 rounded-lg border border-ui-border-base p-4"
+                          >
+                            <div className="grid grid-cols-1 gap-4 md:grid-cols-[1fr_140px_auto]">
                               <div className="grid gap-2">
-                                <Label>Discount type</Label>
+                                <Label>Interval</Label>
                                 <Controller
                                   control={form.control}
-                                  name={`frequency_rows.${index}.discount_type`}
+                                  name={`frequency_rows.${index}.interval`}
                                   render={({ field: controllerField }) => (
                                     <Select
                                       value={controllerField.value}
@@ -629,13 +551,14 @@ export const EditPlanOfferDrawer = ({
                                         <Select.Value />
                                       </Select.Trigger>
                                       <Select.Content>
-                                        <Select.Item
-                                          value={PlanOfferDiscountType.PERCENTAGE}
-                                        >
-                                          Percentage
+                                        <Select.Item value={PlanOfferFrequencyInterval.WEEK}>
+                                          Weekly
                                         </Select.Item>
-                                        <Select.Item value={PlanOfferDiscountType.FIXED}>
-                                          Fixed
+                                        <Select.Item value={PlanOfferFrequencyInterval.MONTH}>
+                                          Monthly
+                                        </Select.Item>
+                                        <Select.Item value={PlanOfferFrequencyInterval.YEAR}>
+                                          Yearly
                                         </Select.Item>
                                       </Select.Content>
                                     </Select>
@@ -643,38 +566,122 @@ export const EditPlanOfferDrawer = ({
                                 />
                               </div>
                               <div className="grid gap-2">
-                                <Label>Discount value</Label>
+                                <Label>Value</Label>
                                 <Input
                                   type="number"
-                                  min={0}
-                                  step={0.01}
-                                  {...form.register(
-                                    `frequency_rows.${index}.discount_value`,
-                                    {
-                                      setValueAs: (value) =>
-                                        value === "" ? null : Number(value),
-                                    }
+                                  min={1}
+                                  step={1}
+                                  {...form.register(`frequency_rows.${index}.value`, {
+                                    valueAsNumber: true,
+                                  })}
+                                />
+                              </div>
+                              <div className="flex items-end">
+                                <Button
+                                  type="button"
+                                  size="small"
+                                  variant="secondary"
+                                  disabled={fields.length === 1}
+                                  onClick={() => {
+                                    void handleRemoveFrequency(index)
+                                  }}
+                                >
+                                  <Trash />
+                                </Button>
+                              </div>
+                            </div>
+
+                            <div className="grid gap-3">
+                              <div className="flex items-center justify-between rounded-lg border border-ui-border-base px-4 py-3">
+                                <div className="flex flex-col">
+                                  <Text size="small" leading="compact" weight="plus">
+                                    Discount for this frequency
+                                  </Text>
+                                  <Text
+                                    size="small"
+                                    leading="compact"
+                                    className="text-ui-fg-subtle"
+                                  >
+                                    Enable only if this frequency should have a discount.
+                                  </Text>
+                                </div>
+                                <Controller
+                                  control={form.control}
+                                  name={`frequency_rows.${index}.has_discount`}
+                                  render={({ field: controllerField }) => (
+                                    <Switch
+                                      checked={controllerField.value}
+                                      onCheckedChange={controllerField.onChange}
+                                    />
                                   )}
                                 />
                               </div>
-                            </div>
-                          ) : null}
-                        </div>
 
-                        <FieldError
-                          message={
-                            form.formState.errors.frequency_rows?.[index]?.value
-                              ?.message ||
-                            form.formState.errors.frequency_rows?.[index]
-                              ?.discount_value?.message
-                          }
-                        />
+                              {form.watch(`frequency_rows.${index}.has_discount`)
+                                ? (
+                                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                                      <div className="grid gap-2">
+                                        <Label>Discount type</Label>
+                                        <Controller
+                                          control={form.control}
+                                          name={`frequency_rows.${index}.discount_type`}
+                                          render={({ field: controllerField }) => (
+                                            <Select
+                                              value={controllerField.value}
+                                              onValueChange={controllerField.onChange}
+                                            >
+                                              <Select.Trigger>
+                                                <Select.Value />
+                                              </Select.Trigger>
+                                              <Select.Content>
+                                                <Select.Item
+                                                  value={PlanOfferDiscountType.PERCENTAGE}
+                                                >
+                                                  Percentage
+                                                </Select.Item>
+                                                <Select.Item value={PlanOfferDiscountType.FIXED}>
+                                                  Fixed
+                                                </Select.Item>
+                                              </Select.Content>
+                                            </Select>
+                                          )}
+                                        />
+                                      </div>
+                                      <div className="grid gap-2">
+                                        <Label>Discount value</Label>
+                                        <Input
+                                          type="number"
+                                          min={0}
+                                          step={0.01}
+                                          {...form.register(
+                                            `frequency_rows.${index}.discount_value`,
+                                            {
+                                              setValueAs: (value) =>
+                                                value === "" ? null : Number(value),
+                                            }
+                                          )}
+                                        />
+                                      </div>
+                                    </div>
+                                  )
+                                : null}
+                            </div>
+
+                            <FieldError
+                              message={
+                                form.formState.errors.frequency_rows?.[index]?.value
+                                  ?.message ||
+                                  form.formState.errors.frequency_rows?.[index]
+                                    ?.discount_value?.message
+                              }
+                            />
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
-                </div>
-              </>
-            ) : null}
+                    </div>
+                  </>
+                )
+              : null}
           </Drawer.Body>
           <Drawer.Footer>
             <div className="flex items-center justify-end gap-x-2">

@@ -221,7 +221,7 @@ export async function retrieveOwnedSubscription(
     }
   )
 
-  const subscription = (data as Array<{ id: string; customer_id: string }>)[0]
+  const subscription = (data as Array<{ id: string, customer_id: string }>)[0]
 
   if (!subscription) {
     throw new MedusaError(

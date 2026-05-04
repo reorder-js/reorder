@@ -109,7 +109,7 @@ export const pauseSubscriptionStep = createStep(
       asSubscriptionWorkflowRecord(subscription)
     )
   },
-  async function (subscription: SubscriptionWorkflowRecord, { container }) {
+  async function (subscription: SubscriptionWorkflowRecord | undefined, { container }) {
     if (!subscription) {
       return
     }

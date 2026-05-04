@@ -396,34 +396,36 @@ export const CreatePlanOfferModal = ({
                       />
                     </div>
 
-                    {scope === PlanOfferScope.VARIANT ? (
-                      <div className="grid gap-3 rounded-lg border border-ui-border-base p-4">
-                        <div className="flex items-center justify-between">
-                          <div className="flex flex-col">
-                            <Text size="small" leading="compact" weight="plus">
-                              Variant
-                            </Text>
-                            <Text
-                              size="small"
-                              leading="compact"
-                              className="text-ui-fg-subtle"
-                            >
-                              {variantTitle || "No variant selected"}
-                            </Text>
+                    {scope === PlanOfferScope.VARIANT
+                      ? (
+                          <div className="grid gap-3 rounded-lg border border-ui-border-base p-4">
+                            <div className="flex items-center justify-between">
+                              <div className="flex flex-col">
+                                <Text size="small" leading="compact" weight="plus">
+                                  Variant
+                                </Text>
+                                <Text
+                                  size="small"
+                                  leading="compact"
+                                  className="text-ui-fg-subtle"
+                                >
+                                  {variantTitle || "No variant selected"}
+                                </Text>
+                              </div>
+                              <Button
+                                type="button"
+                                size="small"
+                                variant="secondary"
+                                disabled={!productId}
+                                onClick={() => setVariantPickerOpen(true)}
+                              >
+                                {variantId ? "Change" : "Select"}
+                              </Button>
+                            </div>
+                            <FieldError message={form.formState.errors.variant_id?.message} />
                           </div>
-                          <Button
-                            type="button"
-                            size="small"
-                            variant="secondary"
-                            disabled={!productId}
-                            onClick={() => setVariantPickerOpen(true)}
-                          >
-                            {variantId ? "Change" : "Select"}
-                          </Button>
-                        </div>
-                        <FieldError message={form.formState.errors.variant_id?.message} />
-                      </div>
-                    ) : null}
+                        )
+                      : null}
 
                     <div className="grid gap-2">
                       <div className="flex items-center justify-between rounded-lg border border-ui-border-base px-4 py-3">
@@ -611,8 +613,7 @@ export const CreatePlanOfferModal = ({
                               has_discount: false,
                               discount_type: PlanOfferDiscountType.PERCENTAGE,
                               discount_value: null,
-                            })
-                          }
+                            })}
                         >
                           <Plus />
                           Add frequency
@@ -706,62 +707,64 @@ export const CreatePlanOfferModal = ({
                                 />
                               </div>
 
-                              {form.watch(`frequency_rows.${index}.has_discount`) ? (
-                                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                                  <div className="grid gap-2">
-                                    <Label>Discount type</Label>
-                                    <Controller
-                                      control={form.control}
-                                      name={`frequency_rows.${index}.discount_type`}
-                                      render={({ field: controllerField }) => (
-                                        <Select
-                                          value={controllerField.value}
-                                          onValueChange={controllerField.onChange}
-                                        >
-                                          <Select.Trigger>
-                                            <Select.Value />
-                                          </Select.Trigger>
-                                          <Select.Content>
-                                            <Select.Item
-                                              value={PlanOfferDiscountType.PERCENTAGE}
+                              {form.watch(`frequency_rows.${index}.has_discount`)
+                                ? (
+                                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                                      <div className="grid gap-2">
+                                        <Label>Discount type</Label>
+                                        <Controller
+                                          control={form.control}
+                                          name={`frequency_rows.${index}.discount_type`}
+                                          render={({ field: controllerField }) => (
+                                            <Select
+                                              value={controllerField.value}
+                                              onValueChange={controllerField.onChange}
                                             >
-                                              Percentage
-                                            </Select.Item>
-                                            <Select.Item
-                                              value={PlanOfferDiscountType.FIXED}
-                                            >
-                                              Fixed
-                                            </Select.Item>
-                                          </Select.Content>
-                                        </Select>
-                                      )}
-                                    />
-                                  </div>
-                                  <div className="grid gap-2">
-                                    <Label>Discount value</Label>
-                                    <Input
-                                      type="number"
-                                      min={0}
-                                      step={0.01}
-                                      {...form.register(
-                                        `frequency_rows.${index}.discount_value`,
-                                        {
-                                          setValueAs: (value) =>
-                                            value === "" ? null : Number(value),
-                                        }
-                                      )}
-                                    />
-                                  </div>
-                                </div>
-                              ) : null}
+                                              <Select.Trigger>
+                                                <Select.Value />
+                                              </Select.Trigger>
+                                              <Select.Content>
+                                                <Select.Item
+                                                  value={PlanOfferDiscountType.PERCENTAGE}
+                                                >
+                                                  Percentage
+                                                </Select.Item>
+                                                <Select.Item
+                                                  value={PlanOfferDiscountType.FIXED}
+                                                >
+                                                  Fixed
+                                                </Select.Item>
+                                              </Select.Content>
+                                            </Select>
+                                          )}
+                                        />
+                                      </div>
+                                      <div className="grid gap-2">
+                                        <Label>Discount value</Label>
+                                        <Input
+                                          type="number"
+                                          min={0}
+                                          step={0.01}
+                                          {...form.register(
+                                            `frequency_rows.${index}.discount_value`,
+                                            {
+                                              setValueAs: (value) =>
+                                                value === "" ? null : Number(value),
+                                            }
+                                          )}
+                                        />
+                                      </div>
+                                    </div>
+                                  )
+                                : null}
                             </div>
 
                             <FieldError
                               message={
                                 form.formState.errors.frequency_rows?.[index]?.value
                                   ?.message ||
-                                form.formState.errors.frequency_rows?.[index]?.discount_value
-                                  ?.message
+                                  form.formState.errors.frequency_rows?.[index]?.discount_value
+                                    ?.message
                               }
                             />
                           </div>

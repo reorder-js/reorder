@@ -49,14 +49,6 @@ type SubscriptionLogRecord = {
   updated_at: Date | string
 }
 
-type QueryGraph = {
-  graph: (input: {
-    entity: string
-    fields: string[]
-    filters?: Record<string, unknown>
-  }) => Promise<{ data: Array<Record<string, unknown>> }>
-}
-
 type AdminUserRecord = {
   id: string
   email: string | null
@@ -81,7 +73,7 @@ function getActivityLogModule(container: MedusaContainer) {
 }
 
 function getQuery(container: MedusaContainer) {
-  return container.resolve("query") as QueryGraph
+  return container.resolve("query")
 }
 
 function assertSortableField(order?: string) {

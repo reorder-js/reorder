@@ -1,6 +1,5 @@
 import { medusaIntegrationTestRunner } from "@medusajs/test-utils"
 import path from "path"
-import { IPaymentModuleService } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import { DUNNING_MODULE } from "../../src/modules/dunning"
 import type DunningModuleService from "../../src/modules/dunning/service"
@@ -78,7 +77,7 @@ medusaIntegrationTestRunner({
           container.resolve<DunningModuleService>(DUNNING_MODULE)
         const query = container.resolve<any>(ContainerRegistrationKeys.QUERY)
         const paymentModule =
-          container.resolve<IPaymentModuleService>(Modules.PAYMENT)
+          container.resolve(Modules.PAYMENT)
         const originalGraph = query.graph.bind(query)
         const orderId = options?.orderId ?? `ord_${reference}`
 
@@ -220,7 +219,7 @@ medusaIntegrationTestRunner({
         const subscriptionModule =
           container.resolve<SubscriptionModuleService>(SUBSCRIPTION_MODULE)
         const paymentModule =
-          container.resolve<IPaymentModuleService>(Modules.PAYMENT)
+          container.resolve(Modules.PAYMENT)
 
         const { subscription, dunningCase } =
           await prepareQualifyingFailedRenewal("SUB-DUN-SMOKE-002")
@@ -267,7 +266,7 @@ medusaIntegrationTestRunner({
         const renewalModule =
           container.resolve<RenewalModuleService>(RENEWAL_MODULE)
         const paymentModule =
-          container.resolve<IPaymentModuleService>(Modules.PAYMENT)
+          container.resolve(Modules.PAYMENT)
 
         const { subscription, cycle, dunningCase } =
           await prepareQualifyingFailedRenewal("SUB-DUN-SMOKE-003")

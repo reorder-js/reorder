@@ -29,28 +29,6 @@ import {
   RebuildAnalyticsDailySnapshotsStepOutput,
 } from "./normalize-analytics-rebuild-range"
 
-type QueryLike = {
-  graph(input: Record<string, unknown>): Promise<{
-    data?: unknown[]
-    metadata?: {
-      count?: number
-      take?: number
-      skip?: number
-    }
-  }>
-}
-
-type LockingService = {
-  execute<T>(
-    keys: string | string[],
-    job: () => Promise<T>,
-    args?: {
-      timeout?: number
-      provider?: string
-    }
-  ): Promise<T>
-}
-
 type SubscriptionAnalyticsRecord = {
   id: string
   customer_id: string
@@ -143,11 +121,11 @@ type RebuildSingleDaySummary = {
 }
 
 function getQuery(container: MedusaContainer) {
-  return container.resolve<QueryLike>(ContainerRegistrationKeys.QUERY)
+  return container.resolve(ContainerRegistrationKeys.QUERY)
 }
 
 function getLocking(container: MedusaContainer) {
-  return container.resolve<LockingService>(Modules.LOCKING)
+  return container.resolve(Modules.LOCKING)
 }
 
 function toUtcDateKey(date: Date) {
@@ -834,7 +812,7 @@ export const rebuildAnalyticsDailySnapshotsStep = createStep(
               ? "Analytics rebuild completed with blocked days"
               : isSlowAnalyticsRebuild(durationMs)
                 ? "Analytics rebuild completed slowly"
-              : "Analytics rebuild completed",
+                : "Analytics rebuild completed",
       }
     )
 

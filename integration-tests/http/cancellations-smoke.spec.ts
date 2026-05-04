@@ -21,7 +21,6 @@ import {
 } from "../../src/workflows"
 import {
   createCancellationCaseSeed,
-  createRenewalCycleSeed,
   createSubscriptionSeed,
 } from "../helpers/cancellation-fixtures"
 
@@ -188,7 +187,6 @@ medusaIntegrationTestRunner({
           )
         ).toHaveLength(0)
       })
-
     })
   },
 })

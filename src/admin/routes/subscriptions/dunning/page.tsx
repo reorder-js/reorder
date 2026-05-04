@@ -19,7 +19,7 @@ import {
 } from "@medusajs/ui"
 import { flexRender } from "@tanstack/react-table"
 import { useMemo, useState } from "react"
-import { Link, useNavigate } from "react-router-dom"
+import { useNavigate } from "react-router-dom"
 import {
   DunningCaseAdminListItem,
   DunningCaseAdminStatus,
@@ -105,7 +105,10 @@ const baseColumns = [
     cell: ({ row }) => (
       <div className="flex flex-col">
         <Text size="small" leading="compact" weight="plus">
-          {row.original.attempt_count} / {row.original.max_attempts}
+          {row.original.attempt_count}
+          {" "}
+          /
+          {row.original.max_attempts}
         </Text>
         <Text size="small" leading="compact" className="text-ui-fg-subtle">
           {row.original.last_attempt_at
@@ -277,43 +280,49 @@ const DunningPage = () => {
                 }}
               />
             ))}
-            {paymentProviderValue ? (
-              <FilterChip
-                label="Provider"
-                value={paymentProviderValue}
-                onRemove={() => {
-                  setFiltering((current) =>
-                    removeFilter(current, "payment_provider_id")
-                  )
-                }}
-              />
-            ) : null}
-            {errorCodeValue ? (
-              <FilterChip
-                label="Error code"
-                value={errorCodeValue}
-                onRemove={() => {
-                  setFiltering((current) =>
-                    removeFilter(current, "last_payment_error_code")
-                  )
-                }}
-              />
-            ) : null}
-            {attemptCountMinValue || attemptCountMaxValue ? (
-              <FilterChip
-                label="Attempt count"
-                value={formatAttemptRange(
-                  attemptCountMinValue,
-                  attemptCountMaxValue
-                )}
-                onRemove={() => {
-                  setFiltering((current) => ({
-                    ...removeFilter(current, "attempt_count_min"),
-                    attempt_count_max: undefined,
-                  }))
-                }}
-              />
-            ) : null}
+            {paymentProviderValue
+              ? (
+                  <FilterChip
+                    label="Provider"
+                    value={paymentProviderValue}
+                    onRemove={() => {
+                      setFiltering((current) =>
+                        removeFilter(current, "payment_provider_id")
+                      )
+                    }}
+                  />
+                )
+              : null}
+            {errorCodeValue
+              ? (
+                  <FilterChip
+                    label="Error code"
+                    value={errorCodeValue}
+                    onRemove={() => {
+                      setFiltering((current) =>
+                        removeFilter(current, "last_payment_error_code")
+                      )
+                    }}
+                  />
+                )
+              : null}
+            {attemptCountMinValue || attemptCountMaxValue
+              ? (
+                  <FilterChip
+                    label="Attempt count"
+                    value={formatAttemptRange(
+                      attemptCountMinValue,
+                      attemptCountMaxValue
+                    )}
+                    onRemove={() => {
+                      setFiltering((current) => ({
+                        ...removeFilter(current, "attempt_count_min"),
+                        attempt_count_max: undefined,
+                      }))
+                    }}
+                  />
+                )
+              : null}
             <DropdownMenu>
               <DropdownMenu.Trigger asChild>
                 <Button size="small" variant="secondary" type="button">
@@ -349,20 +358,21 @@ const DunningPage = () => {
                 </DropdownMenu.SubMenu>
               </DropdownMenu.Content>
             </DropdownMenu>
-            {hasActiveFilters ? (
-              <button
-                type="button"
-                className="text-ui-fg-muted hover:text-ui-fg-subtle txt-compact-small-plus rounded-md px-2 py-1 transition-fg"
-                onClick={() =>
-                  setFiltering({
-                    next_retry_from: DEFAULT_NEXT_RETRY_FROM,
-                    next_retry_to: DEFAULT_NEXT_RETRY_TO,
-                  })
-                }
-              >
-                Clear all
-              </button>
-            ) : null}
+            {hasActiveFilters
+              ? (
+                  <button
+                    type="button"
+                    className="text-ui-fg-muted hover:text-ui-fg-subtle txt-compact-small-plus rounded-md px-2 py-1 transition-fg"
+                    onClick={() =>
+                      setFiltering({
+                        next_retry_from: DEFAULT_NEXT_RETRY_FROM,
+                        next_retry_to: DEFAULT_NEXT_RETRY_TO,
+                      })}
+                  >
+                    Clear all
+                  </button>
+                )
+              : null}
           </div>
           <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
             <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -493,87 +503,93 @@ const DunningPage = () => {
             </div>
           </div>
         </div>
-        {table.getRowModel().rows.length ? (
-          <div className="overflow-x-auto border-y">
-            <Table className="relative isolate w-full">
-              <Table.Header className="border-t-0">
-                {table.getHeaderGroups().map((headerGroup) => (
-                  <Table.Row
-                    key={headerGroup.id}
-                    className="border-b-0 [&_th:last-of-type]:w-[1%] [&_th:last-of-type]:whitespace-nowrap"
-                  >
-                    {headerGroup.headers.map((header) => {
-                      const canSort = header.column.getCanSort()
-                      const sortHandler = header.column.getToggleSortingHandler()
-
-                      return (
-                        <Table.HeaderCell
-                          key={header.id}
-                          className="whitespace-nowrap"
-                        >
-                          {header.isPlaceholder ? null : canSort ? (
-                            <button
-                              type="button"
-                              onClick={sortHandler}
-                              className="group flex items-center gap-2 text-left"
-                            >
-                              {flexRender(
-                                header.column.columnDef.header,
-                                header.getContext()
-                              )}
-                            </button>
-                          ) : (
-                            flexRender(
-                              header.column.columnDef.header,
-                              header.getContext()
-                            )
-                          )}
-                        </Table.HeaderCell>
-                      )
-                    })}
-                  </Table.Row>
-                ))}
-              </Table.Header>
-              <Table.Body className="border-b-0">
-                {table.getRowModel().rows.map((row) => (
-                  <Table.Row
-                    key={row.id}
-                    className="group/row cursor-pointer"
-                    onClick={(event) => {
-                      event.preventDefault()
-                      navigate(`/subscriptions/dunning/${row.id}`)
-                    }}
-                  >
-                    {row.getVisibleCells().map((cell) => (
-                      <Table.Cell
-                        key={cell.id}
-                        className="items-stretch truncate whitespace-nowrap"
+        {table.getRowModel().rows.length
+          ? (
+              <div className="overflow-x-auto border-y">
+                <Table className="relative isolate w-full">
+                  <Table.Header className="border-t-0">
+                    {table.getHeaderGroups().map((headerGroup) => (
+                      <Table.Row
+                        key={headerGroup.id}
+                        className="border-b-0 [&_th:last-of-type]:w-[1%] [&_th:last-of-type]:whitespace-nowrap"
                       >
-                        {flexRender(
-                          cell.column.columnDef.cell,
-                          cell.getContext()
-                        )}
-                      </Table.Cell>
+                        {headerGroup.headers.map((header) => {
+                          const canSort = header.column.getCanSort()
+                          const sortHandler = header.column.getToggleSortingHandler()
+
+                          return (
+                            <Table.HeaderCell
+                              key={header.id}
+                              className="whitespace-nowrap"
+                            >
+                              {header.isPlaceholder
+                                ? null
+                                : canSort
+                                  ? (
+                                      <button
+                                        type="button"
+                                        onClick={sortHandler}
+                                        className="group flex items-center gap-2 text-left"
+                                      >
+                                        {flexRender(
+                                          header.column.columnDef.header,
+                                          header.getContext()
+                                        )}
+                                      </button>
+                                    )
+                                  : (
+                                      flexRender(
+                                        header.column.columnDef.header,
+                                        header.getContext()
+                                      )
+                                    )}
+                            </Table.HeaderCell>
+                          )
+                        })}
+                      </Table.Row>
                     ))}
-                  </Table.Row>
-                ))}
-              </Table.Body>
-            </Table>
-          </div>
-        ) : (
-          <div className="flex min-h-[250px] w-full flex-col items-center justify-center border-y px-6 py-4 text-center">
-            <Text size="base" weight="plus">
-              {hasActiveFilters || search
-                ? "No matching dunning cases"
-                : "No dunning cases yet"}
-            </Text>
-            <Text size="small" leading="compact" className="text-ui-fg-subtle">
-              {hasActiveFilters || search
-                ? "Try changing the search term or active filters."
-                : "Dunning cases will appear here after failed renewal payments enter the recovery flow."}
-            </Text>
-          </div>
-        )}
+                  </Table.Header>
+                  <Table.Body className="border-b-0">
+                    {table.getRowModel().rows.map((row) => (
+                      <Table.Row
+                        key={row.id}
+                        className="group/row cursor-pointer"
+                        onClick={(event) => {
+                          event.preventDefault()
+                          navigate(`/subscriptions/dunning/${row.id}`)
+                        }}
+                      >
+                        {row.getVisibleCells().map((cell) => (
+                          <Table.Cell
+                            key={cell.id}
+                            className="items-stretch truncate whitespace-nowrap"
+                          >
+                            {flexRender(
+                              cell.column.columnDef.cell,
+                              cell.getContext()
+                            )}
+                          </Table.Cell>
+                        ))}
+                      </Table.Row>
+                    ))}
+                  </Table.Body>
+                </Table>
+              </div>
+            )
+          : (
+              <div className="flex min-h-[250px] w-full flex-col items-center justify-center border-y px-6 py-4 text-center">
+                <Text size="base" weight="plus">
+                  {hasActiveFilters || search
+                    ? "No matching dunning cases"
+                    : "No dunning cases yet"}
+                </Text>
+                <Text size="small" leading="compact" className="text-ui-fg-subtle">
+                  {hasActiveFilters || search
+                    ? "Try changing the search term or active filters."
+                    : "Dunning cases will appear here after failed renewal payments enter the recovery flow."}
+                </Text>
+              </div>
+            )}
         <DataTable.Pagination />
       </DataTable>
     </Container>
@@ -709,25 +725,6 @@ function formatAttemptRange(min?: string, max?: string) {
 
   if (max) {
     return `Up to ${max}`
-  }
-
-  return "-"
-}
-
-function formatDateRange(from?: string, to?: string) {
-  const formattedFrom = formatDateTime(from)
-  const formattedTo = formatDateTime(to)
-
-  if (from && to) {
-    return `${formattedFrom} to ${formattedTo}`
-  }
-
-  if (from) {
-    return `From ${formattedFrom}`
-  }
-
-  if (to) {
-    return `Until ${formattedTo}`
   }
 
   return "-"

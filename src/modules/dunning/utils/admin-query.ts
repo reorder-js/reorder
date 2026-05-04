@@ -201,8 +201,7 @@ function mapListItem(
   record: DunningCaseRecord,
   subscription: SubscriptionRecord | null,
   renewal: RenewalCycleRecord | null,
-  order: OrderRecord | null,
-  lastAttemptStatus: DunningAttemptAdminStatus | null
+  order: OrderRecord | null
 ): DunningCaseAdminListItem {
   return {
     id: record.id,

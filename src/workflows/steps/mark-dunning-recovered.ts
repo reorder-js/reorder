@@ -122,7 +122,7 @@ export const markDunningRecoveredStep = createStep(
       previous_subscription: previousSubscription,
     } satisfies Compensation)
   },
-  async function (compensation: Compensation, { container }) {
+  async function (compensation: Compensation | undefined, { container }) {
     if (!compensation) {
       return
     }

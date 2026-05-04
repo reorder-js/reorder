@@ -97,7 +97,7 @@ export function evaluateAnalyticsQualityForRange(
       const deltaPercent =
         ((snapshot.mrr_amount - previousSnapshot.mrr_amount) /
           previousSnapshot.mrr_amount) *
-        100
+          100
 
       if (Math.abs(deltaPercent) >= MRR_CHANGE_THRESHOLD_PERCENT) {
         findings.push({
@@ -129,7 +129,7 @@ export function evaluateAnalyticsQualityForRange(
     if (
       currentChurnRate >= CHURN_RATE_ABSOLUTE_THRESHOLD ||
       Math.abs(currentChurnRate - previousChurnRate) >=
-        CHURN_RATE_DELTA_THRESHOLD
+      CHURN_RATE_DELTA_THRESHOLD
     ) {
       findings.push({
         code: "analytics.churn_rate.spike",

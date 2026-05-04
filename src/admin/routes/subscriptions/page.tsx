@@ -1,11 +1,11 @@
-import { defineRouteConfig } from "@medusajs/admin-sdk";
+import { defineRouteConfig } from "@medusajs/admin-sdk"
 import {
   Calendar,
   Pause,
   TriangleRightMini,
   Trash,
   XMarkMini,
-} from "@medusajs/icons";
+} from "@medusajs/icons"
 import {
   Alert,
   Button,
@@ -24,45 +24,45 @@ import {
   toast,
   useDataTable,
   usePrompt,
-} from "@medusajs/ui";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { flexRender } from "@tanstack/react-table";
-import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+} from "@medusajs/ui"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { flexRender } from "@tanstack/react-table"
+import { useMemo, useState } from "react"
+import { useNavigate } from "react-router-dom"
 import {
   invalidateAdminSubscriptionsQueries,
   useAdminSubscriptionsDisplayQuery,
-} from "./data-loading";
-import { sdk } from "../../lib/client";
+} from "./data-loading"
+import { sdk } from "../../lib/client"
 import {
   SubscriptionAdminDetailResponse,
   SubscriptionAdminListItem,
   SubscriptionAdminStatus,
-} from "../../types/subscription";
+} from "../../types/subscription"
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 20
 
-const columnHelper = createDataTableColumnHelper<SubscriptionAdminListItem>();
-const filterHelper = createDataTableFilterHelper<SubscriptionAdminListItem>();
+const columnHelper = createDataTableColumnHelper<SubscriptionAdminListItem>()
+const filterHelper = createDataTableFilterHelper<SubscriptionAdminListItem>()
 
 const statusFilterOptions = [
   { label: "Active", value: SubscriptionAdminStatus.ACTIVE },
   { label: "Paused", value: SubscriptionAdminStatus.PAUSED },
   { label: "Cancelled", value: SubscriptionAdminStatus.CANCELLED },
   { label: "Past due", value: SubscriptionAdminStatus.PAST_DUE },
-] as const;
+] as const
 
 const booleanFilterOptions = [
   { label: "Yes", value: true },
   { label: "No", value: false },
-] as const;
+] as const
 
 const nextRenewalFilterOptions = [
   { label: "Overdue", value: "overdue" },
   { label: "Next 7 days", value: "next_7_days" },
   { label: "Next 30 days", value: "next_30_days" },
   { label: "Next 90 days", value: "next_90_days" },
-] as const;
+] as const
 
 const baseColumns = [
   columnHelper.accessor("reference", {
@@ -112,11 +112,13 @@ const baseColumns = [
         <Text size="small" leading="compact" weight="plus">
           {getValue()}
         </Text>
-        {row.original.discount ? (
-          <Text size="small" leading="compact" className="text-ui-fg-subtle">
-            {row.original.discount.label}
-          </Text>
-        ) : null}
+        {row.original.discount
+          ? (
+              <Text size="small" leading="compact" className="text-ui-fg-subtle">
+                {row.original.discount.label}
+              </Text>
+            )
+          : null}
       </div>
     ),
   }),
@@ -135,103 +137,103 @@ const baseColumns = [
       </div>
     ),
   }),
-];
+]
 
 const statusFilter = filterHelper.accessor("status", {
   type: "multiselect",
   label: "Status",
   options: [...statusFilterOptions],
-});
+})
 
 const trialFilter = filterHelper.accessor("trial.is_trial", {
   id: "is_trial",
   type: "radio",
   label: "Trial",
   options: [...booleanFilterOptions],
-});
+})
 
 const skipNextCycleFilter = filterHelper.accessor("skip_next_cycle", {
   type: "radio",
   label: "Skip next cycle",
   options: [...booleanFilterOptions],
-});
+})
 
 const nextRenewalFilter = filterHelper.accessor("next_renewal_at", {
   id: "next_renewal",
   type: "radio",
   label: "Next renewal",
   options: [...nextRenewalFilterOptions],
-});
+})
 
 const filters = [
   statusFilter,
   trialFilter,
   skipNextCycleFilter,
   nextRenewalFilter,
-];
+]
 
-type SubscriptionActionType = "pause" | "resume" | "cancel";
+type SubscriptionActionType = "pause" | "resume" | "cancel"
 
 const SubscriptionsPage = () => {
-  const [search, setSearch] = useState("");
-  const [filtering, setFiltering] = useState<DataTableFilteringState>({});
+  const [search, setSearch] = useState("")
+  const [filtering, setFiltering] = useState<DataTableFilteringState>({})
   const [sorting, setSorting] = useState<DataTableSortingState | null>({
     id: "updated_at",
     desc: true,
-  });
+  })
   const [pagination, setPagination] = useState<DataTablePaginationState>({
     pageIndex: 0,
     pageSize: PAGE_SIZE,
-  });
-  const prompt = usePrompt();
-  const queryClient = useQueryClient();
-  const navigate = useNavigate();
+  })
+  const prompt = usePrompt()
+  const queryClient = useQueryClient()
+  const navigate = useNavigate()
 
   const statusFilters = useMemo(() => {
-    return (filtering.status || []) as SubscriptionAdminStatus[];
-  }, [filtering]);
+    return (filtering.status || []) as SubscriptionAdminStatus[]
+  }, [filtering])
   const trialFilterValue = useMemo(() => {
     return typeof filtering.is_trial === "boolean"
       ? filtering.is_trial
-      : undefined;
-  }, [filtering]);
+      : undefined
+  }, [filtering])
   const skipNextCycleFilterValue = useMemo(() => {
     return typeof filtering.skip_next_cycle === "boolean"
       ? filtering.skip_next_cycle
-      : undefined;
-  }, [filtering]);
+      : undefined
+  }, [filtering])
   const nextRenewalFilterValue = useMemo(() => {
     return typeof filtering.next_renewal === "string"
       ? filtering.next_renewal
-      : undefined;
-  }, [filtering]);
+      : undefined
+  }, [filtering])
 
   const activeStatusLabels = useMemo(() => {
     return (
       statusFilterOptions
         .filter((option) => statusFilters.includes(option.value))
         .map((option) => option.label) ?? []
-    );
-  }, [statusFilters]);
+    )
+  }, [statusFilters])
   const activeTrialLabel = useMemo(() => {
     return booleanFilterOptions.find((option) => option.value === trialFilterValue)
-      ?.label;
-  }, [trialFilterValue]);
+      ?.label
+  }, [trialFilterValue])
   const activeSkipNextCycleLabel = useMemo(() => {
     return booleanFilterOptions.find(
-      (option) => option.value === skipNextCycleFilterValue,
-    )?.label;
-  }, [skipNextCycleFilterValue]);
+      (option) => option.value === skipNextCycleFilterValue
+    )?.label
+  }, [skipNextCycleFilterValue])
   const activeNextRenewalLabel = useMemo(() => {
     return nextRenewalFilterOptions.find(
-      (option) => option.value === nextRenewalFilterValue,
-    )?.label;
-  }, [nextRenewalFilterValue]);
+      (option) => option.value === nextRenewalFilterValue
+    )?.label
+  }, [nextRenewalFilterValue])
   const hasActiveFilters =
     statusFilters.length ||
     typeof trialFilterValue === "boolean" ||
     typeof skipNextCycleFilterValue === "boolean" ||
-    Boolean(nextRenewalFilterValue);
+    Boolean(nextRenewalFilterValue)
 
   const { data, isLoading, isError, error } =
     useAdminSubscriptionsDisplayQuery({
@@ -239,7 +241,7 @@ const SubscriptionsPage = () => {
       search,
       filtering,
       sorting,
-    });
+    })
 
   const pauseMutation = useMutation({
     mutationFn: async (subscriptionId: string) =>
@@ -248,18 +250,18 @@ const SubscriptionsPage = () => {
         {
           method: "POST",
           body: {},
-        },
+        }
       ),
     onSuccess: async (_data, subscriptionId) => {
-      await invalidateAdminSubscriptionsQueries(queryClient, subscriptionId);
-      toast.success("Subscription paused");
+      await invalidateAdminSubscriptionsQueries(queryClient, subscriptionId)
+      toast.success("Subscription paused")
     },
     onError: (error) => {
       toast.error(
-        error instanceof Error ? error.message : "Failed to pause subscription",
-      );
+        error instanceof Error ? error.message : "Failed to pause subscription"
+      )
     },
-  });
+  })
 
   const resumeMutation = useMutation({
     mutationFn: async (subscriptionId: string) =>
@@ -268,18 +270,18 @@ const SubscriptionsPage = () => {
         {
           method: "POST",
           body: {},
-        },
+        }
       ),
     onSuccess: async (_data, subscriptionId) => {
-      await invalidateAdminSubscriptionsQueries(queryClient, subscriptionId);
-      toast.success("Subscription resumed");
+      await invalidateAdminSubscriptionsQueries(queryClient, subscriptionId)
+      toast.success("Subscription resumed")
     },
     onError: (error) => {
       toast.error(
-        error instanceof Error ? error.message : "Failed to resume subscription",
-      );
+        error instanceof Error ? error.message : "Failed to resume subscription"
+      )
     },
-  });
+  })
 
   const cancelMutation = useMutation({
     mutationFn: async (subscriptionId: string) =>
@@ -288,35 +290,35 @@ const SubscriptionsPage = () => {
         {
           method: "POST",
           body: {},
-        },
+        }
       ),
     onSuccess: async (_data, subscriptionId) => {
-      await invalidateAdminSubscriptionsQueries(queryClient, subscriptionId);
-      toast.success("Subscription cancelled");
+      await invalidateAdminSubscriptionsQueries(queryClient, subscriptionId)
+      toast.success("Subscription cancelled")
     },
     onError: (error) => {
       toast.error(
-        error instanceof Error ? error.message : "Failed to cancel subscription",
-      );
+        error instanceof Error ? error.message : "Failed to cancel subscription"
+      )
     },
-  });
+  })
 
   const pendingActionBySubscriptionId = useMemo(() => {
-    const pending = new Map<string, SubscriptionActionType>();
+    const pending = new Map<string, SubscriptionActionType>()
 
     if (pauseMutation.isPending && pauseMutation.variables) {
-      pending.set(pauseMutation.variables, "pause");
+      pending.set(pauseMutation.variables, "pause")
     }
 
     if (resumeMutation.isPending && resumeMutation.variables) {
-      pending.set(resumeMutation.variables, "resume");
+      pending.set(resumeMutation.variables, "resume")
     }
 
     if (cancelMutation.isPending && cancelMutation.variables) {
-      pending.set(cancelMutation.variables, "cancel");
+      pending.set(cancelMutation.variables, "cancel")
     }
 
-    return pending;
+    return pending
   }, [
     cancelMutation.isPending,
     cancelMutation.variables,
@@ -324,45 +326,45 @@ const SubscriptionsPage = () => {
     pauseMutation.variables,
     resumeMutation.isPending,
     resumeMutation.variables,
-  ]);
+  ])
 
   const handleSubscriptionAction = async (
     subscription: SubscriptionAdminListItem,
-    action: SubscriptionActionType,
+    action: SubscriptionActionType
   ) => {
-    const confirmed = await prompt(getSubscriptionActionPromptConfig(action));
+    const confirmed = await prompt(getSubscriptionActionPromptConfig(action))
 
     if (!confirmed) {
-      return;
+      return
     }
 
     switch (action) {
       case "pause":
-        await pauseMutation.mutateAsync(subscription.id);
-        break;
+        await pauseMutation.mutateAsync(subscription.id)
+        break
       case "resume":
-        await resumeMutation.mutateAsync(subscription.id);
-        break;
+        await resumeMutation.mutateAsync(subscription.id)
+        break
       case "cancel":
-        await cancelMutation.mutateAsync(subscription.id);
-        break;
+        await cancelMutation.mutateAsync(subscription.id)
+        break
     }
-  };
+  }
 
   const columns = useMemo(
     () => [
       ...baseColumns,
       columnHelper.action({
         actions: ({ row }) => {
-          const subscription = row.original;
-          const pendingAction = pendingActionBySubscriptionId.get(subscription.id);
-          const isPending = Boolean(pendingAction);
+          const subscription = row.original
+          const pendingAction = pendingActionBySubscriptionId.get(subscription.id)
+          const isPending = Boolean(pendingAction)
           const canPause =
-            subscription.status === SubscriptionAdminStatus.ACTIVE;
+            subscription.status === SubscriptionAdminStatus.ACTIVE
           const canResume =
-            subscription.status === SubscriptionAdminStatus.PAUSED;
+            subscription.status === SubscriptionAdminStatus.PAUSED
           const canCancel =
-            subscription.status !== SubscriptionAdminStatus.CANCELLED;
+            subscription.status !== SubscriptionAdminStatus.CANCELLED
 
           const actionGroups = [
             canPause
@@ -371,7 +373,7 @@ const SubscriptionsPage = () => {
                     label: pendingAction === "pause" ? "Pausing..." : "Pause",
                     icon: <Pause />,
                     onClick: () => {
-                      void handleSubscriptionAction(subscription, "pause");
+                      void handleSubscriptionAction(subscription, "pause")
                     },
                   },
                 ]
@@ -382,7 +384,7 @@ const SubscriptionsPage = () => {
                     label: pendingAction === "resume" ? "Resuming..." : "Resume",
                     icon: <TriangleRightMini />,
                     onClick: () => {
-                      void handleSubscriptionAction(subscription, "resume");
+                      void handleSubscriptionAction(subscription, "resume")
                     },
                   },
                 ]
@@ -394,12 +396,12 @@ const SubscriptionsPage = () => {
                       pendingAction === "cancel" ? "Cancelling..." : "Cancel",
                     icon: <Trash />,
                     onClick: () => {
-                      void handleSubscriptionAction(subscription, "cancel");
+                      void handleSubscriptionAction(subscription, "cancel")
                     },
                   },
                 ]
               : [],
-          ].filter((group) => group.length);
+          ].filter((group) => group.length)
 
           return actionGroups.map((group) =>
             group.map((action) => ({
@@ -411,18 +413,18 @@ const SubscriptionsPage = () => {
               ),
               onClick: () => {
                 if (isPending) {
-                  return;
+                  return
                 }
 
-                action.onClick();
+                action.onClick()
               },
-            })),
-          );
+            }))
+          )
         },
       }),
     ],
-    [pendingActionBySubscriptionId],
-  );
+    [pendingActionBySubscriptionId]
+  )
 
   const table = useDataTable({
     columns,
@@ -448,9 +450,9 @@ const SubscriptionsPage = () => {
       onPaginationChange: setPagination,
     },
     onRowClick: (_event, row) => {
-      navigate(`/subscriptions/${row.id}`);
+      navigate(`/subscriptions/${row.id}`)
     },
-  });
+  })
 
   if (isError) {
     return (
@@ -469,7 +471,7 @@ const SubscriptionsPage = () => {
           </Alert>
         </div>
       </Container>
-    );
+    )
   }
 
   return (
@@ -484,44 +486,52 @@ const SubscriptionsPage = () => {
         <DataTable instance={table} className="min-h-0">
           <div className="flex flex-col gap-2 px-6 py-4 md:flex-row md:items-center md:justify-between">
             <div className="flex flex-wrap items-center gap-2">
-              {statusFilters.length ? (
-                <FilterChip
-                  label={statusFilter.label}
-                  value={activeStatusLabels.join(", ")}
-                  onRemove={() => {
-                    setFiltering((current) => removeFilter(current, "status"));
-                  }}
-                />
-              ) : null}
-              {activeTrialLabel ? (
-                <FilterChip
-                  label={trialFilter.label}
-                  value={activeTrialLabel}
-                  onRemove={() => {
-                    setFiltering((current) => removeFilter(current, "is_trial"));
-                  }}
-                />
-              ) : null}
-              {activeSkipNextCycleLabel ? (
-                <FilterChip
-                  label={skipNextCycleFilter.label}
-                  value={activeSkipNextCycleLabel}
-                  onRemove={() => {
-                    setFiltering((current) =>
-                      removeFilter(current, "skip_next_cycle"),
-                    );
-                  }}
-                />
-              ) : null}
-              {activeNextRenewalLabel ? (
-                <FilterChip
-                  label={nextRenewalFilter.label}
-                  value={activeNextRenewalLabel}
-                  onRemove={() => {
-                    setFiltering((current) => removeFilter(current, "next_renewal"));
-                  }}
-                />
-              ) : null}
+              {statusFilters.length
+                ? (
+                    <FilterChip
+                      label={statusFilter.label}
+                      value={activeStatusLabels.join(", ")}
+                      onRemove={() => {
+                        setFiltering((current) => removeFilter(current, "status"))
+                      }}
+                    />
+                  )
+                : null}
+              {activeTrialLabel
+                ? (
+                    <FilterChip
+                      label={trialFilter.label}
+                      value={activeTrialLabel}
+                      onRemove={() => {
+                        setFiltering((current) => removeFilter(current, "is_trial"))
+                      }}
+                    />
+                  )
+                : null}
+              {activeSkipNextCycleLabel
+                ? (
+                    <FilterChip
+                      label={skipNextCycleFilter.label}
+                      value={activeSkipNextCycleLabel}
+                      onRemove={() => {
+                        setFiltering((current) =>
+                          removeFilter(current, "skip_next_cycle")
+                        )
+                      }}
+                    />
+                  )
+                : null}
+              {activeNextRenewalLabel
+                ? (
+                    <FilterChip
+                      label={nextRenewalFilter.label}
+                      value={activeNextRenewalLabel}
+                      onRemove={() => {
+                        setFiltering((current) => removeFilter(current, "next_renewal"))
+                      }}
+                    />
+                  )
+                : null}
               <DropdownMenu>
                 <DropdownMenu.Trigger asChild>
                   <Button size="small" variant="secondary" type="button">
@@ -535,49 +545,49 @@ const SubscriptionsPage = () => {
                     </DropdownMenu.SubMenuTrigger>
                     <DropdownMenu.SubMenuContent>
                       {statusFilterOptions.map((option) => {
-                        const checked = statusFilters.includes(option.value);
+                        const checked = statusFilters.includes(option.value)
 
                         return (
                           <DropdownMenu.CheckboxItem
                             key={option.value}
                             checked={checked}
                             onSelect={(event) => {
-                              event.preventDefault();
+                              event.preventDefault()
                             }}
                             onCheckedChange={(nextChecked) => {
-                              const value = option.value;
+                              const value = option.value
 
                               setFiltering((current) => {
                                 const currentValues = Array.isArray(
-                                  current.status,
+                                  current.status
                                 )
                                   ? (current.status as SubscriptionAdminStatus[])
-                                  : [];
+                                  : []
 
                                 const nextValues = nextChecked
                                   ? currentValues.includes(value)
                                     ? currentValues
                                     : [...currentValues, value]
                                   : currentValues.filter(
-                                      (currentValue) => currentValue !== value,
-                                    );
+                                      (currentValue) => currentValue !== value
+                                    )
 
                                 if (!nextValues.length) {
-                                  const { status, ...rest } = current;
+                                  const { ...rest } = current
 
-                                  return rest;
+                                  return rest
                                 }
 
                                 return {
                                   ...current,
                                   status: nextValues,
-                                };
-                              });
+                                }
+                              })
                             }}
                           >
                             {option.label}
                           </DropdownMenu.CheckboxItem>
-                        );
+                        )
                       })}
                     </DropdownMenu.SubMenuContent>
                   </DropdownMenu.SubMenu>
@@ -591,19 +601,19 @@ const SubscriptionsPage = () => {
                           key={`trial-${String(option.value)}`}
                           checked={trialFilterValue === option.value}
                           onSelect={(event) => {
-                            event.preventDefault();
+                            event.preventDefault()
                           }}
                           onCheckedChange={(nextChecked) => {
                             setFiltering((current) => {
                               if (!nextChecked) {
-                                return removeFilter(current, "is_trial");
+                                return removeFilter(current, "is_trial")
                               }
 
                               return {
                                 ...current,
                                 is_trial: option.value,
-                              };
-                            });
+                              }
+                            })
                           }}
                         >
                           {option.label}
@@ -621,19 +631,19 @@ const SubscriptionsPage = () => {
                           key={`skip-next-cycle-${String(option.value)}`}
                           checked={skipNextCycleFilterValue === option.value}
                           onSelect={(event) => {
-                            event.preventDefault();
+                            event.preventDefault()
                           }}
                           onCheckedChange={(nextChecked) => {
                             setFiltering((current) => {
                               if (!nextChecked) {
-                                return removeFilter(current, "skip_next_cycle");
+                                return removeFilter(current, "skip_next_cycle")
                               }
 
                               return {
                                 ...current,
                                 skip_next_cycle: option.value,
-                              };
-                            });
+                              }
+                            })
                           }}
                         >
                           {option.label}
@@ -651,19 +661,19 @@ const SubscriptionsPage = () => {
                           key={option.value}
                           checked={nextRenewalFilterValue === option.value}
                           onSelect={(event) => {
-                            event.preventDefault();
+                            event.preventDefault()
                           }}
                           onCheckedChange={(nextChecked) => {
                             setFiltering((current) => {
                               if (!nextChecked) {
-                                return removeFilter(current, "next_renewal");
+                                return removeFilter(current, "next_renewal")
                               }
 
                               return {
                                 ...current,
                                 next_renewal: option.value,
-                              };
-                            });
+                              }
+                            })
                           }}
                         >
                           {option.label}
@@ -671,32 +681,36 @@ const SubscriptionsPage = () => {
                       ))}
                     </DropdownMenu.SubMenuContent>
                   </DropdownMenu.SubMenu>
-                  {hasActiveFilters ? (
-                    <>
-                      <DropdownMenu.Separator />
-                      <DropdownMenu.Item
-                        onSelect={(event) => {
-                          event.preventDefault();
-                          setFiltering({});
-                        }}
-                      >
-                        Clear all filters
-                      </DropdownMenu.Item>
-                    </>
-                  ) : null}
+                  {hasActiveFilters
+                    ? (
+                        <>
+                          <DropdownMenu.Separator />
+                          <DropdownMenu.Item
+                            onSelect={(event) => {
+                              event.preventDefault()
+                              setFiltering({})
+                            }}
+                          >
+                            Clear all filters
+                          </DropdownMenu.Item>
+                        </>
+                      )
+                    : null}
                 </DropdownMenu.Content>
               </DropdownMenu>
-              {hasActiveFilters ? (
-                <button
-                  type="button"
-                  className="text-ui-fg-muted hover:text-ui-fg-subtle txt-compact-small-plus rounded-md px-2 py-1 transition-fg"
-                  onClick={() => {
-                    setFiltering({});
-                  }}
-                >
-                  Clear all
-                </button>
-              ) : null}
+              {hasActiveFilters
+                ? (
+                    <button
+                      type="button"
+                      className="text-ui-fg-muted hover:text-ui-fg-subtle txt-compact-small-plus rounded-md px-2 py-1 transition-fg"
+                      onClick={() => {
+                        setFiltering({})
+                      }}
+                    >
+                      Clear all
+                    </button>
+                  )
+                : null}
             </div>
             <div className="flex items-center gap-x-2 self-end md:self-auto">
               <div className="w-full md:w-auto">
@@ -705,150 +719,156 @@ const SubscriptionsPage = () => {
               <DataTable.SortingMenu />
             </div>
           </div>
-          {table.getRowModel().rows.length ? (
-            <div className="overflow-x-auto border-y">
-              <Table className="relative isolate w-full">
-                <Table.Header className="border-t-0">
-                  {table.getHeaderGroups().map((headerGroup) => (
-                    <Table.Row
-                      key={headerGroup.id}
-                      className="border-b-0 [&_th:last-of-type]:w-[1%] [&_th:last-of-type]:whitespace-nowrap"
-                    >
-                      {headerGroup.headers.map((header) => {
-                        const canSort = header.column.getCanSort();
-                        const sortHandler = header.column.getToggleSortingHandler();
-
-                        return (
-                          <Table.HeaderCell
-                            key={header.id}
-                            className="whitespace-nowrap"
-                          >
-                            {header.isPlaceholder ? null : canSort ? (
-                              <button
-                                type="button"
-                                onClick={sortHandler}
-                                className="group flex items-center gap-2 text-left"
-                              >
-                                {flexRender(
-                                  header.column.columnDef.header,
-                                  header.getContext(),
-                                )}
-                              </button>
-                            ) : (
-                              flexRender(
-                                header.column.columnDef.header,
-                                header.getContext(),
-                              )
-                            )}
-                          </Table.HeaderCell>
-                        );
-                      })}
-                    </Table.Row>
-                  ))}
-                </Table.Header>
-                <Table.Body className="border-b-0">
-                  {table.getRowModel().rows.map((row) => (
-                    <Table.Row
-                      key={row.id}
-                      className="group/row cursor-pointer"
-                      onClick={(event) => {
-                        event.preventDefault();
-                        navigate(`/subscriptions/${row.id}`);
-                      }}
-                    >
-                      {row.getVisibleCells().map((cell) => (
-                        <Table.Cell
-                          key={cell.id}
-                          className="items-stretch truncate whitespace-nowrap"
+          {table.getRowModel().rows.length
+            ? (
+                <div className="overflow-x-auto border-y">
+                  <Table className="relative isolate w-full">
+                    <Table.Header className="border-t-0">
+                      {table.getHeaderGroups().map((headerGroup) => (
+                        <Table.Row
+                          key={headerGroup.id}
+                          className="border-b-0 [&_th:last-of-type]:w-[1%] [&_th:last-of-type]:whitespace-nowrap"
                         >
-                          {flexRender(
-                            cell.column.columnDef.cell,
-                            cell.getContext(),
-                          )}
-                        </Table.Cell>
+                          {headerGroup.headers.map((header) => {
+                            const canSort = header.column.getCanSort()
+                            const sortHandler = header.column.getToggleSortingHandler()
+
+                            return (
+                              <Table.HeaderCell
+                                key={header.id}
+                                className="whitespace-nowrap"
+                              >
+                                {header.isPlaceholder
+                                  ? null
+                                  : canSort
+                                    ? (
+                                        <button
+                                          type="button"
+                                          onClick={sortHandler}
+                                          className="group flex items-center gap-2 text-left"
+                                        >
+                                          {flexRender(
+                                            header.column.columnDef.header,
+                                            header.getContext()
+                                          )}
+                                        </button>
+                                      )
+                                    : (
+                                        flexRender(
+                                          header.column.columnDef.header,
+                                          header.getContext()
+                                        )
+                                      )}
+                              </Table.HeaderCell>
+                            )
+                          })}
+                        </Table.Row>
                       ))}
-                    </Table.Row>
-                  ))}
-                </Table.Body>
-              </Table>
-            </div>
-          ) : (
-            <div className="flex min-h-[250px] w-full flex-col items-center justify-center border-y px-6 py-4 text-center">
-              <Text size="base" weight="plus">
-                {hasActiveFilters || search
-                  ? "No matching subscriptions"
-                  : "No subscriptions yet"}
-              </Text>
-              <Text size="small" leading="compact" className="text-ui-fg-subtle">
-                {hasActiveFilters || search
-                  ? "Try changing the search term or active filters."
-                  : "Subscriptions will appear here once customers start recurring orders."}
-              </Text>
-            </div>
-          )}
+                    </Table.Header>
+                    <Table.Body className="border-b-0">
+                      {table.getRowModel().rows.map((row) => (
+                        <Table.Row
+                          key={row.id}
+                          className="group/row cursor-pointer"
+                          onClick={(event) => {
+                            event.preventDefault()
+                            navigate(`/subscriptions/${row.id}`)
+                          }}
+                        >
+                          {row.getVisibleCells().map((cell) => (
+                            <Table.Cell
+                              key={cell.id}
+                              className="items-stretch truncate whitespace-nowrap"
+                            >
+                              {flexRender(
+                                cell.column.columnDef.cell,
+                                cell.getContext()
+                              )}
+                            </Table.Cell>
+                          ))}
+                        </Table.Row>
+                      ))}
+                    </Table.Body>
+                  </Table>
+                </div>
+              )
+            : (
+                <div className="flex min-h-[250px] w-full flex-col items-center justify-center border-y px-6 py-4 text-center">
+                  <Text size="base" weight="plus">
+                    {hasActiveFilters || search
+                      ? "No matching subscriptions"
+                      : "No subscriptions yet"}
+                  </Text>
+                  <Text size="small" leading="compact" className="text-ui-fg-subtle">
+                    {hasActiveFilters || search
+                      ? "Try changing the search term or active filters."
+                      : "Subscriptions will appear here once customers start recurring orders."}
+                  </Text>
+                </div>
+              )}
           <DataTable.Pagination />
         </DataTable>
       </Container>
     </div>
-  );
-};
+  )
+}
 
 function getStatusColor(status: SubscriptionAdminStatus) {
   switch (status) {
     case SubscriptionAdminStatus.ACTIVE:
-      return "green";
+      return "green"
     case SubscriptionAdminStatus.PAUSED:
-      return "orange";
+      return "orange"
     case SubscriptionAdminStatus.CANCELLED:
-      return "red";
+      return "red"
     case SubscriptionAdminStatus.PAST_DUE:
-      return "grey";
+      return "grey"
   }
 }
 
 function formatStatus(status: SubscriptionAdminStatus) {
   switch (status) {
     case SubscriptionAdminStatus.ACTIVE:
-      return "Active";
+      return "Active"
     case SubscriptionAdminStatus.PAUSED:
-      return "Paused";
+      return "Paused"
     case SubscriptionAdminStatus.CANCELLED:
-      return "Cancelled";
+      return "Cancelled"
     case SubscriptionAdminStatus.PAST_DUE:
-      return "Past due";
+      return "Past due"
   }
 }
 
 function formatDateTime(value: string | null) {
   if (!value) {
-    return "-";
+    return "-"
   }
 
   return new Intl.DateTimeFormat(undefined, {
     dateStyle: "medium",
     timeStyle: "short",
-  }).format(new Date(value));
+  }).format(new Date(value))
 }
 
 export const config = defineRouteConfig({
   label: "Subscriptions",
   icon: Calendar,
-});
+})
 
 export const handle = {
   breadcrumb: () => "Subscriptions",
-};
+}
 
-export default SubscriptionsPage;
+export default SubscriptionsPage
 
 const FilterChip = ({
   label,
   value,
   onRemove,
 }: {
-  label: string;
-  value: string;
-  onRemove: () => void;
+  label: string
+  value: string
+  onRemove: () => void
 }) => {
   return (
     <div className="shadow-buttons-neutral txt-compact-small-plus bg-ui-button-neutral text-ui-fg-base inline-flex items-center overflow-hidden rounded-md">
@@ -865,8 +885,8 @@ const FilterChip = ({
         <XMarkMini />
       </button>
     </div>
-  );
-};
+  )
+}
 
 function getSubscriptionActionPromptConfig(action: SubscriptionActionType) {
   switch (action) {
@@ -878,7 +898,7 @@ function getSubscriptionActionPromptConfig(action: SubscriptionActionType) {
         confirmText: "Pause",
         cancelText: "Cancel",
         variant: "confirmation" as const,
-      };
+      }
     case "resume":
       return {
         title: "Resume subscription?",
@@ -887,7 +907,7 @@ function getSubscriptionActionPromptConfig(action: SubscriptionActionType) {
         confirmText: "Resume",
         cancelText: "Cancel",
         variant: "confirmation" as const,
-      };
+      }
     case "cancel":
       return {
         title: "Cancel subscription?",
@@ -896,15 +916,15 @@ function getSubscriptionActionPromptConfig(action: SubscriptionActionType) {
         confirmText: "Cancel subscription",
         cancelText: "Keep subscription",
         variant: "danger" as const,
-      };
+      }
   }
 }
 
 function removeFilter(
   current: DataTableFilteringState,
-  key: string,
+  key: string
 ) {
-  const { [key]: _removed, ...rest } = current;
+  const { [key]: _removed, ...rest } = current
 
-  return rest;
+  return rest
 }

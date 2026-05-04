@@ -189,7 +189,7 @@ medusaIntegrationTestRunner({
 jest.setTimeout(60 * 1000)
 
 async function seedAnalyticsAdminFlowScenario(container: any) {
-  const query = container.resolve<any>(ContainerRegistrationKeys.QUERY)
+  const query = container.resolve(ContainerRegistrationKeys.QUERY)
   const originalGraph = query.graph.bind(query)
   const primaryProductId = `prod_analytics_flow_primary_${Date.now()}`
   const secondaryProductId = `prod_analytics_flow_secondary_${Date.now()}`
@@ -214,7 +214,7 @@ async function seedAnalyticsAdminFlowScenario(container: any) {
     frequency_value: 1,
   })
 
-  const subscriptionModule = container.resolve<any>(SUBSCRIPTION_MODULE)
+  const subscriptionModule = container.resolve(SUBSCRIPTION_MODULE)
 
   await subscriptionModule.updateSubscriptions({
     id: activePrimary.id,
@@ -286,7 +286,7 @@ async function seedAnalyticsAdminFlowScenario(container: any) {
     return originalGraph(input)
   })
 
-  const cancellationModule = container.resolve<any>(CANCELLATION_MODULE)
+  const cancellationModule = container.resolve(CANCELLATION_MODULE)
 
   await cancellationModule.createCancellationCases({
     subscription_id: canceledPrimary.id,

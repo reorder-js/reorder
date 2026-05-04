@@ -18,12 +18,12 @@ export type CreateSubscriptionLogEventStepInput = {
 
 type CreateSubscriptionLogEventCompensation =
   | {
-      action: "created"
-      subscription_log_id: string
-    }
+    action: "created"
+    subscription_log_id: string
+  }
   | {
-      action: "existing"
-    }
+    action: "existing"
+  }
 
 function isDuplicateDedupeKeyError(error: unknown) {
   if (!error || typeof error !== "object") {
@@ -98,7 +98,7 @@ export async function createSubscriptionLogEventStepHandler(
 }
 
 export async function compensateCreateSubscriptionLogEventStep(
-  compensation: CreateSubscriptionLogEventCompensation,
+  compensation: CreateSubscriptionLogEventCompensation | undefined,
   { container }: { container: { resolve(key: string): unknown } }
 ) {
   if (!compensation || compensation.action !== "created") {

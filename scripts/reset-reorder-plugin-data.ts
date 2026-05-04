@@ -47,12 +47,8 @@ export default async function resetReorderPluginData({
   const query = container.resolve(ContainerRegistrationKeys.QUERY)
   const pgConnection = container.resolve(ContainerRegistrationKeys.PG_CONNECTION)
   const link = container.resolve(ContainerRegistrationKeys.LINK)
-  const customerModule = container.resolve<{
-    deleteCustomers(ids: string[]): Promise<void>
-  }>(Modules.CUSTOMER)
-  const orderModule = container.resolve<{
-    deleteOrders(ids: string[]): Promise<void>
-  }>(Modules.ORDER)
+  const customerModule = container.resolve(Modules.CUSTOMER)
+  const orderModule = container.resolve(Modules.ORDER)
 
   logger.warn(
     "[reset-reorder-plugin-data] Removing persisted data owned by the reorder plugin, including linked orders and customers."

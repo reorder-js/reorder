@@ -17,17 +17,6 @@ const JOB_NAME = "process-dunning-retries"
 const JOB_LOCK_KEY = "jobs:dunning-retries"
 const DEFAULT_BATCH_SIZE = 20
 
-type LockingService = {
-  execute<T>(
-    keys: string | string[],
-    job: () => Promise<T>,
-    args?: {
-      timeout?: number
-      provider?: string
-    }
-  ): Promise<T>
-}
-
 function getLogger(container: MedusaContainer) {
   return container.resolve("logger")
 }
@@ -265,7 +254,7 @@ export default async function processDunningRetriesJob(
   container: MedusaContainer
 ) {
   const logger = getLogger(container)
-  const locking = container.resolve<LockingService>(Modules.LOCKING)
+  const locking = container.resolve(Modules.LOCKING)
   const jobCorrelationId = createDunningCorrelationId(`${JOB_NAME}-lock`)
 
   try {

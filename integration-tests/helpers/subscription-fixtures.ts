@@ -9,18 +9,6 @@ import {
   SubscriptionStatus,
 } from "../../src/modules/subscription/types"
 
-type ProductModuleService = {
-  createProducts(data: Record<string, unknown>): Promise<Record<string, any>>
-}
-
-type AuthModuleService = {
-  createAuthIdentities(data: Record<string, unknown>): Promise<{ id: string }>
-}
-
-type UserModuleService = {
-  createUsers(data: Record<string, unknown>): Promise<{ id: string; email: string }>
-}
-
 type SubscriptionSeedInput = {
   id?: string
   reference?: string
@@ -38,8 +26,8 @@ type SubscriptionSeedInput = {
 }
 
 export async function createAdminAuthHeaders(container: MedusaContainer) {
-  const authModule = container.resolve<AuthModuleService>(Modules.AUTH)
-  const userModule = container.resolve<UserModuleService>(Modules.USER)
+  const authModule = container.resolve(Modules.AUTH)
+  const userModule = container.resolve(Modules.USER)
 
   const email = `admin-${Date.now()}@medusa.test`
   const user = await userModule.createUsers({
@@ -87,7 +75,7 @@ export async function createAdminAuthHeaders(container: MedusaContainer) {
 }
 
 export async function createProductWithVariant(container: MedusaContainer) {
-  const productModule = container.resolve<ProductModuleService>(Modules.PRODUCT)
+  const productModule = container.resolve(Modules.PRODUCT)
 
   const product = await productModule.createProducts({
     title: `Subscription Product ${Date.now()}`,

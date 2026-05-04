@@ -38,8 +38,8 @@ export const resumeSubscriptionStep = createStep(
     const nextRenewalAt = input.resume_at
       ? new Date(input.resume_at)
       : input.preserve_billing_anchor
-      ? subscription.next_renewal_at
-      : subscription.next_renewal_at ?? new Date()
+        ? subscription.next_renewal_at
+        : subscription.next_renewal_at ?? new Date()
 
     const updated = await subscriptionModuleService.updateSubscriptions({
       id: input.id,
@@ -64,7 +64,7 @@ export const resumeSubscriptionStep = createStep(
       asSubscriptionWorkflowRecord(subscription)
     )
   },
-  async function (subscription: SubscriptionWorkflowRecord, { container }) {
+  async function (subscription: SubscriptionWorkflowRecord | undefined, { container }) {
     if (!subscription) {
       return
     }

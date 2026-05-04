@@ -297,7 +297,7 @@ medusaIntegrationTestRunner({
           .get("/admin/subscription-logs/log_missing", {
             headers,
           })
-          .catch((error) => error.response)
+          .catch((error: any) => error.response)
 
         expect(response.status).toEqual(404)
         expect(response.data).toMatchObject({

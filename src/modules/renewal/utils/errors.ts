@@ -17,7 +17,7 @@ export const renewalErrors = {
     return new MedusaError(
       MedusaError.Types.CONFLICT,
       message ??
-        `Renewal '${renewalCycleId}' can't transition from its current state`
+      `Renewal '${renewalCycleId}' can't transition from its current state`
     )
   },
   alreadyProcessing(renewalCycleId: string) {
@@ -54,7 +54,7 @@ export const renewalErrors = {
     return new MedusaError(
       MedusaError.Types.CONFLICT,
       message ??
-        `Renewal order creation failed for renewal '${renewalCycleId}'`
+      `Renewal order creation failed for renewal '${renewalCycleId}'`
     )
   },
 }

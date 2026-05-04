@@ -238,18 +238,20 @@ const AnalyticsPage = () => {
               />
             )
           })}
-          {filters.group_by !== AnalyticsGroupBy.DAY ? (
-            <FilterChip
-              label="Group by"
-              value={formatGroupBy(filters.group_by)}
-              onRemove={() => {
-                setFilters((current) => ({
-                  ...current,
-                  group_by: AnalyticsGroupBy.DAY,
-                }))
-              }}
-            />
-          ) : null}
+          {filters.group_by !== AnalyticsGroupBy.DAY
+            ? (
+                <FilterChip
+                  label="Group by"
+                  value={formatGroupBy(filters.group_by)}
+                  onRemove={() => {
+                    setFilters((current) => ({
+                      ...current,
+                      group_by: AnalyticsGroupBy.DAY,
+                    }))
+                  }}
+                />
+              )
+            : null}
           <DropdownMenu>
             <DropdownMenu.Trigger asChild>
               <Button size="small" variant="secondary" type="button">
@@ -316,17 +318,19 @@ const AnalyticsPage = () => {
               </DropdownMenu.SubMenu>
             </DropdownMenu.Content>
           </DropdownMenu>
-          {hasActiveFilters ? (
-            <button
-              type="button"
-              className="text-ui-fg-muted hover:text-ui-fg-subtle txt-compact-small-plus rounded-md px-2 py-1 transition-fg"
-              onClick={() => {
-                setFilters(DEFAULT_FILTERS)
-              }}
-            >
-              Clear all
-            </button>
-          ) : null}
+          {hasActiveFilters
+            ? (
+                <button
+                  type="button"
+                  className="text-ui-fg-muted hover:text-ui-fg-subtle txt-compact-small-plus rounded-md px-2 py-1 transition-fg"
+                  onClick={() => {
+                    setFilters(DEFAULT_FILTERS)
+                  }}
+                >
+                  Clear all
+                </button>
+              )
+            : null}
         </div>
 
         <div className="grid gap-3 lg:grid-cols-[repeat(4,minmax(0,1fr))]">
@@ -397,13 +401,15 @@ const AnalyticsPage = () => {
       </div>
 
       <div className="flex flex-col gap-4 px-6 py-6">
-        {pageError ? (
-          <Alert variant="error">
-            {pageError instanceof Error
-              ? pageError.message
-              : "Failed to load analytics."}
-          </Alert>
-        ) : null}
+        {pageError
+          ? (
+              <Alert variant="error">
+                {pageError instanceof Error
+                  ? pageError.message
+                  : "Failed to load analytics."}
+              </Alert>
+            )
+          : null}
 
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {isKpisLoading && !kpisData
@@ -428,7 +434,9 @@ const AnalyticsPage = () => {
                 </Text>
               </div>
               <Text size="small" leading="compact" className="text-ui-fg-subtle">
-                {formatGroupBy(filters.group_by)} buckets
+                {formatGroupBy(filters.group_by)}
+                {" "}
+                buckets
               </Text>
             </div>
 
@@ -448,16 +456,20 @@ const AnalyticsPage = () => {
               ))}
             </div>
 
-            {isTrendsLoading && !trendsData ? (
-              <TrendChartSkeleton />
-            ) : !hasAnalyticsData || !selectedSeries ? (
-              <EmptyAnalyticsState
-                title="No analytics data for this range"
-                description="Try widening the date range or removing filters to inspect a broader slice of subscription activity."
-              />
-            ) : (
-              <TrendChart series={selectedSeries} />
-            )}
+            {isTrendsLoading && !trendsData
+              ? (
+                  <TrendChartSkeleton />
+                )
+              : !hasAnalyticsData || !selectedSeries
+                  ? (
+                      <EmptyAnalyticsState
+                        title="No analytics data for this range"
+                        description="Try widening the date range or removing filters to inspect a broader slice of subscription activity."
+                      />
+                    )
+                  : (
+                      <TrendChart series={selectedSeries} />
+                    )}
           </div>
         </Container>
       </div>
@@ -647,10 +659,14 @@ const TrendChart = ({ series }: { series: AnalyticsTrendSeries }) => {
         </div>
         <div className="flex flex-col items-start gap-1 md:items-end">
           <Text size="small" leading="compact" className="text-ui-fg-subtle">
-            Max {formatTrendValue(max, series)}
+            Max
+            {" "}
+            {formatTrendValue(max, series)}
           </Text>
           <Text size="small" leading="compact" className="text-ui-fg-subtle">
-            Min {formatTrendValue(min, series)}
+            Min
+            {" "}
+            {formatTrendValue(min, series)}
           </Text>
         </div>
       </div>
@@ -754,10 +770,10 @@ function formatMetricValue(
       return new Intl.NumberFormat(
         metric.currency_code?.toUpperCase() === "USD" ? "en-US" : undefined,
         {
-        style: "currency",
-        currency: metric.currency_code || "USD",
-        minimumFractionDigits: metric.precision,
-        maximumFractionDigits: metric.precision,
+          style: "currency",
+          currency: metric.currency_code || "USD",
+          minimumFractionDigits: metric.precision,
+          maximumFractionDigits: metric.precision,
         }
       ).format(value)
     case "percentage":

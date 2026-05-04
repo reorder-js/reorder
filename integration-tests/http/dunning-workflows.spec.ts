@@ -1,7 +1,6 @@
 import { medusaIntegrationTestRunner } from "@medusajs/test-utils"
 import path from "path"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
-import { IPaymentModuleService } from "@medusajs/framework/types"
 import {
   getAdminDunningDetail,
   listAdminDunningCases,
@@ -234,7 +233,7 @@ medusaIntegrationTestRunner({
         const renewalModule =
           container.resolve<RenewalModuleService>(RENEWAL_MODULE)
         const paymentModule =
-          container.resolve<IPaymentModuleService>(Modules.PAYMENT)
+          container.resolve(Modules.PAYMENT)
         const query = container.resolve<any>(ContainerRegistrationKeys.QUERY)
         const originalGraph = query.graph.bind(query)
 
@@ -327,7 +326,7 @@ medusaIntegrationTestRunner({
         const dunningModule =
           container.resolve<DunningModuleService>(DUNNING_MODULE)
         const paymentModule =
-          container.resolve<IPaymentModuleService>(Modules.PAYMENT)
+          container.resolve(Modules.PAYMENT)
         const query = container.resolve<any>(ContainerRegistrationKeys.QUERY)
         const originalGraph = query.graph.bind(query)
 
@@ -405,7 +404,7 @@ medusaIntegrationTestRunner({
         const dunningModule =
           container.resolve<DunningModuleService>(DUNNING_MODULE)
         const paymentModule =
-          container.resolve<IPaymentModuleService>(Modules.PAYMENT)
+          container.resolve(Modules.PAYMENT)
         const query = container.resolve<any>(ContainerRegistrationKeys.QUERY)
         const originalGraph = query.graph.bind(query)
 

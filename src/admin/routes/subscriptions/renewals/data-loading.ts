@@ -2,44 +2,44 @@ import {
   DataTableFilteringState,
   DataTablePaginationState,
   DataTableSortingState,
-} from "@medusajs/ui";
+} from "@medusajs/ui"
 import {
   keepPreviousData,
   QueryClient,
   useQuery,
-} from "@tanstack/react-query";
-import { sdk } from "../../../lib/client";
-import { invalidateAdminAnalyticsQueries } from "../analytics/data-loading";
-import { invalidateAdminActivityLogQueries } from "../activity-log/data-loading";
+} from "@tanstack/react-query"
+import { sdk } from "../../../lib/client"
+import { invalidateAdminAnalyticsQueries } from "../analytics/data-loading"
+import { invalidateAdminActivityLogQueries } from "../activity-log/data-loading"
 import {
   RenewalCycleAdminDetailResponse,
   RenewalApprovalStatus,
   RenewalAttemptAdminStatus,
   RenewalCycleAdminListResponse,
   RenewalCycleAdminStatus,
-} from "../../../types/renewal";
+} from "../../../types/renewal"
 
 type UseAdminRenewalsDisplayQueryInput = {
-  pagination: DataTablePaginationState;
-  search: string;
-  filtering: DataTableFilteringState;
-  sorting: DataTableSortingState | null;
-};
+  pagination: DataTablePaginationState
+  search: string
+  filtering: DataTableFilteringState
+  sorting: DataTableSortingState | null
+}
 
 export const adminRenewalsQueryKeys = {
   all: ["admin-renewals"] as const,
   detail: (id: string) => [...adminRenewalsQueryKeys.all, "detail", id] as const,
   display: (params: {
-    pageSize: number;
-    offset: number;
-    search: string;
-    status: RenewalCycleAdminStatus[];
-    approvalStatus: RenewalApprovalStatus[];
-    lastAttemptStatus: RenewalAttemptAdminStatus[];
-    scheduledFrom?: string;
-    scheduledTo?: string;
-    sortingId?: string;
-    sortingDesc?: boolean;
+    pageSize: number
+    offset: number
+    search: string
+    status: RenewalCycleAdminStatus[]
+    approvalStatus: RenewalApprovalStatus[]
+    lastAttemptStatus: RenewalAttemptAdminStatus[]
+    scheduledFrom?: string
+    scheduledTo?: string
+    sortingId?: string
+    sortingDesc?: boolean
   }) =>
     [
       ...adminRenewalsQueryKeys.all,
@@ -55,29 +55,29 @@ export const adminRenewalsQueryKeys = {
       params.sortingId,
       params.sortingDesc,
     ] as const,
-};
+}
 
 export function getAdminRenewalsDisplayQueryInput(
   input: UseAdminRenewalsDisplayQueryInput
 ) {
-  const offset = input.pagination.pageIndex * input.pagination.pageSize;
+  const offset = input.pagination.pageIndex * input.pagination.pageSize
   const status = Array.isArray(input.filtering.status)
     ? (input.filtering.status as RenewalCycleAdminStatus[])
-    : [];
+    : []
   const approvalStatus = Array.isArray(input.filtering.approval_status)
     ? (input.filtering.approval_status as RenewalApprovalStatus[])
-    : [];
+    : []
   const lastAttemptStatus = Array.isArray(input.filtering.last_attempt_status)
     ? (input.filtering.last_attempt_status as RenewalAttemptAdminStatus[])
-    : [];
+    : []
   const scheduledFrom =
     typeof input.filtering.scheduled_from === "string"
       ? toIsoDateTime(input.filtering.scheduled_from)
-      : undefined;
+      : undefined
   const scheduledTo =
     typeof input.filtering.scheduled_to === "string"
       ? toIsoDateTime(input.filtering.scheduled_to)
-      : undefined;
+      : undefined
 
   return {
     pageSize: input.pagination.pageSize,
@@ -90,13 +90,13 @@ export function getAdminRenewalsDisplayQueryInput(
     scheduledTo,
     sortingId: input.sorting?.id,
     sortingDesc: input.sorting?.desc,
-  };
+  }
 }
 
 export function useAdminRenewalsDisplayQuery(
   input: UseAdminRenewalsDisplayQueryInput
 ) {
-  const queryInput = getAdminRenewalsDisplayQueryInput(input);
+  const queryInput = getAdminRenewalsDisplayQueryInput(input)
 
   return useQuery<RenewalCycleAdminListResponse>({
     queryKey: adminRenewalsQueryKeys.display(queryInput),
@@ -126,7 +126,7 @@ export function useAdminRenewalsDisplayQuery(
         },
       }),
     placeholderData: keepPreviousData,
-  });
+  })
 }
 
 export function useAdminRenewalDetailQuery(
@@ -138,7 +138,7 @@ export function useAdminRenewalDetailQuery(
     queryFn: () => sdk.client.fetch(`/admin/renewals/${id}`),
     enabled: Boolean(id),
     initialData,
-  });
+  })
 }
 
 export async function invalidateAdminRenewalsQueries(
@@ -159,15 +159,15 @@ export async function invalidateAdminRenewalsQueries(
     invalidateAdminActivityLogQueries(queryClient, {
       subscriptionId,
     }),
-  ]);
+  ])
 }
 
 function toIsoDateTime(value: string) {
-  const date = new Date(value);
+  const date = new Date(value)
 
   if (Number.isNaN(date.getTime())) {
-    return undefined;
+    return undefined
   }
 
-  return date.toISOString();
+  return date.toISOString()
 }

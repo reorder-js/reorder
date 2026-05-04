@@ -1,4 +1,3 @@
-import { defineRouteConfig } from "@medusajs/admin-sdk"
 import {
   Alert,
   Button,
@@ -64,7 +63,7 @@ const terminalStatuses = new Set<CancellationCaseAdminStatus>([
   CancellationCaseAdminStatus.CANCELED,
 ])
 
-const reasonCategoryOptions: Array<{ label: string; value: ReasonCategory }> = [
+const reasonCategoryOptions: Array<{ label: string, value: ReasonCategory }> = [
   { label: "Price", value: "price" },
   { label: "Product fit", value: "product_fit" },
   { label: "Delivery", value: "delivery" },
@@ -74,7 +73,7 @@ const reasonCategoryOptions: Array<{ label: string; value: ReasonCategory }> = [
   { label: "Other", value: "other" },
 ]
 
-const offerTypeOptions: Array<{ label: string; value: OfferType }> = [
+const offerTypeOptions: Array<{ label: string, value: OfferType }> = [
   { label: "Pause offer", value: "pause_offer" },
   { label: "Discount offer", value: "discount_offer" },
   { label: "Bonus offer", value: "bonus_offer" },
@@ -627,39 +626,45 @@ const CancellationDetailPage = () => {
                 </IconButton>
               </DropdownMenu.Trigger>
               <DropdownMenu.Content align="end">
-                {canApplyOffer ? (
-                  <DropdownMenu.Item
-                    className="flex items-center gap-x-2"
-                    disabled={isActionPending}
-                    onClick={() => openDrawer("apply_offer")}
-                  >
-                    <CheckCircle className="text-ui-fg-subtle" />
-                    <span>Apply retention offer</span>
-                  </DropdownMenu.Item>
-                ) : null}
-                {canEditReason ? (
-                  <DropdownMenu.Item
-                    className="flex items-center gap-x-2"
-                    disabled={isActionPending}
-                    onClick={() => openDrawer("reason")}
-                  >
-                    <PencilSquare className="text-ui-fg-subtle" />
-                    <span>Edit reason</span>
-                  </DropdownMenu.Item>
-                ) : null}
-                {canFinalize ? (
-                  <>
-                    <DropdownMenu.Separator />
-                    <DropdownMenu.Item
-                      className="flex items-center gap-x-2"
-                      disabled={isActionPending}
-                      onClick={() => openDrawer("finalize")}
-                    >
-                      <XCircle className="text-ui-fg-subtle" />
-                      <span>Finalize cancellation</span>
-                    </DropdownMenu.Item>
-                  </>
-                ) : null}
+                {canApplyOffer
+                  ? (
+                      <DropdownMenu.Item
+                        className="flex items-center gap-x-2"
+                        disabled={isActionPending}
+                        onClick={() => openDrawer("apply_offer")}
+                      >
+                        <CheckCircle className="text-ui-fg-subtle" />
+                        <span>Apply retention offer</span>
+                      </DropdownMenu.Item>
+                    )
+                  : null}
+                {canEditReason
+                  ? (
+                      <DropdownMenu.Item
+                        className="flex items-center gap-x-2"
+                        disabled={isActionPending}
+                        onClick={() => openDrawer("reason")}
+                      >
+                        <PencilSquare className="text-ui-fg-subtle" />
+                        <span>Edit reason</span>
+                      </DropdownMenu.Item>
+                    )
+                  : null}
+                {canFinalize
+                  ? (
+                      <>
+                        <DropdownMenu.Separator />
+                        <DropdownMenu.Item
+                          className="flex items-center gap-x-2"
+                          disabled={isActionPending}
+                          onClick={() => openDrawer("finalize")}
+                        >
+                          <XCircle className="text-ui-fg-subtle" />
+                          <span>Finalize cancellation</span>
+                        </DropdownMenu.Item>
+                      </>
+                    )
+                  : null}
               </DropdownMenu.Content>
             </DropdownMenu>
           </div>
@@ -715,47 +720,49 @@ const CancellationDetailPage = () => {
               <Heading level="h2">Decision timeline</Heading>
             </div>
             <div className="px-6 py-4">
-              {timelineItems.length ? (
-                <div className="flex flex-col gap-y-3">
-                  {timelineItems.map((item) => (
-                    <div
-                      key={item.id}
-                      className="rounded-lg border border-ui-border-base p-4"
-                    >
-                      <div className="flex flex-col gap-y-2 md:flex-row md:items-start md:justify-between">
-                        <div className="flex flex-col gap-y-1">
-                          <Text size="small" leading="compact" weight="plus">
-                            {item.title}
-                          </Text>
-                          <Text
-                            size="small"
-                            leading="compact"
-                            className="text-ui-fg-subtle"
-                          >
-                            {item.description}
-                          </Text>
+              {timelineItems.length
+                ? (
+                    <div className="flex flex-col gap-y-3">
+                      {timelineItems.map((item) => (
+                        <div
+                          key={item.id}
+                          className="rounded-lg border border-ui-border-base p-4"
+                        >
+                          <div className="flex flex-col gap-y-2 md:flex-row md:items-start md:justify-between">
+                            <div className="flex flex-col gap-y-1">
+                              <Text size="small" leading="compact" weight="plus">
+                                {item.title}
+                              </Text>
+                              <Text
+                                size="small"
+                                leading="compact"
+                                className="text-ui-fg-subtle"
+                              >
+                                {item.description}
+                              </Text>
+                            </div>
+                            <div className="flex flex-col items-start gap-y-2 md:items-end">
+                              <StatusBadge color={item.color}>{item.status}</StatusBadge>
+                              <Text
+                                size="small"
+                                leading="compact"
+                                className="text-ui-fg-subtle"
+                              >
+                                {formatDateTime(item.date)}
+                              </Text>
+                            </div>
+                          </div>
                         </div>
-                        <div className="flex flex-col items-start gap-y-2 md:items-end">
-                          <StatusBadge color={item.color}>{item.status}</StatusBadge>
-                          <Text
-                            size="small"
-                            leading="compact"
-                            className="text-ui-fg-subtle"
-                          >
-                            {formatDateTime(item.date)}
-                          </Text>
-                        </div>
-                      </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <Alert variant="info">
-                  <Text size="small" leading="compact">
-                    No retention offers or final outcome entries have been recorded yet.
-                  </Text>
-                </Alert>
-              )}
+                  )
+                : (
+                    <Alert variant="info">
+                      <Text size="small" leading="compact">
+                        No retention offers or final outcome entries have been recorded yet.
+                      </Text>
+                    </Alert>
+                  )}
             </div>
           </Container>
 
@@ -764,53 +771,55 @@ const CancellationDetailPage = () => {
               <Heading level="h2">Offer history</Heading>
             </div>
             <div className="px-6 py-4">
-              {cancellation.offers.length ? (
-                <Table>
-                  <Table.Header>
-                    <Table.Row>
-                      <Table.HeaderCell>Offer</Table.HeaderCell>
-                      <Table.HeaderCell>Status</Table.HeaderCell>
-                      <Table.HeaderCell>Decided</Table.HeaderCell>
-                      <Table.HeaderCell>Applied</Table.HeaderCell>
-                      <Table.HeaderCell>Reason</Table.HeaderCell>
-                    </Table.Row>
-                  </Table.Header>
-                  <Table.Body>
-                    {cancellation.offers.map((offer) => (
-                      <Table.Row key={offer.id}>
-                        <Table.Cell>
-                          <div className="flex flex-col gap-y-1">
-                            <Text size="small" leading="compact" weight="plus">
-                              {formatOfferType(offer.offer_type)}
-                            </Text>
-                            <Text
-                              size="small"
-                              leading="compact"
-                              className="text-ui-fg-subtle"
-                            >
-                              {describeOfferPayload(offer) || "No payload summary"}
-                            </Text>
-                          </div>
-                        </Table.Cell>
-                        <Table.Cell>
-                          <StatusBadge color={getOfferDecisionColor(offer.decision_status)}>
-                            {formatOfferDecisionStatus(offer.decision_status)}
-                          </StatusBadge>
-                        </Table.Cell>
-                        <Table.Cell>{formatDateTime(offer.decided_at)}</Table.Cell>
-                        <Table.Cell>{formatDateTime(offer.applied_at)}</Table.Cell>
-                        <Table.Cell>{offer.decision_reason || "-"}</Table.Cell>
-                      </Table.Row>
-                    ))}
-                  </Table.Body>
-                </Table>
-              ) : (
-                <Alert variant="info">
-                  <Text size="small" leading="compact">
-                    No retention offers have been recorded for this case yet.
-                  </Text>
-                </Alert>
-              )}
+              {cancellation.offers.length
+                ? (
+                    <Table>
+                      <Table.Header>
+                        <Table.Row>
+                          <Table.HeaderCell>Offer</Table.HeaderCell>
+                          <Table.HeaderCell>Status</Table.HeaderCell>
+                          <Table.HeaderCell>Decided</Table.HeaderCell>
+                          <Table.HeaderCell>Applied</Table.HeaderCell>
+                          <Table.HeaderCell>Reason</Table.HeaderCell>
+                        </Table.Row>
+                      </Table.Header>
+                      <Table.Body>
+                        {cancellation.offers.map((offer) => (
+                          <Table.Row key={offer.id}>
+                            <Table.Cell>
+                              <div className="flex flex-col gap-y-1">
+                                <Text size="small" leading="compact" weight="plus">
+                                  {formatOfferType(offer.offer_type)}
+                                </Text>
+                                <Text
+                                  size="small"
+                                  leading="compact"
+                                  className="text-ui-fg-subtle"
+                                >
+                                  {describeOfferPayload(offer) || "No payload summary"}
+                                </Text>
+                              </div>
+                            </Table.Cell>
+                            <Table.Cell>
+                              <StatusBadge color={getOfferDecisionColor(offer.decision_status)}>
+                                {formatOfferDecisionStatus(offer.decision_status)}
+                              </StatusBadge>
+                            </Table.Cell>
+                            <Table.Cell>{formatDateTime(offer.decided_at)}</Table.Cell>
+                            <Table.Cell>{formatDateTime(offer.applied_at)}</Table.Cell>
+                            <Table.Cell>{offer.decision_reason || "-"}</Table.Cell>
+                          </Table.Row>
+                        ))}
+                      </Table.Body>
+                    </Table>
+                  )
+                : (
+                    <Alert variant="info">
+                      <Text size="small" leading="compact">
+                        No retention offers have been recorded for this case yet.
+                      </Text>
+                    </Alert>
+                  )}
             </div>
           </Container>
 
@@ -819,17 +828,19 @@ const CancellationDetailPage = () => {
               <Heading level="h2">Technical metadata</Heading>
             </div>
             <div className="px-6 py-4">
-              {metadataRows.length ? (
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                  {metadataRows.map((row) => (
-                    <DetailRow key={row.key} label={row.key} value={row.value} mono />
-                  ))}
-                </div>
-              ) : (
-                <Text size="small" leading="compact" className="text-ui-fg-subtle">
-                  No metadata was stored for this case.
-                </Text>
-              )}
+              {metadataRows.length
+                ? (
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                      {metadataRows.map((row) => (
+                        <DetailRow key={row.key} label={row.key} value={row.value} mono />
+                      ))}
+                    </div>
+                  )
+                : (
+                    <Text size="small" leading="compact" className="text-ui-fg-subtle">
+                      No metadata was stored for this case.
+                    </Text>
+                  )}
             </div>
           </Container>
         </div>
@@ -899,41 +910,43 @@ const CancellationDetailPage = () => {
             </div>
             <div className="px-6 py-4">
               <div className="grid gap-4">
-                {cancellation.dunning ? (
-                  <Link
-                    to={`/subscriptions/dunning/${cancellation.dunning.dunning_case_id}`}
-                    className="outline-none focus-within:shadow-borders-interactive-with-focus rounded-md [&:hover>div]:bg-ui-bg-component-hover"
-                  >
-                    <div className="shadow-elevation-card-rest bg-ui-bg-component rounded-md px-4 py-2 transition-colors">
-                      <div className="flex items-center gap-3">
-                        <div className="shadow-elevation-card-rest flex h-14 w-14 items-center justify-center rounded-md text-ui-fg-muted">
-                          <Text size="small" leading="compact" weight="plus">
-                            DUN
-                          </Text>
+                {cancellation.dunning
+                  ? (
+                      <Link
+                        to={`/subscriptions/dunning/${cancellation.dunning.dunning_case_id}`}
+                        className="outline-none focus-within:shadow-borders-interactive-with-focus rounded-md [&:hover>div]:bg-ui-bg-component-hover"
+                      >
+                        <div className="shadow-elevation-card-rest bg-ui-bg-component rounded-md px-4 py-2 transition-colors">
+                          <div className="flex items-center gap-3">
+                            <div className="shadow-elevation-card-rest flex h-14 w-14 items-center justify-center rounded-md text-ui-fg-muted">
+                              <Text size="small" leading="compact" weight="plus">
+                                DUN
+                              </Text>
+                            </div>
+                            <div className="flex flex-1 flex-col">
+                              <Text size="small" leading="compact" weight="plus">
+                                {cancellation.dunning.dunning_case_id}
+                              </Text>
+                              <Text
+                                size="small"
+                                leading="compact"
+                                className="text-ui-fg-subtle"
+                              >
+                                {formatDunningStatus(cancellation.dunning.status)}
+                              </Text>
+                            </div>
+                            <div className="size-7 flex items-center justify-center">
+                              <TriangleRightMini className="text-ui-fg-muted rtl:rotate-180" />
+                            </div>
+                          </div>
                         </div>
-                        <div className="flex flex-1 flex-col">
-                          <Text size="small" leading="compact" weight="plus">
-                            {cancellation.dunning.dunning_case_id}
-                          </Text>
-                          <Text
-                            size="small"
-                            leading="compact"
-                            className="text-ui-fg-subtle"
-                          >
-                            {formatDunningStatus(cancellation.dunning.status)}
-                          </Text>
-                        </div>
-                        <div className="size-7 flex items-center justify-center">
-                          <TriangleRightMini className="text-ui-fg-muted rtl:rotate-180" />
-                        </div>
-                      </div>
-                    </div>
-                  </Link>
-                ) : (
-                  <Text size="small" leading="compact" className="text-ui-fg-subtle">
-                    No active dunning case linked
-                  </Text>
-                )}
+                      </Link>
+                    )
+                  : (
+                      <Text size="small" leading="compact" className="text-ui-fg-subtle">
+                        No active dunning case linked
+                      </Text>
+                    )}
                 <DetailRow
                   label="Status"
                   value={
@@ -964,41 +977,43 @@ const CancellationDetailPage = () => {
             </div>
             <div className="px-6 py-4">
               <div className="grid gap-4">
-                {cancellation.renewal ? (
-                  <Link
-                    to={`/subscriptions/renewals/${cancellation.renewal.renewal_cycle_id}`}
-                    className="outline-none focus-within:shadow-borders-interactive-with-focus rounded-md [&:hover>div]:bg-ui-bg-component-hover"
-                  >
-                    <div className="shadow-elevation-card-rest bg-ui-bg-component rounded-md px-4 py-2 transition-colors">
-                      <div className="flex items-center gap-3">
-                        <div className="shadow-elevation-card-rest flex h-14 w-14 items-center justify-center rounded-md text-ui-fg-muted">
-                          <Text size="small" leading="compact" weight="plus">
-                            REN
-                          </Text>
+                {cancellation.renewal
+                  ? (
+                      <Link
+                        to={`/subscriptions/renewals/${cancellation.renewal.renewal_cycle_id}`}
+                        className="outline-none focus-within:shadow-borders-interactive-with-focus rounded-md [&:hover>div]:bg-ui-bg-component-hover"
+                      >
+                        <div className="shadow-elevation-card-rest bg-ui-bg-component rounded-md px-4 py-2 transition-colors">
+                          <div className="flex items-center gap-3">
+                            <div className="shadow-elevation-card-rest flex h-14 w-14 items-center justify-center rounded-md text-ui-fg-muted">
+                              <Text size="small" leading="compact" weight="plus">
+                                REN
+                              </Text>
+                            </div>
+                            <div className="flex flex-1 flex-col">
+                              <Text size="small" leading="compact" weight="plus">
+                                {cancellation.renewal.renewal_cycle_id}
+                              </Text>
+                              <Text
+                                size="small"
+                                leading="compact"
+                                className="text-ui-fg-subtle"
+                              >
+                                {formatRenewalStatus(cancellation.renewal.status)}
+                              </Text>
+                            </div>
+                            <div className="size-7 flex items-center justify-center">
+                              <TriangleRightMini className="text-ui-fg-muted rtl:rotate-180" />
+                            </div>
+                          </div>
                         </div>
-                        <div className="flex flex-1 flex-col">
-                          <Text size="small" leading="compact" weight="plus">
-                            {cancellation.renewal.renewal_cycle_id}
-                          </Text>
-                          <Text
-                            size="small"
-                            leading="compact"
-                            className="text-ui-fg-subtle"
-                          >
-                            {formatRenewalStatus(cancellation.renewal.status)}
-                          </Text>
-                        </div>
-                        <div className="size-7 flex items-center justify-center">
-                          <TriangleRightMini className="text-ui-fg-muted rtl:rotate-180" />
-                        </div>
-                      </div>
-                    </div>
-                  </Link>
-                ) : (
-                  <Text size="small" leading="compact" className="text-ui-fg-subtle">
-                    No linked renewal cycle
-                  </Text>
-                )}
+                      </Link>
+                    )
+                  : (
+                      <Text size="small" leading="compact" className="text-ui-fg-subtle">
+                        No linked renewal cycle
+                      </Text>
+                    )}
                 <DetailRow
                   label="Status"
                   value={
@@ -1035,132 +1050,41 @@ const CancellationDetailPage = () => {
             <Drawer.Title>{getDrawerTitle(actionDrawerMode)}</Drawer.Title>
           </Drawer.Header>
           <Drawer.Body className="flex flex-1 flex-col gap-y-4 p-4">
-            {isActionFormLoading ? (
-              <div className="flex items-center gap-x-2 text-ui-fg-subtle">
-                <Spinner className="animate-spin" />
-                <Text size="small" leading="compact" className="text-ui-fg-subtle">
-                  Loading latest case data for this action...
-                </Text>
-              </div>
-            ) : null}
+            {isActionFormLoading
+              ? (
+                  <div className="flex items-center gap-x-2 text-ui-fg-subtle">
+                    <Spinner className="animate-spin" />
+                    <Text size="small" leading="compact" className="text-ui-fg-subtle">
+                      Loading latest case data for this action...
+                    </Text>
+                  </div>
+                )
+              : null}
             {formError ? <Alert variant="error">{formError}</Alert> : null}
 
-            {!isActionFormLoading && actionDrawerMode === "reason" ? (
-              <div className="grid gap-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="cancellation-reason">Reason</Label>
-                  <Textarea
-                    id="cancellation-reason"
-                    value={reason}
-                    onChange={(event) => setReason(event.target.value)}
-                    placeholder="Capture the churn reason"
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="cancellation-reason-category">Reason category</Label>
-                  <Select
-                    value={reasonCategory}
-                    onValueChange={(value) => setReasonCategory(value as ReasonCategory)}
-                  >
-                    <Select.Trigger id="cancellation-reason-category">
-                      <Select.Value placeholder="Select a category" />
-                    </Select.Trigger>
-                    <Select.Content>
-                      {reasonCategoryOptions.map((option) => (
-                        <Select.Item key={option.value} value={option.value}>
-                          {option.label}
-                        </Select.Item>
-                      ))}
-                    </Select.Content>
-                  </Select>
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="cancellation-notes">Notes</Label>
-                  <Textarea
-                    id="cancellation-notes"
-                    value={notes}
-                    onChange={(event) => setNotes(event.target.value)}
-                    placeholder="Optional operator notes"
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="reason-update-explanation">Change reason</Label>
-                  <Input
-                    id="reason-update-explanation"
-                    value={updateReasonExplanation}
-                    onChange={(event) => setUpdateReasonExplanation(event.target.value)}
-                    placeholder="Optional explanation for the update"
-                  />
-                </div>
-              </div>
-            ) : null}
-
-            {!isActionFormLoading && actionDrawerMode === "apply_offer" ? (
-              <div className="grid gap-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="offer-type">Offer type</Label>
-                  <Select
-                    value={offerType}
-                    onValueChange={(value) => setOfferType(value as OfferType)}
-                  >
-                    <Select.Trigger id="offer-type">
-                      <Select.Value placeholder="Select offer type" />
-                    </Select.Trigger>
-                    <Select.Content>
-                      {visibleOfferTypeOptions.map((option) => (
-                        <Select.Item key={option.value} value={option.value}>
-                          {option.label}
-                        </Select.Item>
-                      ))}
-                    </Select.Content>
-                  </Select>
-                  {!visibleOfferTypeOptions.length ? (
-                    <Text size="small" leading="compact" className="text-ui-fg-subtle">
-                      No retention offers are available for the current subscription state.
-                    </Text>
-                  ) : null}
-                </div>
-
-                {offerType === "pause_offer" ? (
+            {!isActionFormLoading && actionDrawerMode === "reason"
+              ? (
                   <div className="grid gap-4">
                     <div className="grid gap-2">
-                      <Label htmlFor="pause-cycles">Pause cycles</Label>
-                      <Input
-                        id="pause-cycles"
-                        type="number"
-                        min={1}
-                        step={1}
-                        value={pauseCycles}
-                        onChange={(event) => setPauseCycles(event.target.value)}
+                      <Label htmlFor="cancellation-reason">Reason</Label>
+                      <Textarea
+                        id="cancellation-reason"
+                        value={reason}
+                        onChange={(event) => setReason(event.target.value)}
+                        placeholder="Capture the churn reason"
                       />
                     </div>
                     <div className="grid gap-2">
-                      <Label htmlFor="resume-at">Resume at</Label>
-                      <Input
-                        id="resume-at"
-                        type="datetime-local"
-                        value={resumeAt}
-                        onChange={(event) => setResumeAt(event.target.value)}
-                      />
-                    </div>
-                  </div>
-                ) : null}
-
-                {offerType === "discount_offer" ? (
-                  <div className="grid gap-4">
-                    <div className="grid gap-2">
-                      <Label htmlFor="discount-type">Discount type</Label>
+                      <Label htmlFor="cancellation-reason-category">Reason category</Label>
                       <Select
-                        value={discountType}
-                        onValueChange={(value) =>
-                          setDiscountType(value as "percentage" | "fixed")
-                        }
+                        value={reasonCategory}
+                        onValueChange={(value) => setReasonCategory(value as ReasonCategory)}
                       >
-                        <Select.Trigger id="discount-type">
-                          <Select.Value />
+                        <Select.Trigger id="cancellation-reason-category">
+                          <Select.Value placeholder="Select a category" />
                         </Select.Trigger>
                         <Select.Content>
-                          {discountTypeOptions.map((option) => (
+                          {reasonCategoryOptions.map((option) => (
                             <Select.Item key={option.value} value={option.value}>
                               {option.label}
                             </Select.Item>
@@ -1169,47 +1093,234 @@ const CancellationDetailPage = () => {
                       </Select>
                     </div>
                     <div className="grid gap-2">
-                      <Label htmlFor="discount-value">Discount value</Label>
-                      <Input
-                        id="discount-value"
-                        type="number"
-                        min={0}
-                        step="0.01"
-                        value={discountValue}
-                        onChange={(event) => setDiscountValue(event.target.value)}
+                      <Label htmlFor="cancellation-notes">Notes</Label>
+                      <Textarea
+                        id="cancellation-notes"
+                        value={notes}
+                        onChange={(event) => setNotes(event.target.value)}
+                        placeholder="Optional operator notes"
                       />
                     </div>
                     <div className="grid gap-2">
-                      <Label htmlFor="discount-duration-cycles">Duration cycles</Label>
+                      <Label htmlFor="reason-update-explanation">Change reason</Label>
                       <Input
-                        id="discount-duration-cycles"
-                        type="number"
-                        min={1}
-                        step={1}
-                        value={discountDurationCycles}
-                        onChange={(event) =>
-                          setDiscountDurationCycles(event.target.value)
-                        }
+                        id="reason-update-explanation"
+                        value={updateReasonExplanation}
+                        onChange={(event) => setUpdateReasonExplanation(event.target.value)}
+                        placeholder="Optional explanation for the update"
                       />
                     </div>
                   </div>
-                ) : null}
+                )
+              : null}
 
-                {offerType === "bonus_offer" ? (
+            {!isActionFormLoading && actionDrawerMode === "apply_offer"
+              ? (
                   <div className="grid gap-4">
                     <div className="grid gap-2">
-                      <Label htmlFor="bonus-type">Bonus type</Label>
+                      <Label htmlFor="offer-type">Offer type</Label>
                       <Select
-                        value={bonusType}
-                        onValueChange={(value) =>
-                          setBonusType(value as "free_cycle" | "gift" | "credit")
-                        }
+                        value={offerType}
+                        onValueChange={(value) => setOfferType(value as OfferType)}
                       >
-                        <Select.Trigger id="bonus-type">
-                          <Select.Value />
+                        <Select.Trigger id="offer-type">
+                          <Select.Value placeholder="Select offer type" />
                         </Select.Trigger>
                         <Select.Content>
-                          {bonusTypeOptions.map((option) => (
+                          {visibleOfferTypeOptions.map((option) => (
+                            <Select.Item key={option.value} value={option.value}>
+                              {option.label}
+                            </Select.Item>
+                          ))}
+                        </Select.Content>
+                      </Select>
+                      {!visibleOfferTypeOptions.length
+                        ? (
+                            <Text size="small" leading="compact" className="text-ui-fg-subtle">
+                              No retention offers are available for the current subscription state.
+                            </Text>
+                          )
+                        : null}
+                    </div>
+
+                    {offerType === "pause_offer"
+                      ? (
+                          <div className="grid gap-4">
+                            <div className="grid gap-2">
+                              <Label htmlFor="pause-cycles">Pause cycles</Label>
+                              <Input
+                                id="pause-cycles"
+                                type="number"
+                                min={1}
+                                step={1}
+                                value={pauseCycles}
+                                onChange={(event) => setPauseCycles(event.target.value)}
+                              />
+                            </div>
+                            <div className="grid gap-2">
+                              <Label htmlFor="resume-at">Resume at</Label>
+                              <Input
+                                id="resume-at"
+                                type="datetime-local"
+                                value={resumeAt}
+                                onChange={(event) => setResumeAt(event.target.value)}
+                              />
+                            </div>
+                          </div>
+                        )
+                      : null}
+
+                    {offerType === "discount_offer"
+                      ? (
+                          <div className="grid gap-4">
+                            <div className="grid gap-2">
+                              <Label htmlFor="discount-type">Discount type</Label>
+                              <Select
+                                value={discountType}
+                                onValueChange={(value) =>
+                                  setDiscountType(value as "percentage" | "fixed")}
+                              >
+                                <Select.Trigger id="discount-type">
+                                  <Select.Value />
+                                </Select.Trigger>
+                                <Select.Content>
+                                  {discountTypeOptions.map((option) => (
+                                    <Select.Item key={option.value} value={option.value}>
+                                      {option.label}
+                                    </Select.Item>
+                                  ))}
+                                </Select.Content>
+                              </Select>
+                            </div>
+                            <div className="grid gap-2">
+                              <Label htmlFor="discount-value">Discount value</Label>
+                              <Input
+                                id="discount-value"
+                                type="number"
+                                min={0}
+                                step="0.01"
+                                value={discountValue}
+                                onChange={(event) => setDiscountValue(event.target.value)}
+                              />
+                            </div>
+                            <div className="grid gap-2">
+                              <Label htmlFor="discount-duration-cycles">Duration cycles</Label>
+                              <Input
+                                id="discount-duration-cycles"
+                                type="number"
+                                min={1}
+                                step={1}
+                                value={discountDurationCycles}
+                                onChange={(event) =>
+                                  setDiscountDurationCycles(event.target.value)}
+                              />
+                            </div>
+                          </div>
+                        )
+                      : null}
+
+                    {offerType === "bonus_offer"
+                      ? (
+                          <div className="grid gap-4">
+                            <div className="grid gap-2">
+                              <Label htmlFor="bonus-type">Bonus type</Label>
+                              <Select
+                                value={bonusType}
+                                onValueChange={(value) =>
+                                  setBonusType(value as "free_cycle" | "gift" | "credit")}
+                              >
+                                <Select.Trigger id="bonus-type">
+                                  <Select.Value />
+                                </Select.Trigger>
+                                <Select.Content>
+                                  {bonusTypeOptions.map((option) => (
+                                    <Select.Item key={option.value} value={option.value}>
+                                      {option.label}
+                                    </Select.Item>
+                                  ))}
+                                </Select.Content>
+                              </Select>
+                            </div>
+                            <div className="grid gap-2">
+                              <Label htmlFor="bonus-value">Value</Label>
+                              <Input
+                                id="bonus-value"
+                                type="number"
+                                min={0}
+                                step="0.01"
+                                value={bonusValue}
+                                onChange={(event) => setBonusValue(event.target.value)}
+                              />
+                            </div>
+                            <div className="grid gap-2">
+                              <Label htmlFor="bonus-label">Label</Label>
+                              <Input
+                                id="bonus-label"
+                                value={bonusLabel}
+                                onChange={(event) => setBonusLabel(event.target.value)}
+                                placeholder="Optional label"
+                              />
+                            </div>
+                            <div className="grid gap-2">
+                              <Label htmlFor="bonus-duration-cycles">Duration cycles</Label>
+                              <Input
+                                id="bonus-duration-cycles"
+                                type="number"
+                                min={1}
+                                step={1}
+                                value={bonusDurationCycles}
+                                onChange={(event) => setBonusDurationCycles(event.target.value)}
+                              />
+                            </div>
+                          </div>
+                        )
+                      : null}
+
+                    <div className="grid gap-2">
+                      <Label htmlFor="offer-note">Offer note</Label>
+                      <Textarea
+                        id="offer-note"
+                        value={offerNote}
+                        onChange={(event) => setOfferNote(event.target.value)}
+                        placeholder="Optional note attached to the offer payload"
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="decision-reason">Decision reason</Label>
+                      <Textarea
+                        id="decision-reason"
+                        value={decisionReason}
+                        onChange={(event) => setDecisionReason(event.target.value)}
+                        placeholder="Optional reason or customer response"
+                      />
+                    </div>
+                  </div>
+                )
+              : null}
+
+            {!isActionFormLoading && actionDrawerMode === "finalize"
+              ? (
+                  <div className="grid gap-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="finalize-reason">Reason</Label>
+                      <Textarea
+                        id="finalize-reason"
+                        value={reason}
+                        onChange={(event) => setReason(event.target.value)}
+                        placeholder="Reason is required before final cancel"
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="finalize-reason-category">Reason category</Label>
+                      <Select
+                        value={reasonCategory}
+                        onValueChange={(value) => setReasonCategory(value as ReasonCategory)}
+                      >
+                        <Select.Trigger id="finalize-reason-category">
+                          <Select.Value placeholder="Select a category" />
+                        </Select.Trigger>
+                        <Select.Content>
+                          {reasonCategoryOptions.map((option) => (
                             <Select.Item key={option.value} value={option.value}>
                               {option.label}
                             </Select.Item>
@@ -1218,120 +1329,36 @@ const CancellationDetailPage = () => {
                       </Select>
                     </div>
                     <div className="grid gap-2">
-                      <Label htmlFor="bonus-value">Value</Label>
-                      <Input
-                        id="bonus-value"
-                        type="number"
-                        min={0}
-                        step="0.01"
-                        value={bonusValue}
-                        onChange={(event) => setBonusValue(event.target.value)}
+                      <Label htmlFor="finalize-notes">Notes</Label>
+                      <Textarea
+                        id="finalize-notes"
+                        value={notes}
+                        onChange={(event) => setNotes(event.target.value)}
+                        placeholder="Optional final cancellation notes"
                       />
                     </div>
                     <div className="grid gap-2">
-                      <Label htmlFor="bonus-label">Label</Label>
-                      <Input
-                        id="bonus-label"
-                        value={bonusLabel}
-                        onChange={(event) => setBonusLabel(event.target.value)}
-                        placeholder="Optional label"
-                      />
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="bonus-duration-cycles">Duration cycles</Label>
-                      <Input
-                        id="bonus-duration-cycles"
-                        type="number"
-                        min={1}
-                        step={1}
-                        value={bonusDurationCycles}
-                        onChange={(event) => setBonusDurationCycles(event.target.value)}
-                      />
+                      <Label htmlFor="effective-at">Effective at</Label>
+                      <Select
+                        value={effectiveAt}
+                        onValueChange={(value) =>
+                          setEffectiveAt(value as "immediately" | "end_of_cycle")}
+                      >
+                        <Select.Trigger id="effective-at">
+                          <Select.Value />
+                        </Select.Trigger>
+                        <Select.Content>
+                          {effectiveAtOptions.map((option) => (
+                            <Select.Item key={option.value} value={option.value}>
+                              {option.label}
+                            </Select.Item>
+                          ))}
+                        </Select.Content>
+                      </Select>
                     </div>
                   </div>
-                ) : null}
-
-                <div className="grid gap-2">
-                  <Label htmlFor="offer-note">Offer note</Label>
-                  <Textarea
-                    id="offer-note"
-                    value={offerNote}
-                    onChange={(event) => setOfferNote(event.target.value)}
-                    placeholder="Optional note attached to the offer payload"
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="decision-reason">Decision reason</Label>
-                  <Textarea
-                    id="decision-reason"
-                    value={decisionReason}
-                    onChange={(event) => setDecisionReason(event.target.value)}
-                    placeholder="Optional reason or customer response"
-                  />
-                </div>
-              </div>
-            ) : null}
-
-            {!isActionFormLoading && actionDrawerMode === "finalize" ? (
-              <div className="grid gap-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="finalize-reason">Reason</Label>
-                  <Textarea
-                    id="finalize-reason"
-                    value={reason}
-                    onChange={(event) => setReason(event.target.value)}
-                    placeholder="Reason is required before final cancel"
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="finalize-reason-category">Reason category</Label>
-                  <Select
-                    value={reasonCategory}
-                    onValueChange={(value) => setReasonCategory(value as ReasonCategory)}
-                  >
-                    <Select.Trigger id="finalize-reason-category">
-                      <Select.Value placeholder="Select a category" />
-                    </Select.Trigger>
-                    <Select.Content>
-                      {reasonCategoryOptions.map((option) => (
-                        <Select.Item key={option.value} value={option.value}>
-                          {option.label}
-                        </Select.Item>
-                      ))}
-                    </Select.Content>
-                  </Select>
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="finalize-notes">Notes</Label>
-                  <Textarea
-                    id="finalize-notes"
-                    value={notes}
-                    onChange={(event) => setNotes(event.target.value)}
-                    placeholder="Optional final cancellation notes"
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="effective-at">Effective at</Label>
-                  <Select
-                    value={effectiveAt}
-                    onValueChange={(value) =>
-                      setEffectiveAt(value as "immediately" | "end_of_cycle")
-                    }
-                  >
-                    <Select.Trigger id="effective-at">
-                      <Select.Value />
-                    </Select.Trigger>
-                    <Select.Content>
-                      {effectiveAtOptions.map((option) => (
-                        <Select.Item key={option.value} value={option.value}>
-                          {option.label}
-                        </Select.Item>
-                      ))}
-                    </Select.Content>
-                  </Select>
-                </div>
-              </div>
-            ) : null}
+                )
+              : null}
           </Drawer.Body>
           <Drawer.Footer>
             <div className="flex items-center justify-end gap-x-2">

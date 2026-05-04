@@ -376,7 +376,7 @@ function getEffectiveScheduledFor(
   const isUpcomingOperationalCycle =
     cycle.status === RenewalCycleStatus.SCHEDULED &&
     toTimestamp(subscriptionProjection.next_renewal_at) ===
-      toTimestamp(cycle.scheduled_for)
+    toTimestamp(cycle.scheduled_for)
 
   if (!isUpcomingOperationalCycle || !subscriptionProjection.skip_next_cycle) {
     return cycle.scheduled_for

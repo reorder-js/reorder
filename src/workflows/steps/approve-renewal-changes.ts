@@ -102,7 +102,7 @@ export const approveRenewalChangesStep = createStep(
       }
     )
   },
-  async function (previous: RenewalApprovalCompensationInput, { container }) {
+  async function (previous: RenewalApprovalCompensationInput | undefined, { container }) {
     if (!previous) {
       return
     }

@@ -10,8 +10,8 @@ type JsonLike =
   | Primitive
   | JsonLike[]
   | {
-      [key: string]: JsonLike
-    }
+    [key: string]: JsonLike
+  }
 
 export type ActivityLogDisplaySnapshot = {
   subscription_reference: string
@@ -266,7 +266,7 @@ function buildChangedFields(
   return changedFields.length ? changedFields : null
 }
 
-function stableStringify(value: JsonLike) {
+function stableStringify(value: JsonLike): string {
   if (value === null || typeof value !== "object") {
     return JSON.stringify(value)
   }

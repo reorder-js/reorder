@@ -1,7 +1,6 @@
 import { medusaIntegrationTestRunner } from "@medusajs/test-utils"
 import path from "path"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
-import { IPaymentModuleService } from "@medusajs/framework/types"
 import {
   DunningAttemptStatus,
   DunningCaseStatus,
@@ -94,8 +93,8 @@ medusaIntegrationTestRunner({
         const container = getContainer()
         const headers = await createAdminAuthHeaders(container)
         const paymentModule =
-          container.resolve<IPaymentModuleService>(Modules.PAYMENT)
-        const query = container.resolve<any>(ContainerRegistrationKeys.QUERY)
+          container.resolve(Modules.PAYMENT)
+        const query = container.resolve(ContainerRegistrationKeys.QUERY)
         const originalGraph = query.graph.bind(query)
 
         const subscription = await createSubscriptionSeed(container, {
@@ -236,8 +235,8 @@ medusaIntegrationTestRunner({
         const container = getContainer()
         const headers = await createAdminAuthHeaders(container)
         const paymentModule =
-          container.resolve<IPaymentModuleService>(Modules.PAYMENT)
-        const query = container.resolve<any>(ContainerRegistrationKeys.QUERY)
+          container.resolve(Modules.PAYMENT)
+        const query = container.resolve(ContainerRegistrationKeys.QUERY)
         const originalGraph = query.graph.bind(query)
 
         const subscription = await createSubscriptionSeed(container, {

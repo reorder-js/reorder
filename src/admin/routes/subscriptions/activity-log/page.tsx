@@ -156,11 +156,13 @@ const baseColumns = [
         <Text size="small" leading="compact" weight="plus">
           {formatSummary(row.original)}
         </Text>
-        {row.original.reason ? (
-          <Text size="small" leading="compact" className="text-ui-fg-subtle">
-            {row.original.reason}
-          </Text>
-        ) : null}
+        {row.original.reason
+          ? (
+              <Text size="small" leading="compact" className="text-ui-fg-subtle">
+                {row.original.reason}
+              </Text>
+            )
+          : null}
       </div>
     ),
   }),
@@ -300,18 +302,20 @@ const ActivityLogPage = () => {
         <DataTable instance={table}>
           <div className="flex flex-col gap-3 px-6 py-4">
             <div className="flex flex-wrap items-center gap-2">
-              {activePreset ? (
-                <FilterChip
-                  label="Preset"
-                  value={activePreset.label}
-                  onRemove={() => {
-                    setFiltering((current) => ({
-                      ...current,
-                      event_type: undefined,
-                    }))
-                  }}
-                />
-              ) : null}
+              {activePreset
+                ? (
+                    <FilterChip
+                      label="Preset"
+                      value={activePreset.label}
+                      onRemove={() => {
+                        setFiltering((current) => ({
+                          ...current,
+                          event_type: undefined,
+                        }))
+                      }}
+                    />
+                  )
+                : null}
               {!activePreset
                 ? eventTypeFilters.map((eventType) => (
                     <FilterChip
@@ -346,9 +350,9 @@ const ActivityLogPage = () => {
               ))}
               <DropdownMenu>
                 <DropdownMenu.Trigger asChild>
-                <Button size="small" variant="secondary" type="button">
-                  Add filter
-                </Button>
+                  <Button size="small" variant="secondary" type="button">
+                    Add filter
+                  </Button>
                 </DropdownMenu.Trigger>
                 <DropdownMenu.Content align="start">
                   <DropdownMenu.SubMenu>
@@ -429,20 +433,22 @@ const ActivityLogPage = () => {
                   </DropdownMenu.SubMenu>
                 </DropdownMenu.Content>
               </DropdownMenu>
-              {hasActiveFilters ? (
-                <button
-                  type="button"
-                  className="text-ui-fg-muted hover:text-ui-fg-subtle txt-compact-small-plus rounded-md px-2 py-1 transition-fg"
-                  onClick={() => {
-                    setFiltering({
-                      date_from: DEFAULT_DATE_FROM,
-                      date_to: DEFAULT_DATE_TO,
-                    })
-                  }}
-                >
-                  Clear all
-                </button>
-              ) : null}
+              {hasActiveFilters
+                ? (
+                    <button
+                      type="button"
+                      className="text-ui-fg-muted hover:text-ui-fg-subtle txt-compact-small-plus rounded-md px-2 py-1 transition-fg"
+                      onClick={() => {
+                        setFiltering({
+                          date_from: DEFAULT_DATE_FROM,
+                          date_to: DEFAULT_DATE_TO,
+                        })
+                      }}
+                    >
+                      Clear all
+                    </button>
+                  )
+                : null}
             </div>
 
             <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
@@ -494,88 +500,94 @@ const ActivityLogPage = () => {
               </div>
             </div>
           </div>
-          {table.getRowModel().rows.length ? (
-            <div className="overflow-x-auto border-y">
-              <Table className="relative isolate w-full">
-                <Table.Header className="border-t-0">
-                  {table.getHeaderGroups().map((headerGroup) => (
-                    <Table.Row
-                      key={headerGroup.id}
-                      className="border-b-0 [&_th:last-of-type]:w-[1%] [&_th:last-of-type]:whitespace-nowrap"
-                    >
-                      {headerGroup.headers.map((header) => {
-                        const canSort = header.column.getCanSort()
-                        const sortHandler = header.column.getToggleSortingHandler()
-
-                        return (
-                          <Table.HeaderCell
-                            key={header.id}
-                            className="whitespace-nowrap"
-                          >
-                            {header.isPlaceholder ? null : canSort ? (
-                              <button
-                                type="button"
-                                onClick={sortHandler}
-                                className="group flex items-center gap-2 text-left"
-                              >
-                                {flexRender(
-                                  header.column.columnDef.header,
-                                  header.getContext()
-                                )}
-                              </button>
-                            ) : (
-                              flexRender(
-                                header.column.columnDef.header,
-                                header.getContext()
-                              )
-                            )}
-                          </Table.HeaderCell>
-                        )
-                      })}
-                    </Table.Row>
-                  ))}
-                </Table.Header>
-                <Table.Body className="border-b-0">
-                  {table.getRowModel().rows.map((row) => (
-                    <Table.Row
-                      key={row.id}
-                      className="group/row cursor-pointer"
-                      onClick={(event) => {
-                        event.preventDefault()
-                        setSelectedLogId(row.id)
-                        setDetailDrawerOpen(true)
-                      }}
-                    >
-                      {row.getVisibleCells().map((cell) => (
-                        <Table.Cell
-                          key={cell.id}
-                          className="items-stretch truncate whitespace-nowrap"
+          {table.getRowModel().rows.length
+            ? (
+                <div className="overflow-x-auto border-y">
+                  <Table className="relative isolate w-full">
+                    <Table.Header className="border-t-0">
+                      {table.getHeaderGroups().map((headerGroup) => (
+                        <Table.Row
+                          key={headerGroup.id}
+                          className="border-b-0 [&_th:last-of-type]:w-[1%] [&_th:last-of-type]:whitespace-nowrap"
                         >
-                          {flexRender(
-                            cell.column.columnDef.cell,
-                            cell.getContext()
-                          )}
-                        </Table.Cell>
+                          {headerGroup.headers.map((header) => {
+                            const canSort = header.column.getCanSort()
+                            const sortHandler = header.column.getToggleSortingHandler()
+
+                            return (
+                              <Table.HeaderCell
+                                key={header.id}
+                                className="whitespace-nowrap"
+                              >
+                                {header.isPlaceholder
+                                  ? null
+                                  : canSort
+                                    ? (
+                                        <button
+                                          type="button"
+                                          onClick={sortHandler}
+                                          className="group flex items-center gap-2 text-left"
+                                        >
+                                          {flexRender(
+                                            header.column.columnDef.header,
+                                            header.getContext()
+                                          )}
+                                        </button>
+                                      )
+                                    : (
+                                        flexRender(
+                                          header.column.columnDef.header,
+                                          header.getContext()
+                                        )
+                                      )}
+                              </Table.HeaderCell>
+                            )
+                          })}
+                        </Table.Row>
                       ))}
-                    </Table.Row>
-                  ))}
-                </Table.Body>
-              </Table>
-            </div>
-          ) : (
-            <div className="flex min-h-[250px] w-full flex-col items-center justify-center border-y px-6 py-4 text-center">
-              <Text size="base" weight="plus">
-                {hasActiveFilters || search
-                  ? "No log entries match the current filters"
-                  : "No activity log entries yet"}
-              </Text>
-              <Text size="small" leading="compact" className="text-ui-fg-subtle">
-                {hasActiveFilters || search
-                  ? "Try changing the search term or active filters."
-                  : "Activity log entries will appear here as subscription workflows run."}
-              </Text>
-            </div>
-          )}
+                    </Table.Header>
+                    <Table.Body className="border-b-0">
+                      {table.getRowModel().rows.map((row) => (
+                        <Table.Row
+                          key={row.id}
+                          className="group/row cursor-pointer"
+                          onClick={(event) => {
+                            event.preventDefault()
+                            setSelectedLogId(row.id)
+                            setDetailDrawerOpen(true)
+                          }}
+                        >
+                          {row.getVisibleCells().map((cell) => (
+                            <Table.Cell
+                              key={cell.id}
+                              className="items-stretch truncate whitespace-nowrap"
+                            >
+                              {flexRender(
+                                cell.column.columnDef.cell,
+                                cell.getContext()
+                              )}
+                            </Table.Cell>
+                          ))}
+                        </Table.Row>
+                      ))}
+                    </Table.Body>
+                  </Table>
+                </div>
+              )
+            : (
+                <div className="flex min-h-[250px] w-full flex-col items-center justify-center border-y px-6 py-4 text-center">
+                  <Text size="base" weight="plus">
+                    {hasActiveFilters || search
+                      ? "No log entries match the current filters"
+                      : "No activity log entries yet"}
+                  </Text>
+                  <Text size="small" leading="compact" className="text-ui-fg-subtle">
+                    {hasActiveFilters || search
+                      ? "Try changing the search term or active filters."
+                      : "Activity log entries will appear here as subscription workflows run."}
+                  </Text>
+                </div>
+              )}
           <DataTable.Pagination />
         </DataTable>
       </Container>
@@ -595,21 +607,25 @@ const ActivityLogPage = () => {
             <Drawer.Title>Activity Log Event</Drawer.Title>
           </Drawer.Header>
           <Drawer.Body className="flex flex-1 flex-col gap-y-6 overflow-y-auto p-4">
-            {isDetailLoading ? (
-              <Text size="small" leading="compact" className="text-ui-fg-subtle">
-                Loading event details...
-              </Text>
-            ) : detailData?.subscription_log ? (
-              <ActivityLogDetailContent
-                log={detailData.subscription_log}
-              />
-            ) : (
-              <Alert variant="error">
-                <Text size="small" leading="compact">
-                  Failed to load activity log detail.
-                </Text>
-              </Alert>
-            )}
+            {isDetailLoading
+              ? (
+                  <Text size="small" leading="compact" className="text-ui-fg-subtle">
+                    Loading event details...
+                  </Text>
+                )
+              : detailData?.subscription_log
+                ? (
+                    <ActivityLogDetailContent
+                      log={detailData.subscription_log}
+                    />
+                  )
+                : (
+                    <Alert variant="error">
+                      <Text size="small" leading="compact">
+                        Failed to load activity log detail.
+                      </Text>
+                    </Alert>
+                  )}
           </Drawer.Body>
           <Drawer.Footer>
             <div className="flex w-full items-center justify-end">
@@ -716,7 +732,7 @@ const DetailBlock = ({
   rows,
 }: {
   title: string
-  rows: Array<{ label: string; value: ReactNode }>
+  rows: Array<{ label: string, value: ReactNode }>
 }) => {
   return (
     <div className="rounded-lg border border-ui-border-base">
@@ -735,13 +751,15 @@ const DetailBlock = ({
               {row.label}
             </Text>
             <div className="max-w-[70%] text-right">
-              {typeof row.value === "string" ? (
-                <Text size="small" leading="compact" weight="plus">
-                  {row.value}
-                </Text>
-              ) : (
-                row.value
-              )}
+              {typeof row.value === "string"
+                ? (
+                    <Text size="small" leading="compact" weight="plus">
+                      {row.value}
+                    </Text>
+                  )
+                : (
+                    row.value
+                  )}
             </div>
           </div>
         ))}
@@ -922,17 +940,6 @@ function formatActorType(value: ActivityLogAdminActorType) {
       return "System"
     case ActivityLogAdminActorType.SCHEDULER:
       return "Scheduler"
-  }
-}
-
-function getActorColor(value: ActivityLogAdminActorType) {
-  switch (value) {
-    case ActivityLogAdminActorType.USER:
-      return "blue"
-    case ActivityLogAdminActorType.SYSTEM:
-      return "grey"
-    case ActivityLogAdminActorType.SCHEDULER:
-      return "orange"
   }
 }
 

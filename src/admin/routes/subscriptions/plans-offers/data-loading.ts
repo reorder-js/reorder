@@ -2,32 +2,32 @@ import {
   DataTableFilteringState,
   DataTablePaginationState,
   DataTableSortingState,
-} from "@medusajs/ui";
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { sdk } from "../../../lib/client";
+} from "@medusajs/ui"
+import { keepPreviousData, useQuery } from "@tanstack/react-query"
+import { sdk } from "../../../lib/client"
 import {
   PlanOfferAdminDetailResponse,
   PlanOfferAdminListResponse,
   PlanOfferAdminStatus,
   PlanOfferFrequencyInterval,
   PlanOfferScope,
-} from "../../../types/plan-offer";
-import { HttpTypes } from "@medusajs/framework/types";
+} from "../../../types/plan-offer"
+import { HttpTypes } from "@medusajs/framework/types"
 
 type UseAdminPlanOffersDisplayQueryInput = {
-  pagination: DataTablePaginationState;
-  search: string;
-  filtering: DataTableFilteringState;
-  sorting: DataTableSortingState | null;
-};
+  pagination: DataTablePaginationState
+  search: string
+  filtering: DataTableFilteringState
+  sorting: DataTableSortingState | null
+}
 
 export const adminPlanOffersQueryKeys = {
   all: ["admin-plan-offers"] as const,
   detail: (id: string) => [...adminPlanOffersQueryKeys.all, "detail", id] as const,
   productSelection: (params: {
-    pageSize: number;
-    offset: number;
-    search: string;
+    pageSize: number
+    offset: number
+    search: string
   }) =>
     [
       ...adminPlanOffersQueryKeys.all,
@@ -39,18 +39,18 @@ export const adminPlanOffersQueryKeys = {
   variantSelection: (productId: string) =>
     [...adminPlanOffersQueryKeys.all, "variant-selection", productId] as const,
   display: (params: {
-    pageSize: number;
-    offset: number;
-    search: string;
-    status?: PlanOfferAdminStatus;
-    scope?: PlanOfferScope;
-    frequency?: PlanOfferFrequencyInterval;
-    productId?: string;
-    variantId?: string;
-    discountMin?: number;
-    discountMax?: number;
-    sortingId?: string;
-    sortingDesc?: boolean;
+    pageSize: number
+    offset: number
+    search: string
+    status?: PlanOfferAdminStatus
+    scope?: PlanOfferScope
+    frequency?: PlanOfferFrequencyInterval
+    productId?: string
+    variantId?: string
+    discountMin?: number
+    discountMax?: number
+    sortingId?: string
+    sortingDesc?: boolean
   }) =>
     [
       ...adminPlanOffersQueryKeys.all,
@@ -68,40 +68,40 @@ export const adminPlanOffersQueryKeys = {
       params.sortingId,
       params.sortingDesc,
     ] as const,
-};
+}
 
 export function getAdminPlanOffersDisplayQueryInput(
   input: UseAdminPlanOffersDisplayQueryInput
 ) {
-  const offset = input.pagination.pageIndex * input.pagination.pageSize;
+  const offset = input.pagination.pageIndex * input.pagination.pageSize
   const status =
     typeof input.filtering.status === "string"
       ? (input.filtering.status as PlanOfferAdminStatus)
-      : undefined;
+      : undefined
   const scope =
     typeof input.filtering.scope === "string"
       ? (input.filtering.scope as PlanOfferScope)
-      : undefined;
+      : undefined
   const frequency =
     typeof input.filtering.frequency === "string"
       ? (input.filtering.frequency as PlanOfferFrequencyInterval)
-      : undefined;
+      : undefined
   const productId =
     typeof input.filtering.product_id === "string"
       ? input.filtering.product_id
-      : undefined;
+      : undefined
   const variantId =
     typeof input.filtering.variant_id === "string"
       ? input.filtering.variant_id
-      : undefined;
+      : undefined
   const discountMin =
     typeof input.filtering.discount_min === "number"
       ? input.filtering.discount_min
-      : undefined;
+      : undefined
   const discountMax =
     typeof input.filtering.discount_max === "number"
       ? input.filtering.discount_max
-      : undefined;
+      : undefined
 
   return {
     pageSize: input.pagination.pageSize,
@@ -116,13 +116,13 @@ export function getAdminPlanOffersDisplayQueryInput(
     discountMax,
     sortingId: input.sorting?.id,
     sortingDesc: input.sorting?.desc,
-  };
+  }
 }
 
 export function useAdminPlanOffersDisplayQuery(
   input: UseAdminPlanOffersDisplayQueryInput
 ) {
-  const queryInput = getAdminPlanOffersDisplayQueryInput(input);
+  const queryInput = getAdminPlanOffersDisplayQueryInput(input)
 
   return useQuery<PlanOfferAdminListResponse>({
     queryKey: adminPlanOffersQueryKeys.display(queryInput),
@@ -155,7 +155,7 @@ export function useAdminPlanOffersDisplayQuery(
         },
       }),
     placeholderData: keepPreviousData,
-  });
+  })
 }
 
 export function useAdminPlanOfferDetailQuery(id?: string, enabled = false) {
@@ -163,20 +163,20 @@ export function useAdminPlanOfferDetailQuery(id?: string, enabled = false) {
     queryKey: adminPlanOffersQueryKeys.detail(id ?? ""),
     queryFn: () => sdk.client.fetch(`/admin/subscription-offers/${id}`),
     enabled: enabled && Boolean(id),
-  });
+  })
 }
 
 type UseAdminProductsSelectionQueryInput = {
-  open: boolean;
-  pagination: DataTablePaginationState;
-  search: string;
-};
+  open: boolean
+  pagination: DataTablePaginationState
+  search: string
+}
 
 export function useAdminProductsSelectionQuery(
   input: UseAdminProductsSelectionQueryInput
 ) {
-  const limit = input.pagination.pageSize;
-  const offset = input.pagination.pageIndex * limit;
+  const limit = input.pagination.pageSize
+  const offset = input.pagination.pageIndex * limit
 
   return useQuery<HttpTypes.AdminProductListResponse>({
     queryKey: adminPlanOffersQueryKeys.productSelection({
@@ -192,7 +192,7 @@ export function useAdminProductsSelectionQuery(
       }),
     enabled: input.open,
     placeholderData: keepPreviousData,
-  });
+  })
 }
 
 export function useAdminProductVariantsSelectionQuery(
@@ -207,5 +207,5 @@ export function useAdminProductVariantsSelectionQuery(
         offset: 0,
       }),
     enabled: open && Boolean(productId),
-  });
+  })
 }

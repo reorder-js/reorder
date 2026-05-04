@@ -81,7 +81,7 @@ export const resumeSubscriptionWorkflow = createWorkflow(
     const renewal_cycle = ensureNextRenewalCycleStep(ensureInput)
     const incrementalAnalyticsInput = transform(
       { subscriptionChange, input },
-      function ({ subscriptionChange, input }) {
+      function ({ input }) {
         return buildAnalyticsIncrementalRebuildInput({
           occurred_at: new Date(),
           trigger_source: "resume_subscription",

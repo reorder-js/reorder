@@ -17,17 +17,6 @@ const JOB_LOCK_KEY = "jobs:cancellation-operational-metrics"
 const DEFAULT_WINDOW_HOURS = 24
 const SPIKE_THRESHOLD = 5
 
-type LockingService = {
-  execute<T>(
-    keys: string | string[],
-    job: () => Promise<T>,
-    args?: {
-      timeout?: number
-      provider?: string
-    }
-  ): Promise<T>
-}
-
 function getLogger(container: MedusaContainer) {
   return container.resolve("logger")
 }
@@ -100,7 +89,7 @@ export default async function processCancellationOperationalMetricsJob(
   container: MedusaContainer
 ) {
   const logger = getLogger(container)
-  const locking = container.resolve<LockingService>(Modules.LOCKING)
+  const locking = container.resolve(Modules.LOCKING)
   const correlationId = createCancellationCorrelationId(`${JOB_NAME}-lock`)
 
   try {

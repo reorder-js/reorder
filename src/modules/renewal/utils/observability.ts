@@ -71,8 +71,8 @@ export function classifyRenewalFailure(error: unknown): RenewalFailureKind {
   }
 
   if (
-    message.includes("no active subscription offer") ||
-    message.includes("frequency") && message.includes("not allowed")
+    (message.includes("no active subscription offer") ||
+      message.includes("frequency")) && message.includes("not allowed")
   ) {
     return "offer_policy_blocked"
   }

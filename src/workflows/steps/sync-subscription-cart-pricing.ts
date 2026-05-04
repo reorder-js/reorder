@@ -1,4 +1,4 @@
-import type { ICartModuleService, MedusaContainer } from "@medusajs/framework/types"
+import type { MedusaContainer } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 import { MedusaError } from "@medusajs/framework/utils"
@@ -69,7 +69,7 @@ export const syncSubscriptionCartPricingStep = createStep(
       })
     }
 
-    const cartModule = container.resolve<ICartModuleService>(Modules.CART)
+    const cartModule = container.resolve(Modules.CART)
     let adjustmentsChanged = false
 
     for (const item of subscriptionItems) {

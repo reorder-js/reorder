@@ -71,7 +71,7 @@ export function deriveUpcomingRenewalApprovalState(
   )
   const requiresApproval =
     behavior ===
-      SubscriptionRenewalBehavior.REQUIRE_REVIEW_FOR_PENDING_CHANGES &&
+    SubscriptionRenewalBehavior.REQUIRE_REVIEW_FOR_PENDING_CHANGES &&
     pendingUpdateApplicable
 
   return {

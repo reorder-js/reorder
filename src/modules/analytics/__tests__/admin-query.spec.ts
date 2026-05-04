@@ -116,7 +116,7 @@ function matchesFilters(
   filters: Record<string, unknown>
 ) {
   const metricDateFilter = filters.metric_date as
-    | { $gte?: string; $lte?: string }
+    | { $gte?: string, $lte?: string }
     | undefined
 
   if (metricDateFilter?.$gte && row.metric_date < metricDateFilter.$gte) {

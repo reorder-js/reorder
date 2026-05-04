@@ -77,13 +77,13 @@ type StartCancellationCaseStepOutput = {
 
 type StartCancellationCaseCompensation =
   | {
-      action: "created"
-      created_case_id: string
-    }
+    action: "created"
+    created_case_id: string
+  }
   | {
-      action: "updated"
-      previous_case: CancellationCaseRecord
-    }
+    action: "updated"
+    previous_case: CancellationCaseRecord
+  }
 
 function isActiveCancellationCase(status: CancellationCaseStatus) {
   return ACTIVE_CANCELLATION_CASE_STATUSES.has(status)

@@ -1,4 +1,3 @@
-import { defineRouteConfig } from "@medusajs/admin-sdk";
 import {
   Alert,
   Button,
@@ -14,7 +13,7 @@ import {
   Textarea,
   toast,
   usePrompt,
-} from "@medusajs/ui";
+} from "@medusajs/ui"
 import {
   CheckCircle,
   EllipsisHorizontal,
@@ -22,15 +21,15 @@ import {
   Spinner,
   TriangleRightMini,
   XCircle,
-} from "@medusajs/icons";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { ReactNode, useMemo, useState } from "react";
-import { Link, UIMatch, useParams } from "react-router-dom";
-import { sdk } from "../../../../lib/client";
+} from "@medusajs/icons"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { ReactNode, useMemo, useState } from "react"
+import { Link, UIMatch, useParams } from "react-router-dom"
+import { sdk } from "../../../../lib/client"
 import {
   invalidateAdminRenewalsQueries,
   useAdminRenewalDetailQuery,
-} from "../data-loading";
+} from "../data-loading"
 import {
   ApproveRenewalChangesAdminRequest,
   ForceRenewalAdminRequest,
@@ -41,26 +40,26 @@ import {
   RenewalCycleAdminDetail,
   RenewalCycleAdminDetailResponse,
   RenewalCycleAdminStatus,
-} from "../../../../types/renewal";
+} from "../../../../types/renewal"
 
 const forceableStatuses = new Set<RenewalCycleAdminStatus>([
   RenewalCycleAdminStatus.SCHEDULED,
   RenewalCycleAdminStatus.FAILED,
-]);
+])
 
-type DecisionDrawerMode = "approve" | "reject";
+type DecisionDrawerMode = "approve" | "reject"
 
 const RenewalDetailPage = () => {
-  const { id } = useParams();
-  const queryClient = useQueryClient();
-  const prompt = usePrompt();
-  const [decisionDrawerOpen, setDecisionDrawerOpen] = useState(false);
-  const [decisionMode, setDecisionMode] = useState<DecisionDrawerMode>("approve");
-  const [decisionReason, setDecisionReason] = useState("");
-  const [decisionError, setDecisionError] = useState<string | null>(null);
+  const { id } = useParams()
+  const queryClient = useQueryClient()
+  const prompt = usePrompt()
+  const [decisionDrawerOpen, setDecisionDrawerOpen] = useState(false)
+  const [decisionMode, setDecisionMode] = useState<DecisionDrawerMode>("approve")
+  const [decisionReason, setDecisionReason] = useState("")
+  const [decisionError, setDecisionError] = useState<string | null>(null)
 
-  const { data, isLoading, isError, error } = useAdminRenewalDetailQuery(id);
-  const renewal = data?.renewal;
+  const { data, isLoading, isError, error } = useAdminRenewalDetailQuery(id)
+  const renewal = data?.renewal
 
   const forceMutation = useMutation({
     mutationFn: async (body: ForceRenewalAdminRequest) =>
@@ -76,13 +75,13 @@ const RenewalDetailPage = () => {
         queryClient,
         id,
         renewal?.subscription.subscription_id
-      );
-      toast.success("Renewal forced");
+      )
+      toast.success("Renewal forced")
     },
     onError: (mutationError) => {
-      toast.error(getAdminErrorMessage(mutationError, "Failed to force renewal"));
+      toast.error(getAdminErrorMessage(mutationError, "Failed to force renewal"))
     },
-  });
+  })
 
   const approveMutation = useMutation({
     mutationFn: async (body: ApproveRenewalChangesAdminRequest) =>
@@ -98,22 +97,22 @@ const RenewalDetailPage = () => {
         queryClient,
         id,
         renewal?.subscription.subscription_id
-      );
-      toast.success("Pending changes approved");
-      setDecisionDrawerOpen(false);
-      setDecisionReason("");
-      setDecisionError(null);
+      )
+      toast.success("Pending changes approved")
+      setDecisionDrawerOpen(false)
+      setDecisionReason("")
+      setDecisionError(null)
     },
     onError: (mutationError) => {
       const message = getAdminErrorMessage(
         mutationError,
         "Failed to approve changes"
-      );
+      )
 
-      setDecisionError(message);
-      toast.error(message);
+      setDecisionError(message)
+      toast.error(message)
     },
-  });
+  })
 
   const rejectMutation = useMutation({
     mutationFn: async (body: RejectRenewalChangesAdminRequest) =>
@@ -129,42 +128,42 @@ const RenewalDetailPage = () => {
         queryClient,
         id,
         renewal?.subscription.subscription_id
-      );
-      toast.success("Pending changes rejected");
-      setDecisionDrawerOpen(false);
-      setDecisionReason("");
-      setDecisionError(null);
+      )
+      toast.success("Pending changes rejected")
+      setDecisionDrawerOpen(false)
+      setDecisionReason("")
+      setDecisionError(null)
     },
     onError: (mutationError) => {
       const message = getAdminErrorMessage(
         mutationError,
         "Failed to reject changes"
-      );
+      )
 
-      setDecisionError(message);
-      toast.error(message);
+      setDecisionError(message)
+      toast.error(message)
     },
-  });
+  })
 
-  const canForce = renewal ? forceableStatuses.has(renewal.status) : false;
+  const canForce = renewal ? forceableStatuses.has(renewal.status) : false
   const canDecideApproval = renewal
     ? renewal.approval.required &&
-      renewal.approval.status === RenewalApprovalStatus.PENDING
-    : false;
+    renewal.approval.status === RenewalApprovalStatus.PENDING
+    : false
   const isActionPending =
-    forceMutation.isPending || approveMutation.isPending || rejectMutation.isPending;
+    forceMutation.isPending || approveMutation.isPending || rejectMutation.isPending
 
   const metadataRows = useMemo(() => {
     if (!renewal?.metadata) {
-      return [];
+      return []
     }
 
     return Object.entries(renewal.metadata).map(([key, value]) => ({
       key,
       value:
         typeof value === "string" ? value : JSON.stringify(value, null, 2),
-    }));
-  }, [renewal]);
+    }))
+  }, [renewal])
 
   const handleForceRenewal = async () => {
     const confirmed = await prompt({
@@ -173,34 +172,34 @@ const RenewalDetailPage = () => {
         "You are about to manually trigger this renewal cycle. Do you want to continue?",
       confirmText: "Force renewal",
       cancelText: "Cancel",
-    });
+    })
 
     if (!confirmed) {
-      return;
+      return
     }
 
     await forceMutation.mutateAsync({
       reason: undefined,
-    });
-  };
+    })
+  }
 
   const openDecisionDrawer = (mode: DecisionDrawerMode) => {
-    setDecisionMode(mode);
-    setDecisionReason("");
-    setDecisionError(null);
-    setDecisionDrawerOpen(true);
-  };
+    setDecisionMode(mode)
+    setDecisionReason("")
+    setDecisionError(null)
+    setDecisionDrawerOpen(true)
+  }
 
   const handleSubmitDecision = async () => {
-    const normalizedReason = normalizeOptionalString(decisionReason);
+    const normalizedReason = normalizeOptionalString(decisionReason)
 
     if (decisionMode === "reject" && !normalizedReason) {
-      setDecisionError("Reason is required");
-      toast.error("Reason is required");
-      return;
+      setDecisionError("Reason is required")
+      toast.error("Reason is required")
+      return
     }
 
-    setDecisionError(null);
+    setDecisionError(null)
 
     const confirmed = await prompt({
       title:
@@ -213,23 +212,23 @@ const RenewalDetailPage = () => {
           : "You are about to reject the pending changes for this renewal cycle.",
       confirmText: decisionMode === "approve" ? "Approve" : "Reject",
       cancelText: "Cancel",
-    });
+    })
 
     if (!confirmed) {
-      return;
+      return
     }
 
     if (decisionMode === "approve") {
       await approveMutation.mutateAsync({
         reason: normalizedReason,
-      });
-      return;
+      })
+      return
     }
 
     await rejectMutation.mutateAsync({
       reason: normalizedReason!,
-    });
-  };
+    })
+  }
 
   if (isLoading) {
     return (
@@ -244,7 +243,7 @@ const RenewalDetailPage = () => {
           </Text>
         </div>
       </Container>
-    );
+    )
   }
 
   if (isError) {
@@ -261,7 +260,7 @@ const RenewalDetailPage = () => {
           </Alert>
         </div>
       </Container>
-    );
+    )
   }
 
   if (!renewal) {
@@ -274,7 +273,7 @@ const RenewalDetailPage = () => {
           <Alert variant="warning">Renewal details are unavailable.</Alert>
         </div>
       </Container>
-    );
+    )
   }
 
   return (
@@ -302,40 +301,46 @@ const RenewalDetailPage = () => {
                 </IconButton>
               </DropdownMenu.Trigger>
               <DropdownMenu.Content align="end">
-                {canForce ? (
-                  <DropdownMenu.Item
-                    className="flex items-center gap-x-2"
-                    disabled={isActionPending}
-                    onClick={() => {
-                      void handleForceRenewal();
-                    }}
-                  >
-                    <TriangleRightMini className="text-ui-fg-subtle" />
-                    <span>
-                      {forceMutation.isPending ? "Forcing..." : "Force renewal"}
-                    </span>
-                  </DropdownMenu.Item>
-                ) : null}
-                {canDecideApproval ? (
-                  <DropdownMenu.Item
-                    className="flex items-center gap-x-2"
-                    disabled={isActionPending}
-                    onClick={() => openDecisionDrawer("approve")}
-                  >
-                    <CheckCircle className="text-ui-fg-subtle" />
-                    <span>Approve changes</span>
-                  </DropdownMenu.Item>
-                ) : null}
-                {canDecideApproval ? (
-                  <DropdownMenu.Item
-                    className="flex items-center gap-x-2"
-                    disabled={isActionPending}
-                    onClick={() => openDecisionDrawer("reject")}
-                  >
-                    <XCircle className="text-ui-fg-subtle" />
-                    <span>Reject changes</span>
-                  </DropdownMenu.Item>
-                ) : null}
+                {canForce
+                  ? (
+                      <DropdownMenu.Item
+                        className="flex items-center gap-x-2"
+                        disabled={isActionPending}
+                        onClick={() => {
+                          void handleForceRenewal()
+                        }}
+                      >
+                        <TriangleRightMini className="text-ui-fg-subtle" />
+                        <span>
+                          {forceMutation.isPending ? "Forcing..." : "Force renewal"}
+                        </span>
+                      </DropdownMenu.Item>
+                    )
+                  : null}
+                {canDecideApproval
+                  ? (
+                      <DropdownMenu.Item
+                        className="flex items-center gap-x-2"
+                        disabled={isActionPending}
+                        onClick={() => openDecisionDrawer("approve")}
+                      >
+                        <CheckCircle className="text-ui-fg-subtle" />
+                        <span>Approve changes</span>
+                      </DropdownMenu.Item>
+                    )
+                  : null}
+                {canDecideApproval
+                  ? (
+                      <DropdownMenu.Item
+                        className="flex items-center gap-x-2"
+                        disabled={isActionPending}
+                        onClick={() => openDecisionDrawer("reject")}
+                      >
+                        <XCircle className="text-ui-fg-subtle" />
+                        <span>Reject changes</span>
+                      </DropdownMenu.Item>
+                    )
+                  : null}
               </DropdownMenu.Content>
             </DropdownMenu>
           </div>
@@ -417,33 +422,35 @@ const RenewalDetailPage = () => {
               <Heading level="h2">Pending changes</Heading>
             </div>
             <div className="px-6 py-4">
-              {renewal.pending_changes ? (
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                  <DetailRow
-                    label="Variant"
-                    value={renewal.pending_changes.variant_title}
-                  />
-                  <DetailRow
-                    label="Frequency"
-                    value={formatFrequency(
-                      renewal.pending_changes.frequency_interval,
-                      renewal.pending_changes.frequency_value
-                    )}
-                  />
-                  <DetailRow
-                    label="Effective at"
-                    value={formatDateTime(renewal.pending_changes.effective_at)}
-                  />
-                  <DetailRow
-                    label="Variant ID"
-                    value={renewal.pending_changes.variant_id}
-                  />
-                </div>
-              ) : (
-                <Text size="small" leading="compact" className="text-ui-fg-subtle">
-                  No pending changes are attached to this renewal cycle.
-                </Text>
-              )}
+              {renewal.pending_changes
+                ? (
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                      <DetailRow
+                        label="Variant"
+                        value={renewal.pending_changes.variant_title}
+                      />
+                      <DetailRow
+                        label="Frequency"
+                        value={formatFrequency(
+                          renewal.pending_changes.frequency_interval,
+                          renewal.pending_changes.frequency_value
+                        )}
+                      />
+                      <DetailRow
+                        label="Effective at"
+                        value={formatDateTime(renewal.pending_changes.effective_at)}
+                      />
+                      <DetailRow
+                        label="Variant ID"
+                        value={renewal.pending_changes.variant_id}
+                      />
+                    </div>
+                  )
+                : (
+                    <Text size="small" leading="compact" className="text-ui-fg-subtle">
+                      No pending changes are attached to this renewal cycle.
+                    </Text>
+                  )}
             </div>
           </Container>
 
@@ -452,57 +459,60 @@ const RenewalDetailPage = () => {
               <Heading level="h2">Attempt history</Heading>
             </div>
             <div className="px-6 py-4">
-              {renewal.attempts.length ? (
-                <Table>
-                  <Table.Header>
-                    <Table.Row>
-                      <Table.HeaderCell>Attempt</Table.HeaderCell>
-                      <Table.HeaderCell>Status</Table.HeaderCell>
-                      <Table.HeaderCell>Started</Table.HeaderCell>
-                      <Table.HeaderCell>Finished</Table.HeaderCell>
-                      <Table.HeaderCell>Error</Table.HeaderCell>
-                      <Table.HeaderCell>Order</Table.HeaderCell>
-                    </Table.Row>
-                  </Table.Header>
-                  <Table.Body>
-                    {renewal.attempts.map((attempt) => (
-                      <Table.Row key={attempt.id}>
-                        <Table.Cell>
-                          <Text size="small" leading="compact" weight="plus">
-                            #{attempt.attempt_no}
-                          </Text>
-                        </Table.Cell>
-                        <Table.Cell>
-                          <StatusBadge color={getAttemptStatusColor(attempt.status)}>
-                            {formatAttemptStatus(attempt.status)}
-                          </StatusBadge>
-                        </Table.Cell>
-                        <Table.Cell>{formatDateTime(attempt.started_at)}</Table.Cell>
-                        <Table.Cell>{formatDateTime(attempt.finished_at)}</Table.Cell>
-                        <Table.Cell>
-                          <div className="flex flex-col gap-y-0.5">
-                            <Text size="small" leading="compact">
-                              {attempt.error_code || "-"}
-                            </Text>
-                            <Text
-                              size="small"
-                              leading="compact"
-                              className="text-ui-fg-subtle"
-                            >
-                              {attempt.error_message || "No error message"}
-                            </Text>
-                          </div>
-                        </Table.Cell>
-                        <Table.Cell>{attempt.order_id || "-"}</Table.Cell>
-                      </Table.Row>
-                    ))}
-                  </Table.Body>
-                </Table>
-              ) : (
-                <Text size="small" leading="compact" className="text-ui-fg-subtle">
-                  No attempts have been recorded for this renewal cycle yet.
-                </Text>
-              )}
+              {renewal.attempts.length
+                ? (
+                    <Table>
+                      <Table.Header>
+                        <Table.Row>
+                          <Table.HeaderCell>Attempt</Table.HeaderCell>
+                          <Table.HeaderCell>Status</Table.HeaderCell>
+                          <Table.HeaderCell>Started</Table.HeaderCell>
+                          <Table.HeaderCell>Finished</Table.HeaderCell>
+                          <Table.HeaderCell>Error</Table.HeaderCell>
+                          <Table.HeaderCell>Order</Table.HeaderCell>
+                        </Table.Row>
+                      </Table.Header>
+                      <Table.Body>
+                        {renewal.attempts.map((attempt) => (
+                          <Table.Row key={attempt.id}>
+                            <Table.Cell>
+                              <Text size="small" leading="compact" weight="plus">
+                                #
+                                {attempt.attempt_no}
+                              </Text>
+                            </Table.Cell>
+                            <Table.Cell>
+                              <StatusBadge color={getAttemptStatusColor(attempt.status)}>
+                                {formatAttemptStatus(attempt.status)}
+                              </StatusBadge>
+                            </Table.Cell>
+                            <Table.Cell>{formatDateTime(attempt.started_at)}</Table.Cell>
+                            <Table.Cell>{formatDateTime(attempt.finished_at)}</Table.Cell>
+                            <Table.Cell>
+                              <div className="flex flex-col gap-y-0.5">
+                                <Text size="small" leading="compact">
+                                  {attempt.error_code || "-"}
+                                </Text>
+                                <Text
+                                  size="small"
+                                  leading="compact"
+                                  className="text-ui-fg-subtle"
+                                >
+                                  {attempt.error_message || "No error message"}
+                                </Text>
+                              </div>
+                            </Table.Cell>
+                            <Table.Cell>{attempt.order_id || "-"}</Table.Cell>
+                          </Table.Row>
+                        ))}
+                      </Table.Body>
+                    </Table>
+                  )
+                : (
+                    <Text size="small" leading="compact" className="text-ui-fg-subtle">
+                      No attempts have been recorded for this renewal cycle yet.
+                    </Text>
+                  )}
             </div>
           </Container>
 
@@ -511,17 +521,19 @@ const RenewalDetailPage = () => {
               <Heading level="h2">Technical metadata</Heading>
             </div>
             <div className="px-6 py-4">
-              {metadataRows.length ? (
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                  {metadataRows.map((row) => (
-                    <DetailRow key={row.key} label={row.key} value={row.value} mono />
-                  ))}
-                </div>
-              ) : (
-                <Text size="small" leading="compact" className="text-ui-fg-subtle">
-                  No metadata was stored for this renewal cycle.
-                </Text>
-              )}
+              {metadataRows.length
+                ? (
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                      {metadataRows.map((row) => (
+                        <DetailRow key={row.key} label={row.key} value={row.value} mono />
+                      ))}
+                    </div>
+                  )
+                : (
+                    <Text size="small" leading="compact" className="text-ui-fg-subtle">
+                      No metadata was stored for this renewal cycle.
+                    </Text>
+                  )}
             </div>
           </Container>
         </div>
@@ -583,39 +595,42 @@ const RenewalDetailPage = () => {
             </div>
             <div className="px-6 py-4">
               <div className="grid gap-4">
-                {renewal.generated_order ? (
-                  <Link
-                    to={`/orders/${renewal.generated_order.order_id}`}
-                    className="outline-none focus-within:shadow-borders-interactive-with-focus rounded-md [&:hover>div]:bg-ui-bg-component-hover"
-                  >
-                    <div className="shadow-elevation-card-rest bg-ui-bg-component rounded-md px-4 py-2 transition-colors">
-                      <div className="flex items-center gap-3">
-                        <div className="shadow-elevation-card-rest flex h-14 w-14 items-center justify-center rounded-md text-ui-fg-muted">
-                          <ShoppingBag />
+                {renewal.generated_order
+                  ? (
+                      <Link
+                        to={`/orders/${renewal.generated_order.order_id}`}
+                        className="outline-none focus-within:shadow-borders-interactive-with-focus rounded-md [&:hover>div]:bg-ui-bg-component-hover"
+                      >
+                        <div className="shadow-elevation-card-rest bg-ui-bg-component rounded-md px-4 py-2 transition-colors">
+                          <div className="flex items-center gap-3">
+                            <div className="shadow-elevation-card-rest flex h-14 w-14 items-center justify-center rounded-md text-ui-fg-muted">
+                              <ShoppingBag />
+                            </div>
+                            <div className="flex flex-1 flex-col">
+                              <Text size="small" leading="compact" weight="plus">
+                                #
+                                {renewal.generated_order.display_id}
+                              </Text>
+                              <Text
+                                size="small"
+                                leading="compact"
+                                className="text-ui-fg-subtle"
+                              >
+                                {renewal.generated_order.status}
+                              </Text>
+                            </div>
+                            <div className="size-7 flex items-center justify-center">
+                              <TriangleRightMini className="text-ui-fg-muted rtl:rotate-180" />
+                            </div>
+                          </div>
                         </div>
-                        <div className="flex flex-1 flex-col">
-                          <Text size="small" leading="compact" weight="plus">
-                            #{renewal.generated_order.display_id}
-                          </Text>
-                          <Text
-                            size="small"
-                            leading="compact"
-                            className="text-ui-fg-subtle"
-                          >
-                            {renewal.generated_order.status}
-                          </Text>
-                        </div>
-                        <div className="size-7 flex items-center justify-center">
-                          <TriangleRightMini className="text-ui-fg-muted rtl:rotate-180" />
-                        </div>
-                      </div>
-                    </div>
-                  </Link>
-                ) : (
-                  <Text size="small" leading="compact" className="text-ui-fg-subtle">
-                    No order generated
-                  </Text>
-                )}
+                      </Link>
+                    )
+                  : (
+                      <Text size="small" leading="compact" className="text-ui-fg-subtle">
+                        No order generated
+                      </Text>
+                    )}
                 <DetailRow
                   label="Status"
                   value={renewal.generated_order?.status || "-"}
@@ -677,7 +692,7 @@ const RenewalDetailPage = () => {
                 }
                 disabled={approveMutation.isPending || rejectMutation.isPending}
                 onClick={() => {
-                  void handleSubmitDecision();
+                  void handleSubmitDecision()
                 }}
               >
                 {decisionMode === "approve" ? "Approve" : "Reject"}
@@ -687,24 +702,24 @@ const RenewalDetailPage = () => {
         </Drawer.Content>
       </Drawer>
     </div>
-  );
-};
+  )
+}
 
-export default RenewalDetailPage;
+export default RenewalDetailPage
 
 export const handle = {
   breadcrumb: ({ params, data }: UIMatch<RenewalCycleAdminDetailResponse>) =>
     params?.id || data?.renewal?.id || "Renewal",
-};
+}
 
 const DetailRow = ({
   label,
   value,
   mono = false,
 }: {
-  label: string;
-  value: ReactNode;
-  mono?: boolean;
+  label: string
+  value: ReactNode
+  mono?: boolean
 }) => {
   return (
     <div className="flex flex-col gap-y-1">
@@ -719,61 +734,61 @@ const DetailRow = ({
         {value}
       </Text>
     </div>
-  );
-};
+  )
+}
 
 function normalizeOptionalString(value: string) {
-  const trimmed = value.trim();
-  return trimmed.length ? trimmed : undefined;
+  const trimmed = value.trim()
+  return trimmed.length ? trimmed : undefined
 }
 
 function formatDateTime(value: string | null) {
   if (!value) {
-    return "-";
+    return "-"
   }
 
   return new Intl.DateTimeFormat(undefined, {
     dateStyle: "medium",
     timeStyle: "short",
-  }).format(new Date(value));
+  }).format(new Date(value))
 }
 
 function formatCycleStatus(status: RenewalCycleAdminStatus) {
   switch (status) {
     case RenewalCycleAdminStatus.SCHEDULED:
-      return "Scheduled";
+      return "Scheduled"
     case RenewalCycleAdminStatus.PROCESSING:
-      return "Processing";
+      return "Processing"
     case RenewalCycleAdminStatus.SUCCEEDED:
-      return "Succeeded";
+      return "Succeeded"
     case RenewalCycleAdminStatus.FAILED:
-      return "Failed";
+      return "Failed"
   }
 }
 
 function formatAttemptStatus(status: RenewalAttemptAdminStatus) {
   switch (status) {
     case RenewalAttemptAdminStatus.PROCESSING:
-      return "Processing";
+      return "Processing"
     case RenewalAttemptAdminStatus.SUCCEEDED:
-      return "Succeeded";
+      return "Succeeded"
     case RenewalAttemptAdminStatus.FAILED:
-      return "Failed";
+      return "Failed"
   }
 }
 
 function formatApprovalStatus(approval: RenewalAdminApprovalSummary) {
   if (!approval.required || !approval.status) {
-    return "Not required";
+    return "Not required"
   }
 
   switch (approval.status) {
     case RenewalApprovalStatus.PENDING:
-      return "Pending approval";
+      return "Pending approval"
     case RenewalApprovalStatus.APPROVED:
-      return "Approved";
+      return "Approved"
     case RenewalApprovalStatus.REJECTED:
-      return "Rejected";
+      return "Rejected"
   }
 }
 
@@ -782,13 +797,13 @@ function formatSubscriptionStatus(
 ) {
   switch (status) {
     case "active":
-      return "Active";
+      return "Active"
     case "paused":
-      return "Paused";
+      return "Paused"
     case "cancelled":
-      return "Cancelled";
+      return "Cancelled"
     case "past_due":
-      return "Past due";
+      return "Past due"
   }
 }
 
@@ -798,78 +813,78 @@ function formatFrequency(
 ) {
   switch (interval) {
     case "week":
-      return value === 1 ? "Every week" : `Every ${value} weeks`;
+      return value === 1 ? "Every week" : `Every ${value} weeks`
     case "month":
-      return value === 1 ? "Every month" : `Every ${value} months`;
+      return value === 1 ? "Every month" : `Every ${value} months`
     case "year":
-      return value === 1 ? "Every year" : `Every ${value} years`;
+      return value === 1 ? "Every year" : `Every ${value} years`
   }
 }
 
 function getCycleStatusColor(status: RenewalCycleAdminStatus) {
   switch (status) {
     case RenewalCycleAdminStatus.SCHEDULED:
-      return "blue";
+      return "blue"
     case RenewalCycleAdminStatus.PROCESSING:
-      return "orange";
+      return "orange"
     case RenewalCycleAdminStatus.SUCCEEDED:
-      return "green";
+      return "green"
     case RenewalCycleAdminStatus.FAILED:
-      return "red";
+      return "red"
   }
 }
 
 function getAttemptStatusColor(status: RenewalAttemptAdminStatus) {
   switch (status) {
     case RenewalAttemptAdminStatus.PROCESSING:
-      return "orange";
+      return "orange"
     case RenewalAttemptAdminStatus.SUCCEEDED:
-      return "green";
+      return "green"
     case RenewalAttemptAdminStatus.FAILED:
-      return "red";
+      return "red"
   }
 }
 
 function getApprovalStatusColor(approval: RenewalAdminApprovalSummary) {
   if (!approval.required || !approval.status) {
-    return "grey";
+    return "grey"
   }
 
   switch (approval.status) {
     case RenewalApprovalStatus.PENDING:
-      return "orange";
+      return "orange"
     case RenewalApprovalStatus.APPROVED:
-      return "green";
+      return "green"
     case RenewalApprovalStatus.REJECTED:
-      return "red";
+      return "red"
   }
 }
 
 function getAdminErrorMessage(error: unknown, fallback: string) {
-  return getNestedErrorMessage(error) ?? fallback;
+  return getNestedErrorMessage(error) ?? fallback
 }
 
 function getNestedErrorMessage(value: unknown): string | null {
   if (!value) {
-    return null;
+    return null
   }
 
   if (typeof value === "string") {
-    return value;
+    return value
   }
 
   if (value instanceof Error) {
     return (
       getNestedErrorMessage((value as Error & { cause?: unknown }).cause) ??
       value.message
-    );
+    )
   }
 
   if (typeof value !== "object") {
-    return null;
+    return null
   }
 
-  const record = value as Record<string, unknown>;
+  const record = value as Record<string, unknown>
 
   return (
     getNestedErrorMessage(record.message) ??
@@ -880,5 +895,5 @@ function getNestedErrorMessage(value: unknown): string | null {
     getNestedErrorMessage(record.body) ??
     getNestedErrorMessage(record.cause) ??
     null
-  );
+  )
 }

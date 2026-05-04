@@ -20,7 +20,7 @@ import {
   toast,
   useDataTable,
   usePrompt,
-} from "@medusajs/ui";
+} from "@medusajs/ui"
 import {
   EllipsisHorizontal,
   Pause,
@@ -31,59 +31,59 @@ import {
   Trash,
   User,
   XMarkMini,
-} from "@medusajs/icons";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { flexRender } from "@tanstack/react-table";
-import { ReactNode, useEffect, useMemo, useState } from "react";
+} from "@medusajs/icons"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { flexRender } from "@tanstack/react-table"
+import { ReactNode, useEffect, useMemo, useState } from "react"
 import {
   LoaderFunctionArgs,
   Link,
   UIMatch,
   useLoaderData,
   useParams,
-} from "react-router-dom";
+} from "react-router-dom"
 import {
   invalidateSubscriptionDetailQueries,
   useAdminSubscriptionLogDetailQuery,
   useAdminSubscriptionTimelineQuery,
   useAdminSubscriptionDetailQuery,
   useAdminSubscriptionPlanOptionsQuery,
-} from "../data-loading";
-import { sdk } from "../../../lib/client";
+} from "../data-loading"
+import { sdk } from "../../../lib/client"
 import {
   ActivityLogAdminActorType,
   ActivityLogAdminDetail,
   ActivityLogAdminListItem,
-} from "../../../types/activity-log";
+} from "../../../types/activity-log"
 import {
   SubscriptionAdminDetailResponse,
   SubscriptionAdminShippingAddress,
   SubscriptionAdminStatus,
   SubscriptionFrequencyInterval,
-} from "../../../types/subscription";
+} from "../../../types/subscription"
 
-const ACTIVITY_LOG_PAGE_SIZE = 10;
+const ACTIVITY_LOG_PAGE_SIZE = 10
 
 const scheduleableStatuses = new Set<SubscriptionAdminStatus>([
   SubscriptionAdminStatus.ACTIVE,
   SubscriptionAdminStatus.PAUSED,
   SubscriptionAdminStatus.PAST_DUE,
-]);
+])
 
 const intervalOptions = [
   { label: "Weekly", value: SubscriptionFrequencyInterval.WEEK },
   { label: "Monthly", value: SubscriptionFrequencyInterval.MONTH },
   { label: "Yearly", value: SubscriptionFrequencyInterval.YEAR },
-] as const;
+] as const
 
 const activityLogColumnHelper =
-  createDataTableColumnHelper<ActivityLogAdminListItem>();
+  createDataTableColumnHelper<ActivityLogAdminListItem>()
 
 const activityLogActorFilterOptions = [
   { label: "Admin", value: ActivityLogAdminActorType.USER },
   { label: "System", value: ActivityLogAdminActorType.SYSTEM },
   { label: "Scheduler", value: ActivityLogAdminActorType.SCHEDULER },
-] as const;
+] as const
 
 const activityLogDomainFilterOptions = [
   {
@@ -131,66 +131,66 @@ const activityLogDomainFilterOptions = [
       "cancellation.finalized",
     ],
   },
-] as const;
-type SubscriptionActionType = "pause" | "resume" | "cancel";
+] as const
+type SubscriptionActionType = "pause" | "resume" | "cancel"
 type ShippingAddressFormState = {
-  first_name: string;
-  last_name: string;
-  company: string;
-  address_1: string;
-  address_2: string;
-  city: string;
-  postal_code: string;
-  province: string;
-  country_code: string;
-  phone: string;
-};
+  first_name: string
+  last_name: string
+  company: string
+  address_1: string
+  address_2: string
+  city: string
+  postal_code: string
+  province: string
+  country_code: string
+  phone: string
+}
 
 const SubscriptionDetailPage = () => {
-  const { id } = useParams();
-  const loaderData = useLoaderData() as Awaited<ReturnType<typeof loader>>;
-  const queryClient = useQueryClient();
-  const prompt = usePrompt();
-  const [planDrawerOpen, setPlanDrawerOpen] = useState(false);
-  const [shippingDrawerOpen, setShippingDrawerOpen] = useState(false);
-  const [activityLogDrawerOpen, setActivityLogDrawerOpen] = useState(false);
-  const [selectedLogId, setSelectedLogId] = useState<string | null>(null);
+  const { id } = useParams()
+  const loaderData = useLoaderData() as Awaited<ReturnType<typeof loader>>
+  const queryClient = useQueryClient()
+  const prompt = usePrompt()
+  const [planDrawerOpen, setPlanDrawerOpen] = useState(false)
+  const [shippingDrawerOpen, setShippingDrawerOpen] = useState(false)
+  const [activityLogDrawerOpen, setActivityLogDrawerOpen] = useState(false)
+  const [selectedLogId, setSelectedLogId] = useState<string | null>(null)
   const [activityLogFiltering, setActivityLogFiltering] =
-    useState<DataTableFilteringState>({});
+    useState<DataTableFilteringState>({})
   const [activityLogSorting, setActivityLogSorting] =
     useState<DataTableSortingState | null>({
       id: "created_at",
       desc: true,
-    });
+    })
   const [activityLogPagination, setActivityLogPagination] =
     useState<DataTablePaginationState>({
       pageIndex: 0,
       pageSize: ACTIVITY_LOG_PAGE_SIZE,
-    });
-  const [variantId, setVariantId] = useState("");
+    })
+  const [variantId, setVariantId] = useState("")
   const [frequencyInterval, setFrequencyInterval] =
-    useState<SubscriptionFrequencyInterval>(SubscriptionFrequencyInterval.MONTH);
-  const [frequencyValue, setFrequencyValue] = useState("1");
-  const [effectiveAt, setEffectiveAt] = useState("");
+    useState<SubscriptionFrequencyInterval>(SubscriptionFrequencyInterval.MONTH)
+  const [frequencyValue, setFrequencyValue] = useState("1")
+  const [effectiveAt, setEffectiveAt] = useState("")
   const [shippingAddressForm, setShippingAddressForm] =
-    useState<ShippingAddressFormState>(getEmptyShippingAddressFormState());
+    useState<ShippingAddressFormState>(getEmptyShippingAddressFormState())
 
   const { data, isLoading, isError, error } = useAdminSubscriptionDetailQuery(
     id,
-    loaderData,
-  );
-  const subscription = data?.subscription;
+    loaderData
+  )
+  const subscription = data?.subscription
   const customerLink = subscription?.customer.id
     ? `/customers/${subscription.customer.id}`
-    : null;
+    : null
   const productLink = subscription?.product.product_id
     ? `/products/${subscription.product.product_id}`
-    : null;
+    : null
   const variantLink =
     subscription?.product.product_id && subscription?.product.variant_id
       ? `/products/${subscription.product.product_id}/variants/${subscription.product.variant_id}`
-      : null;
-  const displayedRenewalOrders = subscription?.renewal_orders.slice(0, 3) ?? [];
+      : null
+  const displayedRenewalOrders = subscription?.renewal_orders.slice(0, 3) ?? []
   const {
     data: logsData,
     isLoading: isLogsLoading,
@@ -201,14 +201,14 @@ const SubscriptionDetailPage = () => {
     pagination: activityLogPagination,
     filtering: activityLogFiltering,
     sorting: activityLogSorting,
-  });
+  })
   const {
     data: selectedLogData,
     isLoading: isSelectedLogLoading,
   } = useAdminSubscriptionLogDetailQuery(
     selectedLogId ?? undefined,
-    activityLogDrawerOpen && Boolean(selectedLogId),
-  );
+    activityLogDrawerOpen && Boolean(selectedLogId)
+  )
 
   const {
     data: planOptionsData,
@@ -217,36 +217,36 @@ const SubscriptionDetailPage = () => {
     error: planOptionsError,
   } = useAdminSubscriptionPlanOptionsQuery(
     subscription?.product.product_id,
-    planDrawerOpen && Boolean(subscription?.product.product_id),
-  );
+    planDrawerOpen && Boolean(subscription?.product.product_id)
+  )
 
   const planChangeMutation = useMutation({
     mutationFn: async (body: {
-      variant_id: string;
-      frequency_interval: SubscriptionFrequencyInterval;
-      frequency_value: number;
-      effective_at?: string;
+      variant_id: string
+      frequency_interval: SubscriptionFrequencyInterval
+      frequency_value: number
+      effective_at?: string
     }) =>
       sdk.client.fetch<SubscriptionAdminDetailResponse>(
         `/admin/subscriptions/${id}/schedule-plan-change`,
         {
           method: "POST",
           body,
-        },
+        }
       ),
     onSuccess: async () => {
-      await invalidateSubscriptionDetailQueries(queryClient, id, selectedLogId ?? undefined);
-      toast.success("Plan change scheduled");
-      setPlanDrawerOpen(false);
+      await invalidateSubscriptionDetailQueries(queryClient, id, selectedLogId ?? undefined)
+      toast.success("Plan change scheduled")
+      setPlanDrawerOpen(false)
     },
     onError: (mutationError) => {
       toast.error(
         mutationError instanceof Error
           ? mutationError.message
-          : "Failed to schedule plan change",
-      );
+          : "Failed to schedule plan change"
+      )
     },
-  });
+  })
 
   const pauseMutation = useMutation({
     mutationFn: async () =>
@@ -255,20 +255,20 @@ const SubscriptionDetailPage = () => {
         {
           method: "POST",
           body: {},
-        },
+        }
       ),
     onSuccess: async () => {
-      await invalidateSubscriptionDetailQueries(queryClient, id, selectedLogId ?? undefined);
-      toast.success("Subscription paused");
+      await invalidateSubscriptionDetailQueries(queryClient, id, selectedLogId ?? undefined)
+      toast.success("Subscription paused")
     },
     onError: (mutationError) => {
       toast.error(
         mutationError instanceof Error
           ? mutationError.message
-          : "Failed to pause subscription",
-      );
+          : "Failed to pause subscription"
+      )
     },
-  });
+  })
 
   const resumeMutation = useMutation({
     mutationFn: async () =>
@@ -277,20 +277,20 @@ const SubscriptionDetailPage = () => {
         {
           method: "POST",
           body: {},
-        },
+        }
       ),
     onSuccess: async () => {
-      await invalidateSubscriptionDetailQueries(queryClient, id, selectedLogId ?? undefined);
-      toast.success("Subscription resumed");
+      await invalidateSubscriptionDetailQueries(queryClient, id, selectedLogId ?? undefined)
+      toast.success("Subscription resumed")
     },
     onError: (mutationError) => {
       toast.error(
         mutationError instanceof Error
           ? mutationError.message
-          : "Failed to resume subscription",
-      );
+          : "Failed to resume subscription"
+      )
     },
-  });
+  })
 
   const cancelMutation = useMutation({
     mutationFn: async () =>
@@ -299,20 +299,20 @@ const SubscriptionDetailPage = () => {
         {
           method: "POST",
           body: {},
-        },
+        }
       ),
     onSuccess: async () => {
-      await invalidateSubscriptionDetailQueries(queryClient, id, selectedLogId ?? undefined);
-      toast.success("Subscription cancelled");
+      await invalidateSubscriptionDetailQueries(queryClient, id, selectedLogId ?? undefined)
+      toast.success("Subscription cancelled")
     },
     onError: (mutationError) => {
       toast.error(
         mutationError instanceof Error
           ? mutationError.message
-          : "Failed to cancel subscription",
-      );
+          : "Failed to cancel subscription"
+      )
     },
-  });
+  })
 
   const updateShippingAddressMutation = useMutation({
     mutationFn: async (body: SubscriptionAdminShippingAddress) =>
@@ -321,54 +321,54 @@ const SubscriptionDetailPage = () => {
         {
           method: "POST",
           body,
-        },
+        }
       ),
     onSuccess: async () => {
-      await invalidateSubscriptionDetailQueries(queryClient, id, selectedLogId ?? undefined);
-      toast.success("Shipping address updated");
-      setShippingDrawerOpen(false);
+      await invalidateSubscriptionDetailQueries(queryClient, id, selectedLogId ?? undefined)
+      toast.success("Shipping address updated")
+      setShippingDrawerOpen(false)
     },
     onError: (mutationError) => {
       toast.error(
         mutationError instanceof Error
           ? mutationError.message
-          : "Failed to update shipping address",
-      );
+          : "Failed to update shipping address"
+      )
     },
-  });
+  })
 
   useEffect(() => {
     if (!planDrawerOpen || !subscription) {
-      return;
+      return
     }
 
     setVariantId(
-      subscription.pending_update_data?.variant_id ?? subscription.product.variant_id,
-    );
+      subscription.pending_update_data?.variant_id ?? subscription.product.variant_id
+    )
     setFrequencyInterval(
       subscription.pending_update_data?.frequency_interval ??
-        subscription.frequency.interval,
-    );
+      subscription.frequency.interval
+    )
     setFrequencyValue(
       String(
         subscription.pending_update_data?.frequency_value ??
-          subscription.frequency.value,
-      ),
-    );
+        subscription.frequency.value
+      )
+    )
     setEffectiveAt(
-      toDateTimeLocalValue(subscription.pending_update_data?.effective_at ?? null),
-    );
-  }, [planDrawerOpen, subscription]);
+      toDateTimeLocalValue(subscription.pending_update_data?.effective_at ?? null)
+    )
+  }, [planDrawerOpen, subscription])
 
   useEffect(() => {
     if (!shippingDrawerOpen || !subscription) {
-      return;
+      return
     }
 
     setShippingAddressForm(
-      getShippingAddressFormState(subscription.shipping_address),
-    );
-  }, [shippingDrawerOpen, subscription]);
+      getShippingAddressFormState(subscription.shipping_address)
+    )
+  }, [shippingDrawerOpen, subscription])
 
   const variantOptions = useMemo(() => {
     return (
@@ -376,49 +376,49 @@ const SubscriptionDetailPage = () => {
         value: variant.id,
         label: [variant.title, variant.sku].filter(Boolean).join(" · "),
       })) ?? []
-    );
-  }, [planOptionsData]);
+    )
+  }, [planOptionsData])
 
   const activityLogEventTypeFilters = useMemo(
     () =>
       Array.isArray(activityLogFiltering.event_type)
         ? (activityLogFiltering.event_type as string[])
         : [],
-    [activityLogFiltering],
-  );
+    [activityLogFiltering]
+  )
   const activityLogActorTypeFilters = useMemo(
     () =>
       Array.isArray(activityLogFiltering.actor_type)
         ? (activityLogFiltering.actor_type as ActivityLogAdminActorType[])
         : [],
-    [activityLogFiltering],
-  );
+    [activityLogFiltering]
+  )
   const activityLogDateFrom = useMemo(
     () =>
       typeof activityLogFiltering.date_from === "string"
         ? activityLogFiltering.date_from
         : "",
-    [activityLogFiltering],
-  );
+    [activityLogFiltering]
+  )
   const activityLogDateTo = useMemo(
     () =>
       typeof activityLogFiltering.date_to === "string"
         ? activityLogFiltering.date_to
         : "",
-    [activityLogFiltering],
-  );
+    [activityLogFiltering]
+  )
   const hasActivityLogDateFrom = useMemo(
     () => "date_from" in activityLogFiltering,
-    [activityLogFiltering],
-  );
+    [activityLogFiltering]
+  )
   const hasActivityLogDateTo = useMemo(
     () => "date_to" in activityLogFiltering,
-    [activityLogFiltering],
-  );
+    [activityLogFiltering]
+  )
 
   const activeActivityLogDomain = useMemo(() => {
     if (!activityLogEventTypeFilters.length) {
-      return null;
+      return null
     }
 
     return (
@@ -426,25 +426,25 @@ const SubscriptionDetailPage = () => {
         (option) =>
           option.eventTypes.length === activityLogEventTypeFilters.length &&
           option.eventTypes.every((eventType) =>
-            activityLogEventTypeFilters.includes(eventType),
-          ),
+            activityLogEventTypeFilters.includes(eventType)
+          )
       ) ?? null
-    );
-  }, [activityLogEventTypeFilters]);
+    )
+  }, [activityLogEventTypeFilters])
 
   const activityLogActorLabels = useMemo(
     () =>
       activityLogActorFilterOptions
         .filter((option) => activityLogActorTypeFilters.includes(option.value))
         .map((option) => option.label),
-    [activityLogActorTypeFilters],
-  );
+    [activityLogActorTypeFilters]
+  )
 
   const hasActivityLogFilters =
     Boolean(activeActivityLogDomain) ||
     activityLogActorTypeFilters.length > 0 ||
     Boolean(activityLogDateFrom) ||
-    Boolean(activityLogDateTo);
+    Boolean(activityLogDateTo)
 
   const activityLogColumns = useMemo(
     () => [
@@ -491,17 +491,19 @@ const SubscriptionDetailPage = () => {
             <Text size="small" leading="compact" weight="plus">
               {formatActivitySummary(row.original)}
             </Text>
-            {row.original.reason ? (
-              <Text size="small" leading="compact" className="text-ui-fg-subtle">
-                {row.original.reason}
-              </Text>
-            ) : null}
+            {row.original.reason
+              ? (
+                  <Text size="small" leading="compact" className="text-ui-fg-subtle">
+                    {row.original.reason}
+                  </Text>
+                )
+              : null}
           </div>
         ),
       }),
     ],
-    [],
-  );
+    []
+  )
 
   const activityLogTable = useDataTable({
     columns: activityLogColumns,
@@ -518,11 +520,11 @@ const SubscriptionDetailPage = () => {
       onPaginationChange: setActivityLogPagination,
     },
     onRowClick: (_event, row) => {
-      setSelectedLogId(row.id);
-      setActivityLogDrawerOpen(true);
+      setSelectedLogId(row.id)
+      setActivityLogDrawerOpen(true)
     },
-  });
-  const activityLogRows = activityLogTable.getRowModel().rows;
+  })
+  const activityLogRows = activityLogTable.getRowModel().rows
 
   if (isLoading) {
     return (
@@ -537,7 +539,7 @@ const SubscriptionDetailPage = () => {
           </Text>
         </div>
       </Container>
-    );
+    )
   }
 
   if (isError) {
@@ -554,7 +556,7 @@ const SubscriptionDetailPage = () => {
           </Alert>
         </div>
       </Container>
-    );
+    )
   }
 
   if (!subscription) {
@@ -567,51 +569,51 @@ const SubscriptionDetailPage = () => {
           <Alert variant="warning">Subscription details are unavailable.</Alert>
         </div>
       </Container>
-    );
+    )
   }
 
-  const canSchedulePlanChange = scheduleableStatuses.has(subscription.status);
-  const canPause = subscription.status === SubscriptionAdminStatus.ACTIVE;
-  const canResume = subscription.status === SubscriptionAdminStatus.PAUSED;
-  const canCancel = subscription.status !== SubscriptionAdminStatus.CANCELLED;
+  const canSchedulePlanChange = scheduleableStatuses.has(subscription.status)
+  const canPause = subscription.status === SubscriptionAdminStatus.ACTIVE
+  const canResume = subscription.status === SubscriptionAdminStatus.PAUSED
+  const canCancel = subscription.status !== SubscriptionAdminStatus.CANCELLED
   const isActionPending =
     pauseMutation.isPending ||
     resumeMutation.isPending ||
     cancelMutation.isPending ||
     planChangeMutation.isPending ||
-    updateShippingAddressMutation.isPending;
+    updateShippingAddressMutation.isPending
 
   const handleSubscriptionAction = async (action: SubscriptionActionType) => {
-    const confirmed = await prompt(getSubscriptionActionPromptConfig(action));
+    const confirmed = await prompt(getSubscriptionActionPromptConfig(action))
 
     if (!confirmed) {
-      return;
+      return
     }
 
     switch (action) {
       case "pause":
-        await pauseMutation.mutateAsync();
-        break;
+        await pauseMutation.mutateAsync()
+        break
       case "resume":
-        await resumeMutation.mutateAsync();
-        break;
+        await resumeMutation.mutateAsync()
+        break
       case "cancel":
-        await cancelMutation.mutateAsync();
-        break;
+        await cancelMutation.mutateAsync()
+        break
     }
-  };
+  }
 
   const handleSubmit = async () => {
-    const parsedFrequencyValue = Number(frequencyValue);
+    const parsedFrequencyValue = Number(frequencyValue)
 
     if (!variantId) {
-      toast.error("Select a variant");
-      return;
+      toast.error("Select a variant")
+      return
     }
 
     if (!Number.isInteger(parsedFrequencyValue) || parsedFrequencyValue <= 0) {
-      toast.error("Frequency value must be a positive integer");
-      return;
+      toast.error("Frequency value must be a positive integer")
+      return
     }
 
     await planChangeMutation.mutateAsync({
@@ -619,20 +621,20 @@ const SubscriptionDetailPage = () => {
       frequency_interval: frequencyInterval,
       frequency_value: parsedFrequencyValue,
       effective_at: effectiveAt ? new Date(effectiveAt).toISOString() : undefined,
-    });
-  };
+    })
+  }
 
   const handleShippingAddressChange = <
-    TField extends keyof ShippingAddressFormState,
+    TField extends keyof ShippingAddressFormState
   >(
     field: TField,
-    value: ShippingAddressFormState[TField],
+    value: ShippingAddressFormState[TField]
   ) => {
     setShippingAddressForm((current) => ({
       ...current,
       [field]: value,
-    }));
-  };
+    }))
+  }
 
   const handleShippingAddressSubmit = async () => {
     const body = {
@@ -646,20 +648,20 @@ const SubscriptionDetailPage = () => {
       province: normalizeOptionalString(shippingAddressForm.province),
       country_code: shippingAddressForm.country_code.trim().toLowerCase(),
       phone: normalizeOptionalString(shippingAddressForm.phone),
-    };
+    }
 
     if (!body.first_name || !body.last_name || !body.address_1 || !body.city) {
-      toast.error("Fill in all required address fields");
-      return;
+      toast.error("Fill in all required address fields")
+      return
     }
 
     if (!body.postal_code || body.country_code.length !== 2) {
-      toast.error("Enter a valid postal code and 2-letter country code");
-      return;
+      toast.error("Enter a valid postal code and 2-letter country code")
+      return
     }
 
-    await updateShippingAddressMutation.mutateAsync(body);
-  };
+    await updateShippingAddressMutation.mutateAsync(body)
+  }
 
   return (
     <div className="flex flex-col gap-y-4">
@@ -685,40 +687,46 @@ const SubscriptionDetailPage = () => {
                 </IconButton>
               </DropdownMenu.Trigger>
               <DropdownMenu.Content align="end">
-                {canPause ? (
-                  <DropdownMenu.Item
-                    className="flex items-center gap-x-2"
-                    disabled={isActionPending}
-                    onClick={() => {
-                      void handleSubscriptionAction("pause");
-                    }}
-                  >
-                    <Pause className="text-ui-fg-subtle" />
-                    <span>{pauseMutation.isPending ? "Pausing..." : "Pause"}</span>
-                  </DropdownMenu.Item>
-                ) : null}
-                {canResume ? (
-                  <DropdownMenu.Item
-                    className="flex items-center gap-x-2"
-                    disabled={isActionPending}
-                    onClick={() => {
-                      void handleSubscriptionAction("resume");
-                    }}
-                  >
-                    <TriangleRightMini className="text-ui-fg-subtle" />
-                    <span>{resumeMutation.isPending ? "Resuming..." : "Resume"}</span>
-                  </DropdownMenu.Item>
-                ) : null}
-                {canSchedulePlanChange ? (
-                  <DropdownMenu.Item
-                    className="flex items-center gap-x-2"
-                    disabled={isActionPending}
-                    onClick={() => setPlanDrawerOpen(true)}
-                  >
-                    <TriangleRightMini className="text-ui-fg-subtle" />
-                    <span>Schedule plan change</span>
-                  </DropdownMenu.Item>
-                ) : null}
+                {canPause
+                  ? (
+                      <DropdownMenu.Item
+                        className="flex items-center gap-x-2"
+                        disabled={isActionPending}
+                        onClick={() => {
+                          void handleSubscriptionAction("pause")
+                        }}
+                      >
+                        <Pause className="text-ui-fg-subtle" />
+                        <span>{pauseMutation.isPending ? "Pausing..." : "Pause"}</span>
+                      </DropdownMenu.Item>
+                    )
+                  : null}
+                {canResume
+                  ? (
+                      <DropdownMenu.Item
+                        className="flex items-center gap-x-2"
+                        disabled={isActionPending}
+                        onClick={() => {
+                          void handleSubscriptionAction("resume")
+                        }}
+                      >
+                        <TriangleRightMini className="text-ui-fg-subtle" />
+                        <span>{resumeMutation.isPending ? "Resuming..." : "Resume"}</span>
+                      </DropdownMenu.Item>
+                    )
+                  : null}
+                {canSchedulePlanChange
+                  ? (
+                      <DropdownMenu.Item
+                        className="flex items-center gap-x-2"
+                        disabled={isActionPending}
+                        onClick={() => setPlanDrawerOpen(true)}
+                      >
+                        <TriangleRightMini className="text-ui-fg-subtle" />
+                        <span>Schedule plan change</span>
+                      </DropdownMenu.Item>
+                    )
+                  : null}
                 <DropdownMenu.Item
                   className="flex items-center gap-x-2"
                   disabled={isActionPending}
@@ -727,23 +735,25 @@ const SubscriptionDetailPage = () => {
                   <PencilSquare className="text-ui-fg-subtle" />
                   <span>Edit shipping address</span>
                 </DropdownMenu.Item>
-                {canCancel ? (
-                  <>
-                    <DropdownMenu.Separator />
-                    <DropdownMenu.Item
-                      className="flex items-center gap-x-2"
-                      disabled={isActionPending}
-                      onClick={() => {
-                        void handleSubscriptionAction("cancel");
-                      }}
-                    >
-                      <Trash className="text-ui-fg-subtle" />
-                      <span>
-                        {cancelMutation.isPending ? "Cancelling..." : "Cancel"}
-                      </span>
-                    </DropdownMenu.Item>
-                  </>
-                ) : null}
+                {canCancel
+                  ? (
+                      <>
+                        <DropdownMenu.Separator />
+                        <DropdownMenu.Item
+                          className="flex items-center gap-x-2"
+                          disabled={isActionPending}
+                          onClick={() => {
+                            void handleSubscriptionAction("cancel")
+                          }}
+                        >
+                          <Trash className="text-ui-fg-subtle" />
+                          <span>
+                            {cancelMutation.isPending ? "Cancelling..." : "Cancel"}
+                          </span>
+                        </DropdownMenu.Item>
+                      </>
+                    )
+                  : null}
               </DropdownMenu.Content>
             </DropdownMenu>
           </div>
@@ -776,7 +786,7 @@ const SubscriptionDetailPage = () => {
                   label="Next renewal"
                   value={formatDateTime(
                     subscription.effective_next_renewal_at ??
-                      subscription.next_renewal_at
+                    subscription.next_renewal_at
                   )}
                 />
                 <DetailRow
@@ -835,33 +845,35 @@ const SubscriptionDetailPage = () => {
               <Heading level="h2">Pending plan change</Heading>
             </div>
             <div className="px-6 py-4">
-              {subscription.pending_update_data ? (
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                  <DetailRow
-                    label="Variant"
-                    value={subscription.pending_update_data.variant_title}
-                  />
-                  <DetailRow
-                    label="Frequency"
-                    value={formatFrequency(
-                      subscription.pending_update_data.frequency_interval,
-                      subscription.pending_update_data.frequency_value,
-                    )}
-                  />
-                  <DetailRow
-                    label="Effective at"
-                    value={formatDateTime(subscription.pending_update_data.effective_at)}
-                  />
-                  <DetailRow
-                    label="Variant ID"
-                    value={subscription.pending_update_data.variant_id}
-                  />
-                </div>
-              ) : (
-                <Text size="small" leading="compact" className="text-ui-fg-subtle">
-                  No pending plan change is scheduled for this subscription.
-                </Text>
-              )}
+              {subscription.pending_update_data
+                ? (
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                      <DetailRow
+                        label="Variant"
+                        value={subscription.pending_update_data.variant_title}
+                      />
+                      <DetailRow
+                        label="Frequency"
+                        value={formatFrequency(
+                          subscription.pending_update_data.frequency_interval,
+                          subscription.pending_update_data.frequency_value
+                        )}
+                      />
+                      <DetailRow
+                        label="Effective at"
+                        value={formatDateTime(subscription.pending_update_data.effective_at)}
+                      />
+                      <DetailRow
+                        label="Variant ID"
+                        value={subscription.pending_update_data.variant_id}
+                      />
+                    </div>
+                  )
+                : (
+                    <Text size="small" leading="compact" className="text-ui-fg-subtle">
+                      No pending plan change is scheduled for this subscription.
+                    </Text>
+                  )}
             </div>
           </Container>
           <Container className="divide-y p-0">
@@ -872,50 +884,58 @@ const SubscriptionDetailPage = () => {
               <div className="flex flex-col gap-4 px-6 py-4">
                 <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                   <div className="flex flex-wrap items-center gap-2">
-                    {activeActivityLogDomain ? (
-                      <FilterChip
-                        label="Domain"
-                        value={activeActivityLogDomain.label}
-                        onRemove={() => {
-                          setActivityLogFiltering((current) =>
-                            removeTimelineFilter(current, "event_type"),
-                          );
-                        }}
-                      />
-                    ) : null}
-                    {activityLogActorTypeFilters.length ? (
-                      <FilterChip
-                        label="Actor"
-                        value={activityLogActorLabels.join(", ")}
-                        onRemove={() => {
-                          setActivityLogFiltering((current) =>
-                            removeTimelineFilter(current, "actor_type"),
-                          );
-                        }}
-                      />
-                    ) : null}
-                    {activityLogDateFrom ? (
-                      <FilterChip
-                        label="Created from"
-                        value={formatDateTimeInputValue(activityLogDateFrom)}
-                        onRemove={() => {
-                          setActivityLogFiltering((current) =>
-                            removeTimelineFilter(current, "date_from"),
-                          );
-                        }}
-                      />
-                    ) : null}
-                    {activityLogDateTo ? (
-                      <FilterChip
-                        label="Created to"
-                        value={formatDateTimeInputValue(activityLogDateTo)}
-                        onRemove={() => {
-                          setActivityLogFiltering((current) =>
-                            removeTimelineFilter(current, "date_to"),
-                          );
-                        }}
-                      />
-                    ) : null}
+                    {activeActivityLogDomain
+                      ? (
+                          <FilterChip
+                            label="Domain"
+                            value={activeActivityLogDomain.label}
+                            onRemove={() => {
+                              setActivityLogFiltering((current) =>
+                                removeTimelineFilter(current, "event_type")
+                              )
+                            }}
+                          />
+                        )
+                      : null}
+                    {activityLogActorTypeFilters.length
+                      ? (
+                          <FilterChip
+                            label="Actor"
+                            value={activityLogActorLabels.join(", ")}
+                            onRemove={() => {
+                              setActivityLogFiltering((current) =>
+                                removeTimelineFilter(current, "actor_type")
+                              )
+                            }}
+                          />
+                        )
+                      : null}
+                    {activityLogDateFrom
+                      ? (
+                          <FilterChip
+                            label="Created from"
+                            value={formatDateTimeInputValue(activityLogDateFrom)}
+                            onRemove={() => {
+                              setActivityLogFiltering((current) =>
+                                removeTimelineFilter(current, "date_from")
+                              )
+                            }}
+                          />
+                        )
+                      : null}
+                    {activityLogDateTo
+                      ? (
+                          <FilterChip
+                            label="Created to"
+                            value={formatDateTimeInputValue(activityLogDateTo)}
+                            onRemove={() => {
+                              setActivityLogFiltering((current) =>
+                                removeTimelineFilter(current, "date_to")
+                              )
+                            }}
+                          />
+                        )
+                      : null}
                     <DropdownMenu>
                       <DropdownMenu.Trigger asChild>
                         <Button size="small" variant="secondary" type="button">
@@ -933,19 +953,19 @@ const SubscriptionDetailPage = () => {
                                 key={option.value}
                                 checked={activeActivityLogDomain?.value === option.value}
                                 onSelect={(event) => {
-                                  event.preventDefault();
+                                  event.preventDefault()
                                 }}
                                 onCheckedChange={(checked) => {
                                   setActivityLogFiltering((current) => {
                                     if (!checked) {
-                                      return removeTimelineFilter(current, "event_type");
+                                      return removeTimelineFilter(current, "event_type")
                                     }
 
                                     return {
                                       ...current,
                                       event_type: [...option.eventTypes],
-                                    };
-                                  });
+                                    }
+                                  })
                                 }}
                               >
                                 {option.label}
@@ -960,23 +980,23 @@ const SubscriptionDetailPage = () => {
                           <DropdownMenu.SubMenuContent>
                             {activityLogActorFilterOptions.map((option) => {
                               const checked = activityLogActorTypeFilters.includes(
-                                option.value,
-                              );
+                                option.value
+                              )
 
                               return (
                                 <DropdownMenu.CheckboxItem
                                   key={option.value}
                                   checked={checked}
                                   onSelect={(event) => {
-                                    event.preventDefault();
+                                    event.preventDefault()
                                   }}
                                   onCheckedChange={(nextChecked) => {
                                     setActivityLogFiltering((current) => {
                                       const currentValues = Array.isArray(
-                                        current.actor_type,
+                                        current.actor_type
                                       )
                                         ? (current.actor_type as ActivityLogAdminActorType[])
-                                        : [];
+                                        : []
 
                                       const nextValues = nextChecked
                                         ? currentValues.includes(option.value)
@@ -984,84 +1004,90 @@ const SubscriptionDetailPage = () => {
                                           : [...currentValues, option.value]
                                         : currentValues.filter(
                                             (currentValue) =>
-                                              currentValue !== option.value,
-                                          );
+                                              currentValue !== option.value
+                                          )
 
                                       if (!nextValues.length) {
                                         return removeTimelineFilter(
                                           current,
-                                          "actor_type",
-                                        );
+                                          "actor_type"
+                                        )
                                       }
 
                                       return {
                                         ...current,
                                         actor_type: nextValues,
-                                      };
-                                    });
+                                      }
+                                    })
                                   }}
                                 >
                                   {option.label}
                                 </DropdownMenu.CheckboxItem>
-                              );
+                              )
                             })}
                           </DropdownMenu.SubMenuContent>
                         </DropdownMenu.SubMenu>
-                        {!hasActivityLogDateFrom ? (
-                          <DropdownMenu.Item
-                            onClick={() => {
-                              setActivityLogFiltering((current) => ({
-                                ...current,
-                                date_from: "",
-                              }));
-                            }}
-                          >
-                            Created from
-                          </DropdownMenu.Item>
-                        ) : null}
-                        {!hasActivityLogDateTo ? (
-                          <DropdownMenu.Item
-                            onClick={() => {
-                              setActivityLogFiltering((current) => ({
-                                ...current,
-                                date_to: "",
-                              }));
-                            }}
-                          >
-                            Created to
-                          </DropdownMenu.Item>
-                        ) : null}
+                        {!hasActivityLogDateFrom
+                          ? (
+                              <DropdownMenu.Item
+                                onClick={() => {
+                                  setActivityLogFiltering((current) => ({
+                                    ...current,
+                                    date_from: "",
+                                  }))
+                                }}
+                              >
+                                Created from
+                              </DropdownMenu.Item>
+                            )
+                          : null}
+                        {!hasActivityLogDateTo
+                          ? (
+                              <DropdownMenu.Item
+                                onClick={() => {
+                                  setActivityLogFiltering((current) => ({
+                                    ...current,
+                                    date_to: "",
+                                  }))
+                                }}
+                              >
+                                Created to
+                              </DropdownMenu.Item>
+                            )
+                          : null}
                       </DropdownMenu.Content>
                     </DropdownMenu>
-                    {hasActivityLogFilters ? (
-                      <Button
-                        size="small"
-                        variant="transparent"
-                        type="button"
-                        onClick={() => {
-                          setActivityLogFiltering({});
-                          setActivityLogPagination((current) => ({
-                            ...current,
-                            pageIndex: 0,
-                          }));
-                        }}
-                      >
-                        Clear all
-                      </Button>
-                    ) : null}
+                    {hasActivityLogFilters
+                      ? (
+                          <Button
+                            size="small"
+                            variant="transparent"
+                            type="button"
+                            onClick={() => {
+                              setActivityLogFiltering({})
+                              setActivityLogPagination((current) => ({
+                                ...current,
+                                pageIndex: 0,
+                              }))
+                            }}
+                          >
+                            Clear all
+                          </Button>
+                        )
+                      : null}
                   </div>
                   <DataTable.SortingMenu
                     direction={activityLogSorting?.desc ? "desc" : "asc"}
                     sortBy={activityLogSorting?.id ?? "created_at"}
-                    onSort={(sort) => {
+                    onSort={(sort: any) => {
                       setActivityLogSorting({
                         id: sort.sortBy,
                         desc: sort.direction === "desc",
-                      });
+                      })
                       setActivityLogPagination((current) => ({
                         ...current,
                         pageIndex: 0,
-                      }));
+                      }))
                     }}
                     fields={[
                       { label: "Created", value: "created_at" },
@@ -1070,193 +1096,229 @@ const SubscriptionDetailPage = () => {
                     ]}
                   />
                 </div>
-                {hasActivityLogDateFrom || hasActivityLogDateTo ? (
-                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                    {hasActivityLogDateFrom ? (
-                      <div className="grid gap-2">
-                        <Label>Created from</Label>
-                        <div className="relative">
-                          <Input
-                            type="datetime-local"
-                            value={activityLogDateFrom}
-                            onChange={(event) => {
-                              const nextValue = event.target.value;
+                {hasActivityLogDateFrom || hasActivityLogDateTo
+                  ? (
+                      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                        {hasActivityLogDateFrom
+                          ? (
+                              <div className="grid gap-2">
+                                <Label>Created from</Label>
+                                <div className="relative">
+                                  <Input
+                                    type="datetime-local"
+                                    value={activityLogDateFrom}
+                                    onChange={(event) => {
+                                      const nextValue = event.target.value
 
-                              setActivityLogFiltering((current) => ({
-                                ...current,
-                                date_from: nextValue,
-                              }));
-                              setActivityLogPagination((current) => ({
-                                ...current,
-                                pageIndex: 0,
-                              }));
-                            }}
-                          />
-                          <button
-                            type="button"
-                            className="absolute right-2 top-1/2 -translate-y-1/2 text-ui-fg-subtle"
-                            onClick={() => {
-                              setActivityLogFiltering((current) =>
-                                removeTimelineFilter(current, "date_from"),
-                              );
-                            }}
-                          >
-                            <XMarkMini />
-                          </button>
-                        </div>
-                      </div>
-                    ) : null}
-                    {hasActivityLogDateTo ? (
-                      <div className="grid gap-2">
-                        <Label>Created to</Label>
-                        <div className="relative">
-                          <Input
-                            type="datetime-local"
-                            value={activityLogDateTo}
-                            onChange={(event) => {
-                              const nextValue = event.target.value;
+                                      setActivityLogFiltering((current) => ({
+                                        ...current,
+                                        date_from: nextValue,
+                                      }))
+                                      setActivityLogPagination((current) => ({
+                                        ...current,
+                                        pageIndex: 0,
+                                      }))
+                                    }}
+                                  />
+                                  <button
+                                    type="button"
+                                    className="absolute right-2 top-1/2 -translate-y-1/2 text-ui-fg-subtle"
+                                    onClick={() => {
+                                      setActivityLogFiltering((current) =>
+                                        removeTimelineFilter(current, "date_from")
+                                      )
+                                    }}
+                                  >
+                                    <XMarkMini />
+                                  </button>
+                                </div>
+                              </div>
+                            )
+                          : null}
+                        {hasActivityLogDateTo
+                          ? (
+                              <div className="grid gap-2">
+                                <Label>Created to</Label>
+                                <div className="relative">
+                                  <Input
+                                    type="datetime-local"
+                                    value={activityLogDateTo}
+                                    onChange={(event) => {
+                                      const nextValue = event.target.value
 
-                              setActivityLogFiltering((current) => ({
-                                ...current,
-                                date_to: nextValue,
-                              }));
-                              setActivityLogPagination((current) => ({
-                                ...current,
-                                pageIndex: 0,
-                              }));
-                            }}
-                          />
-                          <button
-                            type="button"
-                            className="absolute right-2 top-1/2 -translate-y-1/2 text-ui-fg-subtle"
-                            onClick={() => {
-                              setActivityLogFiltering((current) =>
-                                removeTimelineFilter(current, "date_to"),
-                              );
-                            }}
-                          >
-                            <XMarkMini />
-                          </button>
-                        </div>
+                                      setActivityLogFiltering((current) => ({
+                                        ...current,
+                                        date_to: nextValue,
+                                      }))
+                                      setActivityLogPagination((current) => ({
+                                        ...current,
+                                        pageIndex: 0,
+                                      }))
+                                    }}
+                                  />
+                                  <button
+                                    type="button"
+                                    className="absolute right-2 top-1/2 -translate-y-1/2 text-ui-fg-subtle"
+                                    onClick={() => {
+                                      setActivityLogFiltering((current) =>
+                                        removeTimelineFilter(current, "date_to")
+                                      )
+                                    }}
+                                  >
+                                    <XMarkMini />
+                                  </button>
+                                </div>
+                              </div>
+                            )
+                          : null}
                       </div>
-                    ) : null}
-                  </div>
-                ) : null}
-                {isLogsLoading ? (
-                  <div className="flex items-center gap-x-2 text-ui-fg-subtle">
-                    <Spinner className="animate-spin" />
-                    <Text size="small" leading="compact" className="text-ui-fg-subtle">
-                      Loading activity log...
-                    </Text>
-                  </div>
-                ) : isLogsError ? (
-                  <Alert variant="error">
-                    {logsError instanceof Error
-                      ? logsError.message
-                      : "Failed to load activity log."}
-                  </Alert>
-                ) : (
-                  <>
-                    <div className="overflow-x-auto border-y">
-                      <Table>
-                        <Table.Header>
-                          {activityLogTable.getHeaderGroups().map((headerGroup) => (
-                            <Table.Row key={headerGroup.id}>
-                              {headerGroup.headers.map((header) => (
-                                <Table.HeaderCell key={header.id}>
-                                  {header.isPlaceholder
-                                    ? null
-                                    : flexRender(
-                                        header.column.columnDef.header,
-                                        header.getContext(),
-                                      )}
-                                </Table.HeaderCell>
-                              ))}
-                            </Table.Row>
-                          ))}
-                        </Table.Header>
-                        <Table.Body>
-                          {activityLogRows.length ? (
-                            activityLogRows.map((row) => (
-                              <Table.Row
-                                key={row.id}
-                                className="cursor-pointer"
-                                onClick={() => {
-                                  setSelectedLogId(row.original.id);
-                                  setActivityLogDrawerOpen(true);
-                                }}
-                              >
-                                {row.getVisibleCells().map((cell) => (
-                                  <Table.Cell key={cell.id}>
-                                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                                  </Table.Cell>
+                    )
+                  : null}
+                {isLogsLoading
+                  ? (
+                      <div className="flex items-center gap-x-2 text-ui-fg-subtle">
+                        <Spinner className="animate-spin" />
+                        <Text size="small" leading="compact" className="text-ui-fg-subtle">
+                          Loading activity log...
+                        </Text>
+                      </div>
+                    )
+                  : isLogsError
+                    ? (
+                        <Alert variant="error">
+                          {logsError instanceof Error
+                            ? logsError.message
+                            : "Failed to load activity log."}
+                        </Alert>
+                      )
+                    : (
+                        <>
+                          <div className="overflow-x-auto border-y">
+                            <Table>
+                              <Table.Header>
+                                {activityLogTable.getHeaderGroups().map((headerGroup) => (
+                                  <Table.Row key={headerGroup.id}>
+                                    {headerGroup.headers.map((header) => (
+                                      <Table.HeaderCell key={header.id}>
+                                        {header.isPlaceholder
+                                          ? null
+                                          : flexRender(
+                                              header.column.columnDef.header,
+                                              header.getContext()
+                                            )}
+                                      </Table.HeaderCell>
+                                    ))}
+                                  </Table.Row>
                                 ))}
-                              </Table.Row>
-                            ))
-                          ) : (
-                            <Table.Row>
-                              <Table.Cell colSpan={activityLogColumns.length}>
-                                <Text
-                                  size="small"
-                                  leading="compact"
-                                  className="text-ui-fg-subtle"
-                                >
-                                  No activity log events found.
-                                </Text>
-                              </Table.Cell>
-                            </Table.Row>
-                          )}
-                        </Table.Body>
-                      </Table>
-                    </div>
-                    <DataTable.Pagination
-                      count={logsData?.count ?? 0}
-                      pageSize={activityLogPagination.pageSize}
-                      pageIndex={activityLogPagination.pageIndex}
-                      pageCount={Math.max(
-                        1,
-                        Math.ceil((logsData?.count ?? 0) / activityLogPagination.pageSize),
+                              </Table.Header>
+                              <Table.Body>
+                                {activityLogRows.length
+                                  ? (
+                                      activityLogRows.map((row) => (
+                                        <Table.Row
+                                          key={row.id}
+                                          className="cursor-pointer"
+                                          onClick={() => {
+                                            setSelectedLogId(row.original.id)
+                                            setActivityLogDrawerOpen(true)
+                                          }}
+                                        >
+                                          {row.getVisibleCells().map((cell) => (
+                                            <Table.Cell key={cell.id}>
+                                              {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                            </Table.Cell>
+                                          ))}
+                                        </Table.Row>
+                                      ))
+                                    )
+                                  : (
+                                      <Table.Row>
+                                        <Table.Cell colSpan={activityLogColumns.length}>
+                                          <Text
+                                            size="small"
+                                            leading="compact"
+                                            className="text-ui-fg-subtle"
+                                          >
+                                            No activity log events found.
+                                          </Text>
+                                        </Table.Cell>
+                                      </Table.Row>
+                                    )}
+                              </Table.Body>
+                            </Table>
+                          </div>
+                          <DataTable.Pagination
+                            count={logsData?.count ?? 0}
+                            pageSize={activityLogPagination.pageSize}
+                            pageIndex={activityLogPagination.pageIndex}
+                            pageCount={Math.max(
+                              1,
+                              Math.ceil((logsData?.count ?? 0) / activityLogPagination.pageSize)
+                            )}
+                            canNextPage={
+                              (activityLogPagination.pageIndex + 1) *
+                              activityLogPagination.pageSize <
+                                (logsData?.count ?? 0)
+                            }
+                            canPreviousPage={activityLogPagination.pageIndex > 0}
+                            nextPage={() =>
+                              setActivityLogPagination((current) => ({
+                                ...current,
+                                pageIndex: current.pageIndex + 1,
+                              }))}
+                            previousPage={() =>
+                              setActivityLogPagination((current) => ({
+                                ...current,
+                                pageIndex: Math.max(0, current.pageIndex - 1),
+                              }))}
+                          />
+                        </>
                       )}
-                      canNextPage={
-                        (activityLogPagination.pageIndex + 1) *
-                          activityLogPagination.pageSize <
-                        (logsData?.count ?? 0)
-                      }
-                      canPreviousPage={activityLogPagination.pageIndex > 0}
-                      nextPage={() =>
-                        setActivityLogPagination((current) => ({
-                          ...current,
-                          pageIndex: current.pageIndex + 1,
-                        }))
-                      }
-                      previousPage={() =>
-                        setActivityLogPagination((current) => ({
-                          ...current,
-                          pageIndex: Math.max(0, current.pageIndex - 1),
-                        }))
-                      }
-                    />
-                  </>
-                )}
               </div>
             </DataTable>
           </Container>
         </div>
         <div className="flex min-w-0 flex-col gap-4">
-            <Container className="divide-y p-0">
-              <div className="px-4 py-4">
-                <Text size="small" leading="compact" weight="plus">
-                  Customer
-                </Text>
-              </div>
-              <div className="px-4 py-4">
-                <div className="flex flex-col gap-3">
-                  {customerLink ? (
-                    <Link
-                      to={customerLink}
-                      className="outline-none focus-within:shadow-borders-interactive-with-focus rounded-md [&:hover>div]:bg-ui-bg-component-hover"
-                    >
-                      <div className="shadow-elevation-card-rest bg-ui-bg-component rounded-md px-4 py-2 transition-colors">
+          <Container className="divide-y p-0">
+            <div className="px-4 py-4">
+              <Text size="small" leading="compact" weight="plus">
+                Customer
+              </Text>
+            </div>
+            <div className="px-4 py-4">
+              <div className="flex flex-col gap-3">
+                {customerLink
+                  ? (
+                      <Link
+                        to={customerLink}
+                        className="outline-none focus-within:shadow-borders-interactive-with-focus rounded-md [&:hover>div]:bg-ui-bg-component-hover"
+                      >
+                        <div className="shadow-elevation-card-rest bg-ui-bg-component rounded-md px-4 py-2 transition-colors">
+                          <div className="flex items-center gap-3">
+                            <div className="shadow-elevation-card-rest flex h-14 w-14 items-center justify-center rounded-md text-ui-fg-muted">
+                              <User />
+                            </div>
+                            <div className="flex flex-1 flex-col">
+                              <Text size="small" leading="compact" weight="plus">
+                                {subscription.customer.full_name}
+                              </Text>
+                              <Text
+                                size="small"
+                                leading="compact"
+                                className="text-ui-fg-subtle"
+                              >
+                                {subscription.customer.email || subscription.customer.id}
+                              </Text>
+                            </div>
+                            <div className="size-7 flex items-center justify-center">
+                              <TriangleRightMini className="text-ui-fg-muted rtl:rotate-180" />
+                            </div>
+                          </div>
+                        </div>
+                      </Link>
+                    )
+                  : (
+                      <div className="shadow-elevation-card-rest bg-ui-bg-component rounded-md px-4 py-2">
                         <div className="flex items-center gap-3">
                           <div className="shadow-elevation-card-rest flex h-14 w-14 items-center justify-center rounded-md text-ui-fg-muted">
                             <User />
@@ -1273,170 +1335,153 @@ const SubscriptionDetailPage = () => {
                               {subscription.customer.email || subscription.customer.id}
                             </Text>
                           </div>
-                          <div className="size-7 flex items-center justify-center">
-                            <TriangleRightMini className="text-ui-fg-muted rtl:rotate-180" />
-                          </div>
                         </div>
                       </div>
-                    </Link>
-                  ) : (
-                    <div className="shadow-elevation-card-rest bg-ui-bg-component rounded-md px-4 py-2">
-                      <div className="flex items-center gap-3">
-                        <div className="shadow-elevation-card-rest flex h-14 w-14 items-center justify-center rounded-md text-ui-fg-muted">
-                          <User />
-                        </div>
-                        <div className="flex flex-1 flex-col">
-                          <Text size="small" leading="compact" weight="plus">
-                            {subscription.customer.full_name}
-                          </Text>
-                          <Text
-                            size="small"
-                            leading="compact"
-                            className="text-ui-fg-subtle"
-                          >
-                            {subscription.customer.email || subscription.customer.id}
-                          </Text>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                  <DetailRow label="Email" value={subscription.customer.email || "-"} />
-                  <DetailRow label="Customer ID" value={subscription.customer.id} />
-                </div>
+                    )}
+                <DetailRow label="Email" value={subscription.customer.email || "-"} />
+                <DetailRow label="Customer ID" value={subscription.customer.id} />
               </div>
-            </Container>
-            <Container className="divide-y p-0">
-              <div className="px-4 py-4">
-                <Text size="small" leading="compact" weight="plus">
-                  Product
-                </Text>
-              </div>
-              <div className="px-4 py-4">
-                <div className="flex flex-col gap-3">
-                  {variantLink ? (
-                    <Link
-                      to={variantLink}
-                      className="outline-none focus-within:shadow-borders-interactive-with-focus rounded-md [&:hover>div]:bg-ui-bg-component-hover"
-                    >
-                      <div className="shadow-elevation-card-rest bg-ui-bg-component rounded-md px-4 py-2 transition-colors">
-                        <div className="flex items-center gap-3">
-                          <div className="shadow-elevation-card-rest flex h-14 w-14 items-center justify-center rounded-md text-ui-fg-muted">
-                            <ShoppingBag />
-                          </div>
-                          <div className="flex flex-1 flex-col">
-                            <Text size="small" leading="compact" weight="plus">
-                              {subscription.product.variant_title}
-                            </Text>
-                            <Text
-                              size="small"
-                              leading="compact"
-                              className="text-ui-fg-subtle"
-                            >
-                              {subscription.product.product_title}
-                            </Text>
-                          </div>
-                          <div className="size-7 flex items-center justify-center">
-                            <TriangleRightMini className="text-ui-fg-muted rtl:rotate-180" />
-                          </div>
-                        </div>
-                      </div>
-                    </Link>
-                  ) : productLink ? (
-                    <Link
-                      to={productLink}
-                      className="outline-none focus-within:shadow-borders-interactive-with-focus rounded-md [&:hover>div]:bg-ui-bg-component-hover"
-                    >
-                      <div className="shadow-elevation-card-rest bg-ui-bg-component rounded-md px-4 py-2 transition-colors">
-                        <div className="flex items-center gap-3">
-                          <div className="shadow-elevation-card-rest flex h-14 w-14 items-center justify-center rounded-md text-ui-fg-muted">
-                            <ShoppingBag />
-                          </div>
-                          <div className="flex flex-1 flex-col">
-                            <Text size="small" leading="compact" weight="plus">
-                              {subscription.product.product_title}
-                            </Text>
-                            <Text
-                              size="small"
-                              leading="compact"
-                              className="text-ui-fg-subtle"
-                            >
-                              {subscription.product.variant_title}
-                            </Text>
-                          </div>
-                          <div className="size-7 flex items-center justify-center">
-                            <TriangleRightMini className="text-ui-fg-muted rtl:rotate-180" />
+            </div>
+          </Container>
+          <Container className="divide-y p-0">
+            <div className="px-4 py-4">
+              <Text size="small" leading="compact" weight="plus">
+                Product
+              </Text>
+            </div>
+            <div className="px-4 py-4">
+              <div className="flex flex-col gap-3">
+                {variantLink
+                  ? (
+                      <Link
+                        to={variantLink}
+                        className="outline-none focus-within:shadow-borders-interactive-with-focus rounded-md [&:hover>div]:bg-ui-bg-component-hover"
+                      >
+                        <div className="shadow-elevation-card-rest bg-ui-bg-component rounded-md px-4 py-2 transition-colors">
+                          <div className="flex items-center gap-3">
+                            <div className="shadow-elevation-card-rest flex h-14 w-14 items-center justify-center rounded-md text-ui-fg-muted">
+                              <ShoppingBag />
+                            </div>
+                            <div className="flex flex-1 flex-col">
+                              <Text size="small" leading="compact" weight="plus">
+                                {subscription.product.variant_title}
+                              </Text>
+                              <Text
+                                size="small"
+                                leading="compact"
+                                className="text-ui-fg-subtle"
+                              >
+                                {subscription.product.product_title}
+                              </Text>
+                            </div>
+                            <div className="size-7 flex items-center justify-center">
+                              <TriangleRightMini className="text-ui-fg-muted rtl:rotate-180" />
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    </Link>
-                  ) : (
-                    <div className="shadow-elevation-card-rest bg-ui-bg-component rounded-md px-4 py-2">
-                      <div className="flex items-center gap-3">
-                        <div className="shadow-elevation-card-rest flex h-14 w-14 items-center justify-center rounded-md text-ui-fg-muted">
-                          <ShoppingBag />
+                      </Link>
+                    )
+                  : productLink
+                    ? (
+                        <Link
+                          to={productLink}
+                          className="outline-none focus-within:shadow-borders-interactive-with-focus rounded-md [&:hover>div]:bg-ui-bg-component-hover"
+                        >
+                          <div className="shadow-elevation-card-rest bg-ui-bg-component rounded-md px-4 py-2 transition-colors">
+                            <div className="flex items-center gap-3">
+                              <div className="shadow-elevation-card-rest flex h-14 w-14 items-center justify-center rounded-md text-ui-fg-muted">
+                                <ShoppingBag />
+                              </div>
+                              <div className="flex flex-1 flex-col">
+                                <Text size="small" leading="compact" weight="plus">
+                                  {subscription.product.product_title}
+                                </Text>
+                                <Text
+                                  size="small"
+                                  leading="compact"
+                                  className="text-ui-fg-subtle"
+                                >
+                                  {subscription.product.variant_title}
+                                </Text>
+                              </div>
+                              <div className="size-7 flex items-center justify-center">
+                                <TriangleRightMini className="text-ui-fg-muted rtl:rotate-180" />
+                              </div>
+                            </div>
+                          </div>
+                        </Link>
+                      )
+                    : (
+                        <div className="shadow-elevation-card-rest bg-ui-bg-component rounded-md px-4 py-2">
+                          <div className="flex items-center gap-3">
+                            <div className="shadow-elevation-card-rest flex h-14 w-14 items-center justify-center rounded-md text-ui-fg-muted">
+                              <ShoppingBag />
+                            </div>
+                            <div className="flex flex-1 flex-col">
+                              <Text size="small" leading="compact" weight="plus">
+                                {subscription.product.variant_title}
+                              </Text>
+                              <Text
+                                size="small"
+                                leading="compact"
+                                className="text-ui-fg-subtle"
+                              >
+                                {subscription.product.product_title}
+                              </Text>
+                            </div>
+                          </div>
                         </div>
-                        <div className="flex flex-1 flex-col">
-                          <Text size="small" leading="compact" weight="plus">
-                            {subscription.product.variant_title}
-                          </Text>
-                          <Text
-                            size="small"
-                            leading="compact"
-                            className="text-ui-fg-subtle"
-                          >
-                            {subscription.product.product_title}
-                          </Text>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                  <DetailRow label="SKU" value={subscription.product.sku || "-"} />
-                </div>
-              </div>
-            </Container>
-            <Container className="divide-y p-0">
-              <div className="px-4 py-4">
-                <Text size="small" leading="compact" weight="plus">
-                  Orders
-                </Text>
-              </div>
-              <div className="px-4 py-4">
-                <div className="flex flex-col gap-3">
-                  {subscription.initial_order ? (
-                    <LinkedOrderCard
-                      label="Initial order"
-                      orderId={subscription.initial_order.order_id}
-                      title={formatOrderDisplayLabel(
-                        subscription.initial_order.display_id,
-                        subscription.initial_order.order_id
                       )}
-                      subtitle={`${subscription.initial_order.status} · ${formatDateTime(subscription.initial_order.created_at)}`}
-                    />
-                  ) : null}
-                  {displayedRenewalOrders.map((order, index) => (
-                    <LinkedOrderCard
-                      key={order.order_id}
-                      label={index === 0 ? "Latest renewal" : `Renewal ${index + 1}`}
-                      orderId={order.order_id}
-                      title={formatOrderDisplayLabel(order.display_id, order.order_id)}
-                      subtitle={`${order.status} · ${formatDateTime(order.created_at)}`}
-                    />
-                  ))}
-                  {!subscription.initial_order && !displayedRenewalOrders.length ? (
-                    <Text
-                      size="small"
-                      leading="compact"
-                      className="text-ui-fg-subtle"
-                    >
-                      No linked orders yet
-                    </Text>
-                  ) : null}
-                </div>
+                <DetailRow label="SKU" value={subscription.product.sku || "-"} />
               </div>
-            </Container>
+            </div>
+          </Container>
+          <Container className="divide-y p-0">
+            <div className="px-4 py-4">
+              <Text size="small" leading="compact" weight="plus">
+                Orders
+              </Text>
+            </div>
+            <div className="px-4 py-4">
+              <div className="flex flex-col gap-3">
+                {subscription.initial_order
+                  ? (
+                      <LinkedOrderCard
+                        label="Initial order"
+                        orderId={subscription.initial_order.order_id}
+                        title={formatOrderDisplayLabel(
+                          subscription.initial_order.display_id,
+                          subscription.initial_order.order_id
+                        )}
+                        subtitle={`${subscription.initial_order.status} · ${formatDateTime(subscription.initial_order.created_at)}`}
+                      />
+                    )
+                  : null}
+                {displayedRenewalOrders.map((order, index) => (
+                  <LinkedOrderCard
+                    key={order.order_id}
+                    label={index === 0 ? "Latest renewal" : `Renewal ${index + 1}`}
+                    orderId={order.order_id}
+                    title={formatOrderDisplayLabel(order.display_id, order.order_id)}
+                    subtitle={`${order.status} · ${formatDateTime(order.created_at)}`}
+                  />
+                ))}
+                {!subscription.initial_order && !displayedRenewalOrders.length
+                  ? (
+                      <Text
+                        size="small"
+                        leading="compact"
+                        className="text-ui-fg-subtle"
+                      >
+                        No linked orders yet
+                      </Text>
+                    )
+                  : null}
+              </div>
+            </div>
+          </Container>
         </div>
       </div>
-
 
       <Drawer open={planDrawerOpen} onOpenChange={setPlanDrawerOpen}>
         <Drawer.Content>
@@ -1459,34 +1504,39 @@ const SubscriptionDetailPage = () => {
                     ))}
                   </Select.Content>
                 </Select>
-                {isLoadingPlanOptions ? (
-                  <div className="flex items-center gap-x-2 text-ui-fg-subtle">
-                    <Spinner className="animate-spin" />
-                    <Text size="small" leading="compact" className="text-ui-fg-subtle">
-                      Loading variants...
-                    </Text>
-                  </div>
-                ) : null}
-                {isPlanOptionsError ? (
-                  <Alert variant="error">
-                    {planOptionsError instanceof Error
-                      ? planOptionsError.message
-                      : "Failed to load product variants."}
-                  </Alert>
-                ) : null}
-                {!isLoadingPlanOptions && !isPlanOptionsError && !variantOptions.length ? (
-                  <Text size="small" leading="compact" className="text-ui-fg-subtle">
-                    No variants are available for this product.
-                  </Text>
-                ) : null}
+                {isLoadingPlanOptions
+                  ? (
+                      <div className="flex items-center gap-x-2 text-ui-fg-subtle">
+                        <Spinner className="animate-spin" />
+                        <Text size="small" leading="compact" className="text-ui-fg-subtle">
+                          Loading variants...
+                        </Text>
+                      </div>
+                    )
+                  : null}
+                {isPlanOptionsError
+                  ? (
+                      <Alert variant="error">
+                        {planOptionsError instanceof Error
+                          ? planOptionsError.message
+                          : "Failed to load product variants."}
+                      </Alert>
+                    )
+                  : null}
+                {!isLoadingPlanOptions && !isPlanOptionsError && !variantOptions.length
+                  ? (
+                      <Text size="small" leading="compact" className="text-ui-fg-subtle">
+                        No variants are available for this product.
+                      </Text>
+                    )
+                  : null}
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="frequency-interval">Frequency interval</Label>
                 <Select
                   value={frequencyInterval}
                   onValueChange={(value) =>
-                    setFrequencyInterval(value as SubscriptionFrequencyInterval)
-                  }
+                    setFrequencyInterval(value as SubscriptionFrequencyInterval)}
                 >
                   <Select.Trigger id="frequency-interval">
                     <Select.Value placeholder="Select interval" />
@@ -1564,8 +1614,7 @@ const SubscriptionDetailPage = () => {
                     id="first-name"
                     value={shippingAddressForm.first_name}
                     onChange={(event) =>
-                      handleShippingAddressChange("first_name", event.target.value)
-                    }
+                      handleShippingAddressChange("first_name", event.target.value)}
                   />
                 </div>
                 <div className="grid gap-2">
@@ -1574,8 +1623,7 @@ const SubscriptionDetailPage = () => {
                     id="last-name"
                     value={shippingAddressForm.last_name}
                     onChange={(event) =>
-                      handleShippingAddressChange("last_name", event.target.value)
-                    }
+                      handleShippingAddressChange("last_name", event.target.value)}
                   />
                 </div>
               </div>
@@ -1585,8 +1633,7 @@ const SubscriptionDetailPage = () => {
                   id="company"
                   value={shippingAddressForm.company}
                   onChange={(event) =>
-                    handleShippingAddressChange("company", event.target.value)
-                  }
+                    handleShippingAddressChange("company", event.target.value)}
                 />
               </div>
               <div className="grid gap-2">
@@ -1595,8 +1642,7 @@ const SubscriptionDetailPage = () => {
                   id="address-1"
                   value={shippingAddressForm.address_1}
                   onChange={(event) =>
-                    handleShippingAddressChange("address_1", event.target.value)
-                  }
+                    handleShippingAddressChange("address_1", event.target.value)}
                 />
               </div>
               <div className="grid gap-2">
@@ -1605,8 +1651,7 @@ const SubscriptionDetailPage = () => {
                   id="address-2"
                   value={shippingAddressForm.address_2}
                   onChange={(event) =>
-                    handleShippingAddressChange("address_2", event.target.value)
-                  }
+                    handleShippingAddressChange("address_2", event.target.value)}
                 />
               </div>
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -1616,8 +1661,7 @@ const SubscriptionDetailPage = () => {
                     id="city"
                     value={shippingAddressForm.city}
                     onChange={(event) =>
-                      handleShippingAddressChange("city", event.target.value)
-                    }
+                      handleShippingAddressChange("city", event.target.value)}
                   />
                 </div>
                 <div className="grid gap-2">
@@ -1626,8 +1670,7 @@ const SubscriptionDetailPage = () => {
                     id="postal-code"
                     value={shippingAddressForm.postal_code}
                     onChange={(event) =>
-                      handleShippingAddressChange("postal_code", event.target.value)
-                    }
+                      handleShippingAddressChange("postal_code", event.target.value)}
                   />
                 </div>
               </div>
@@ -1638,8 +1681,7 @@ const SubscriptionDetailPage = () => {
                     id="province"
                     value={shippingAddressForm.province}
                     onChange={(event) =>
-                      handleShippingAddressChange("province", event.target.value)
-                    }
+                      handleShippingAddressChange("province", event.target.value)}
                   />
                 </div>
                 <div className="grid gap-2">
@@ -1649,8 +1691,7 @@ const SubscriptionDetailPage = () => {
                     maxLength={2}
                     value={shippingAddressForm.country_code}
                     onChange={(event) =>
-                      handleShippingAddressChange("country_code", event.target.value)
-                    }
+                      handleShippingAddressChange("country_code", event.target.value)}
                   />
                   <Text size="small" leading="compact" className="text-ui-fg-subtle">
                     Use the two-letter ISO country code, for example PL or US.
@@ -1663,8 +1704,7 @@ const SubscriptionDetailPage = () => {
                   id="phone"
                   value={shippingAddressForm.phone}
                   onChange={(event) =>
-                    handleShippingAddressChange("phone", event.target.value)
-                  }
+                    handleShippingAddressChange("phone", event.target.value)}
                 />
               </div>
             </div>
@@ -1696,10 +1736,10 @@ const SubscriptionDetailPage = () => {
       <Drawer
         open={activityLogDrawerOpen}
         onOpenChange={(open) => {
-          setActivityLogDrawerOpen(open);
+          setActivityLogDrawerOpen(open)
 
           if (!open) {
-            setSelectedLogId(null);
+            setSelectedLogId(null)
           }
         }}
       >
@@ -1708,18 +1748,22 @@ const SubscriptionDetailPage = () => {
             <Drawer.Title>Activity Log Event</Drawer.Title>
           </Drawer.Header>
           <Drawer.Body className="flex flex-1 flex-col gap-y-6 overflow-y-auto p-4">
-            {isSelectedLogLoading ? (
-              <div className="flex items-center gap-x-2 text-ui-fg-subtle">
-                <Spinner className="animate-spin" />
-                <Text size="small" leading="compact" className="text-ui-fg-subtle">
-                  Loading activity event...
-                </Text>
-              </div>
-            ) : selectedLogData?.subscription_log ? (
-              <ActivityLogDetailContent log={selectedLogData.subscription_log} />
-            ) : (
-              <Alert variant="error">Failed to load activity event details.</Alert>
-            )}
+            {isSelectedLogLoading
+              ? (
+                  <div className="flex items-center gap-x-2 text-ui-fg-subtle">
+                    <Spinner className="animate-spin" />
+                    <Text size="small" leading="compact" className="text-ui-fg-subtle">
+                      Loading activity event...
+                    </Text>
+                  </div>
+                )
+              : selectedLogData?.subscription_log
+                ? (
+                    <ActivityLogDetailContent log={selectedLogData.subscription_log} />
+                  )
+                : (
+                    <Alert variant="error">Failed to load activity event details.</Alert>
+                  )}
           </Drawer.Body>
           <Drawer.Footer>
             <div className="flex items-center justify-end gap-x-2">
@@ -1733,17 +1777,17 @@ const SubscriptionDetailPage = () => {
         </Drawer.Content>
       </Drawer>
     </div>
-  );
-};
+  )
+}
 
 const DetailBlock = ({
   title,
   rows,
   columns = 1,
 }: {
-  title: string;
-  rows: { label: string; value: ReactNode; className?: string }[];
-  columns?: 1 | 2;
+  title: string
+  rows: { label: string, value: ReactNode, className?: string }[]
+  columns?: 1 | 2
 }) => {
   return (
     <div className="rounded-lg border p-4">
@@ -1765,33 +1809,35 @@ const DetailBlock = ({
         ))}
       </div>
     </div>
-  );
-};
+  )
+}
 
 const DetailRow = ({
   label,
   value,
   className,
 }: {
-  label: string;
-  value: ReactNode;
-  className?: string;
+  label: string
+  value: ReactNode
+  className?: string
 }) => {
   return (
     <div className={`grid gap-1 ${className ?? ""}`}>
       <Text size="small" leading="compact" className="text-ui-fg-subtle">
         {label}
       </Text>
-      {typeof value === "string" ? (
-        <Text size="small" leading="compact" weight="plus">
-          {value || "-"}
-        </Text>
-      ) : (
-        value
-      )}
+      {typeof value === "string"
+        ? (
+            <Text size="small" leading="compact" weight="plus">
+              {value || "-"}
+            </Text>
+          )
+        : (
+            value
+          )}
     </div>
-  );
-};
+  )
+}
 
 const LinkedOrderCard = ({
   label,
@@ -1799,10 +1845,10 @@ const LinkedOrderCard = ({
   title,
   subtitle,
 }: {
-  label: string;
-  orderId: string;
-  title: string;
-  subtitle: string;
+  label: string
+  orderId: string
+  title: string
+  subtitle: string
 }) => {
   return (
     <div className="grid gap-1">
@@ -1837,15 +1883,15 @@ const LinkedOrderCard = ({
         </div>
       </Link>
     </div>
-  );
-};
+  )
+}
 
 function formatOrderDisplayLabel(displayId: number | null, orderId: string) {
   if (displayId !== null) {
-    return `#${displayId}`;
+    return `#${displayId}`
   }
 
-  return orderId;
+  return orderId
 }
 
 const ActivityLogDetailContent = ({ log }: { log: ActivityLogAdminDetail }) => {
@@ -1887,7 +1933,7 @@ const ActivityLogDetailContent = ({ log }: { log: ActivityLogAdminDetail }) => {
             ? log.changed_fields.map((field) => ({
                 label: formatActivitySummaryField(field.field),
                 value: `${formatUnknown(field.before)} → ${formatUnknown(
-                  field.after,
+                  field.after
                 )}`,
               }))
             : [{ label: "Changed fields", value: "No changed fields captured" }]
@@ -1897,15 +1943,15 @@ const ActivityLogDetailContent = ({ log }: { log: ActivityLogAdminDetail }) => {
       <JsonBlock title="New state" value={log.new_state} />
       <JsonBlock title="Metadata" value={log.metadata} />
     </div>
-  );
-};
+  )
+}
 
 const JsonBlock = ({
   title,
   value,
 }: {
-  title: string;
-  value: Record<string, unknown> | null;
+  title: string
+  value: Record<string, unknown> | null
 }) => {
   return (
     <div className="rounded-lg border p-4">
@@ -1918,17 +1964,17 @@ const JsonBlock = ({
         </pre>
       </div>
     </div>
-  );
-};
+  )
+}
 
 const FilterChip = ({
   label,
   value,
   onRemove,
 }: {
-  label: string;
-  value: string;
-  onRemove: () => void;
+  label: string
+  value: string
+  onRemove: () => void
 }) => {
   return (
     <div className="flex items-center overflow-hidden rounded-md border border-ui-border-base bg-ui-bg-component">
@@ -1956,91 +2002,91 @@ const FilterChip = ({
         <XMarkMini />
       </button>
     </div>
-  );
-};
+  )
+}
 
 function removeTimelineFilter(
   filtering: DataTableFilteringState,
-  key: string,
+  key: string
 ): DataTableFilteringState {
-  const next = { ...filtering };
-  delete next[key];
+  const next = { ...filtering }
+  delete next[key]
 
-  return next;
+  return next
 }
 
 function getStatusColor(status: SubscriptionAdminStatus) {
   switch (status) {
     case SubscriptionAdminStatus.ACTIVE:
-      return "green" as const;
+      return "green" as const
     case SubscriptionAdminStatus.PAUSED:
-      return "orange" as const;
+      return "orange" as const
     case SubscriptionAdminStatus.CANCELLED:
-      return "red" as const;
+      return "red" as const
     case SubscriptionAdminStatus.PAST_DUE:
-      return "grey" as const;
+      return "grey" as const
   }
 }
 
 function formatStatus(status: SubscriptionAdminStatus) {
   switch (status) {
     case SubscriptionAdminStatus.ACTIVE:
-      return "Active";
+      return "Active"
     case SubscriptionAdminStatus.PAUSED:
-      return "Paused";
+      return "Paused"
     case SubscriptionAdminStatus.CANCELLED:
-      return "Cancelled";
+      return "Cancelled"
     case SubscriptionAdminStatus.PAST_DUE:
-      return "Past due";
+      return "Past due"
   }
 }
 
 function formatFrequency(
   interval: SubscriptionFrequencyInterval,
-  value: number,
+  value: number
 ) {
   if (value === 1) {
-    return `Every ${interval}`;
+    return `Every ${interval}`
   }
 
-  return `Every ${value} ${interval}s`;
+  return `Every ${value} ${interval}s`
 }
 
 function formatDateTime(value: string | null) {
   if (!value) {
-    return "-";
+    return "-"
   }
 
   return new Intl.DateTimeFormat(undefined, {
     dateStyle: "medium",
     timeStyle: "short",
-  }).format(new Date(value));
+  }).format(new Date(value))
 }
 
 function formatDateTimeInputValue(value: string) {
-  const date = new Date(value);
+  const date = new Date(value)
 
   if (Number.isNaN(date.getTime())) {
-    return value;
+    return value
   }
 
   return new Intl.DateTimeFormat(undefined, {
     dateStyle: "medium",
     timeStyle: "short",
-  }).format(date);
+  }).format(date)
 }
 
 function toDateTimeLocalValue(value: string | null) {
   if (!value) {
-    return "";
+    return ""
   }
 
-  const date = new Date(value);
-  const pad = (input: number) => String(input).padStart(2, "0");
+  const date = new Date(value)
+  const pad = (input: number) => String(input).padStart(2, "0")
 
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(
-    date.getDate(),
-  )}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+    date.getDate()
+  )}T${pad(date.getHours())}:${pad(date.getMinutes())}`
 }
 
 function getSubscriptionActionPromptConfig(action: SubscriptionActionType) {
@@ -2053,7 +2099,7 @@ function getSubscriptionActionPromptConfig(action: SubscriptionActionType) {
         confirmText: "Pause",
         cancelText: "Cancel",
         variant: "confirmation" as const,
-      };
+      }
     case "resume":
       return {
         title: "Resume subscription?",
@@ -2062,7 +2108,7 @@ function getSubscriptionActionPromptConfig(action: SubscriptionActionType) {
         confirmText: "Resume",
         cancelText: "Cancel",
         variant: "confirmation" as const,
-      };
+      }
     case "cancel":
       return {
         title: "Cancel subscription?",
@@ -2071,12 +2117,12 @@ function getSubscriptionActionPromptConfig(action: SubscriptionActionType) {
         confirmText: "Cancel subscription",
         cancelText: "Keep subscription",
         variant: "danger" as const,
-      };
+      }
   }
 }
 
 function getShippingAddressFormState(
-  address: SubscriptionAdminShippingAddress,
+  address: SubscriptionAdminShippingAddress
 ): ShippingAddressFormState {
   return {
     first_name: address.first_name,
@@ -2089,7 +2135,7 @@ function getShippingAddressFormState(
     province: address.province ?? "",
     country_code: address.country_code.toUpperCase(),
     phone: address.phone ?? "",
-  };
+  }
 }
 
 function getEmptyShippingAddressFormState(): ShippingAddressFormState {
@@ -2104,13 +2150,13 @@ function getEmptyShippingAddressFormState(): ShippingAddressFormState {
     province: "",
     country_code: "",
     phone: "",
-  };
+  }
 }
 
 function normalizeOptionalString(value: string) {
-  const normalized = value.trim();
+  const normalized = value.trim()
 
-  return normalized ? normalized : null;
+  return normalized ? normalized : null
 }
 
 function getActivityEventColor(eventType: string) {
@@ -2119,20 +2165,20 @@ function getActivityEventColor(eventType: string) {
     case "dunning.unrecovered":
     case "subscription.canceled":
     case "cancellation.finalized":
-      return "red" as const;
+      return "red" as const
     case "renewal.succeeded":
     case "dunning.recovered":
-      return "green" as const;
+      return "green" as const
     case "renewal.force_requested":
     case "dunning.retry_executed":
     case "dunning.retry_schedule_updated":
     case "cancellation.offer_applied":
-      return "orange" as const;
+      return "orange" as const
     case "subscription.paused":
     case "subscription.plan_change_scheduled":
-      return "blue" as const;
+      return "blue" as const
     default:
-      return "grey" as const;
+      return "grey" as const
   }
 }
 
@@ -2144,110 +2190,99 @@ function formatActivityEventType(value: string) {
       ?.split("_")
       .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
       .join(" ") ?? value
-  );
+  )
 }
 
 function formatActivityActorType(value: ActivityLogAdminActorType) {
   switch (value) {
     case ActivityLogAdminActorType.USER:
-      return "Admin";
+      return "Admin"
     case ActivityLogAdminActorType.SYSTEM:
-      return "System";
+      return "System"
     case ActivityLogAdminActorType.SCHEDULER:
-      return "Scheduler";
+      return "Scheduler"
   }
 }
 
 function getActivityActorDisplay(
-  log: Pick<ActivityLogAdminListItem, "actor" | "actor_id" | "actor_type">,
+  log: Pick<ActivityLogAdminListItem, "actor" | "actor_id" | "actor_type">
 ) {
-  return log.actor.display || log.actor_id || formatActivityActorType(log.actor_type);
+  return log.actor.display || log.actor_id || formatActivityActorType(log.actor_type)
 }
 
 function formatActivitySummary(
-  log: Pick<ActivityLogAdminListItem, "change_summary" | "reason">,
+  log: Pick<ActivityLogAdminListItem, "change_summary" | "reason">
 ) {
   if (log.reason) {
-    return log.reason;
+    return log.reason
   }
 
   if (!log.change_summary) {
-    return "No summary";
+    return "No summary"
   }
 
   return log.change_summary
     .split(",")
     .map((part) => formatActivitySummaryField(part.trim()))
     .filter(Boolean)
-    .join(", ");
+    .join(", ")
 }
 
 function formatActivitySummaryField(value: string) {
   switch (value) {
     case "pending_update_data":
-      return "Scheduled plan change";
+      return "Scheduled plan change"
     case "status":
-      return "Status changed";
+      return "Status changed"
     case "recipient":
-      return "Recipient updated";
+      return "Recipient updated"
     case "address":
-      return "Address";
+      return "Address"
     case "address_lines_changed":
-      return "Address updated";
+      return "Address updated"
     case "postal_code_changed":
-      return "Postal code updated";
+      return "Postal code updated"
     case "phone_changed":
-      return "Phone updated";
+      return "Phone updated"
     case "country_code":
-      return "Country updated";
+      return "Country updated"
     case "province":
-      return "Province updated";
+      return "Province updated"
     case "city":
-      return "City updated";
+      return "City updated"
     default:
       return value
         .split("_")
         .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-        .join(" ");
-  }
-}
-
-function getActivityActorColor(value: ActivityLogAdminActorType) {
-  switch (value) {
-    case ActivityLogAdminActorType.USER:
-      return "blue" as const;
-    case ActivityLogAdminActorType.SYSTEM:
-      return "grey" as const;
-    case ActivityLogAdminActorType.SCHEDULER:
-      return "orange" as const;
+        .join(" ")
   }
 }
 
 function formatUnknown(value: unknown) {
   if (value === null || value === undefined) {
-    return "-";
+    return "-"
   }
 
   if (typeof value === "string") {
-    return value;
+    return value
   }
 
   if (typeof value === "number" || typeof value === "boolean") {
-    return String(value);
+    return String(value)
   }
 
-  return JSON.stringify(value);
+  return JSON.stringify(value)
 }
 
 export const handle = {
   breadcrumb: ({ data }: UIMatch<SubscriptionAdminDetailResponse>) =>
     data?.subscription?.reference || "Subscription",
-};
+}
 
 export async function loader({ params }: LoaderFunctionArgs) {
   return sdk.client.fetch<SubscriptionAdminDetailResponse>(
-    `/admin/subscriptions/${params.id}`,
-  );
+    `/admin/subscriptions/${params.id}`
+  )
 }
 
-export default SubscriptionDetailPage;
+export default SubscriptionDetailPage

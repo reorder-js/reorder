@@ -1,4 +1,4 @@
-import type { IPaymentModuleService, MedusaContainer } from "@medusajs/framework/types"
+import type { MedusaContainer } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 import type { PlanOfferDiscountPerFrequency } from "../../modules/plan-offer/types"
@@ -445,7 +445,7 @@ async function resolveSavedPaymentMethodReference(
   }
 
   const paymentModule =
-    container.resolve<IPaymentModuleService>(Modules.PAYMENT)
+    container.resolve(Modules.PAYMENT)
   const paymentMethods = await paymentModule.listPaymentMethods({
     provider_id: providerId,
     context: {

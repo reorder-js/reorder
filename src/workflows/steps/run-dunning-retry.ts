@@ -1,4 +1,4 @@
-import { IPaymentModuleService, MedusaContainer } from "@medusajs/framework/types"
+import { MedusaContainer } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 import { BigNumberInput } from "@medusajs/types"
@@ -96,17 +96,17 @@ type PaymentRecord = {
 
 type PaymentRetryOutcome =
   | {
-      kind: "recovery"
-      payment_reference: string | null
-      error_code: null
-      error_message: null
-    }
+    kind: "recovery"
+    payment_reference: string | null
+    error_code: null
+    error_message: null
+  }
   | {
-      kind: "temporary_failure" | "permanent_failure"
-      payment_reference: string | null
-      error_code: string
-      error_message: string
-    }
+    kind: "temporary_failure" | "permanent_failure"
+    payment_reference: string | null
+    error_code: string
+    error_message: string
+  }
 
 export type RunDunningRetryStepInput = {
   dunning_case_id: string
@@ -472,7 +472,7 @@ async function executePaymentRetry(
     paymentSession = paymentSessionResult.result as PaymentSessionRecord
 
     const paymentModule =
-      container.resolve<IPaymentModuleService>(Modules.PAYMENT)
+      container.resolve(Modules.PAYMENT)
     const payment = (await paymentModule.authorizePaymentSession(
       paymentSession.id,
       paymentSession.context ?? {}
@@ -503,7 +503,7 @@ async function executePaymentRetry(
 
     if (paymentSession?.id) {
       const paymentModule =
-        container.resolve<IPaymentModuleService>(Modules.PAYMENT)
+        container.resolve(Modules.PAYMENT)
       const sessions = (await paymentModule.listPaymentSessions({
         id: [paymentSession.id],
       })) as PaymentSessionRecord[]

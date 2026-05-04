@@ -86,10 +86,10 @@ export const createSubscriptionFromCartWorkflow = createWorkflow(
       ({ existingLinks }) => {
         const first = existingLinks.data?.[0] as
           | {
-              subscription?: {
-                id?: string | null
-              } | null
-            }
+            subscription?: {
+              id?: string | null
+            } | null
+          }
           | undefined
 
         return first?.subscription?.id ?? null

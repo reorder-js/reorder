@@ -86,7 +86,7 @@ export const markDunningUnrecoveredStep = createStep(
 
     return new StepResponse(updated, dunningCase)
   },
-  async function (previousCase: DunningCaseRecord, { container }) {
+  async function (previousCase: DunningCaseRecord | undefined, { container }) {
     if (!previousCase) {
       return
     }

@@ -20,7 +20,6 @@ import {
   ActivityLogEventType,
 } from "../../src/modules/activity-log/types"
 import { DunningCaseStatus } from "../../src/modules/dunning/types"
-import { RENEWAL_MODULE } from "../../src/modules/renewal"
 import { RenewalCycleStatus } from "../../src/modules/renewal/types"
 import { SUBSCRIPTION_MODULE } from "../../src/modules/subscription"
 import type SubscriptionModuleService from "../../src/modules/subscription/service"

@@ -21,13 +21,13 @@ export type UpdateSubscriptionSettingsStepOutput = {
 
 type UpdateSubscriptionSettingsCompensation =
   | {
-      previous: SubscriptionSettingsShape
-      created_new_record: false
-    }
+    previous: SubscriptionSettingsShape
+    created_new_record: false
+  }
   | {
-      previous: SubscriptionSettingsShape
-      created_new_record: true
-    }
+    previous: SubscriptionSettingsShape
+    created_new_record: true
+  }
 
 type PersistedSettingsRecord = Record<string, any>
 

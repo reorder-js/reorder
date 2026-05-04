@@ -27,17 +27,6 @@ type AnalyticsSnapshotRow = {
   metadata?: Record<string, unknown> | null
 }
 
-type LockingServiceLike = {
-  execute<T>(
-    keys: string | string[],
-    job: () => Promise<T>,
-    args?: {
-      timeout?: number
-      provider?: string
-    }
-  ): Promise<T>
-}
-
 medusaIntegrationTestRunner({
   medusaConfigFile: path.resolve(process.cwd(), "integration-tests"),
   env: {
@@ -55,7 +44,7 @@ medusaIntegrationTestRunner({
         const container = getContainer()
         const subscriptionModule =
           container.resolve<SubscriptionModuleService>(SUBSCRIPTION_MODULE)
-        const query = container.resolve<any>(ContainerRegistrationKeys.QUERY)
+        const query = container.resolve(ContainerRegistrationKeys.QUERY)
         const originalGraph = query.graph.bind(query)
 
         const subscription = await createSubscriptionSeed(container, {
@@ -242,10 +231,10 @@ medusaIntegrationTestRunner({
         const container = getContainer()
         const subscriptionModule =
           container.resolve<SubscriptionModuleService>(SUBSCRIPTION_MODULE)
-        const query = container.resolve<any>(ContainerRegistrationKeys.QUERY)
+        const query = container.resolve(ContainerRegistrationKeys.QUERY)
         const originalGraph = query.graph.bind(query)
         const originalResolve = container.resolve.bind(container)
-        const originalLocking = originalResolve(Modules.LOCKING) as LockingServiceLike
+        const originalLocking = originalResolve(Modules.LOCKING)
 
         const subscription = await createSubscriptionSeed(container, {
           reference: "SUB-AN-WF-003",
@@ -277,7 +266,7 @@ medusaIntegrationTestRunner({
 
                 return originalLocking.execute(keys, job, args)
               },
-            } as LockingServiceLike
+            }
           }
 
           return originalResolve(key as any)

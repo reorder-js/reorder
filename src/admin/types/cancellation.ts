@@ -107,47 +107,47 @@ export type CancellationCaseAdminDetailResponse = {
 
 export type ApplyRetentionOfferAdminRequest =
   | {
-      offer_type: "pause_offer"
-      offer_payload: {
-        pause_offer: {
-          pause_cycles: number | null
-          resume_at: string | null
-          note: string | null
-        }
+    offer_type: "pause_offer"
+    offer_payload: {
+      pause_offer: {
+        pause_cycles: number | null
+        resume_at: string | null
+        note: string | null
       }
-      decided_by?: string
-      decision_reason?: string
-      metadata?: Record<string, unknown>
     }
+    decided_by?: string
+    decision_reason?: string
+    metadata?: Record<string, unknown>
+  }
   | {
-      offer_type: "discount_offer"
-      offer_payload: {
-        discount_offer: {
-          discount_type: "percentage" | "fixed"
-          discount_value: number
-          duration_cycles: number | null
-          note: string | null
-        }
+    offer_type: "discount_offer"
+    offer_payload: {
+      discount_offer: {
+        discount_type: "percentage" | "fixed"
+        discount_value: number
+        duration_cycles: number | null
+        note: string | null
       }
-      decided_by?: string
-      decision_reason?: string
-      metadata?: Record<string, unknown>
     }
+    decided_by?: string
+    decision_reason?: string
+    metadata?: Record<string, unknown>
+  }
   | {
-      offer_type: "bonus_offer"
-      offer_payload: {
-        bonus_offer: {
-          bonus_type: "free_cycle" | "gift" | "credit"
-          value: number | null
-          label: string | null
-          duration_cycles: number | null
-          note: string | null
-        }
+    offer_type: "bonus_offer"
+    offer_payload: {
+      bonus_offer: {
+        bonus_type: "free_cycle" | "gift" | "credit"
+        value: number | null
+        label: string | null
+        duration_cycles: number | null
+        note: string | null
       }
-      decided_by?: string
-      decision_reason?: string
-      metadata?: Record<string, unknown>
     }
+    decided_by?: string
+    decision_reason?: string
+    metadata?: Record<string, unknown>
+  }
 
 export type FinalizeCancellationAdminRequest = {
   reason?: string

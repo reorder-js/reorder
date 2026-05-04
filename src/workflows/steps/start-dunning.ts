@@ -90,18 +90,18 @@ type StartDunningStepOutput = {
 
 type StartDunningCompensation =
   | {
-      action: "created"
-      created_dunning_case_id: string
-      previous_subscription: SubscriptionRecord | null
-    }
+    action: "created"
+    created_dunning_case_id: string
+    previous_subscription: SubscriptionRecord | null
+  }
   | {
-      action: "updated"
-      previous_dunning_case: DunningCaseRecord
-      previous_subscription: SubscriptionRecord | null
-    }
+    action: "updated"
+    previous_dunning_case: DunningCaseRecord
+    previous_subscription: SubscriptionRecord | null
+  }
   | {
-      action: "noop"
-    }
+    action: "noop"
+  }
 
 function isActiveDunningCase(status: DunningCaseStatus) {
   return ACTIVE_DUNNING_CASE_STATUSES.has(status)
@@ -399,7 +399,7 @@ export const startDunningStep = createStep(
     )
   },
   async function (
-    compensation: StartDunningCompensation,
+    compensation: StartDunningCompensation | undefined,
     { container }
   ) {
     if (!compensation || compensation.action === "noop") {

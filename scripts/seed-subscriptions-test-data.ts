@@ -142,26 +142,6 @@ type RenewalOrderScenario = {
   scenario: string
 }
 
-type CustomerModuleService = {
-  createCustomers(
-    data:
-      | Record<string, unknown>
-      | Record<string, unknown>[]
-  ): Promise<Array<{ id: string; email: string }>>
-}
-
-type OrderModuleService = {
-  createOrders(data: Record<string, unknown>): Promise<{ id: string }>
-}
-
-type PgConnection = {
-  (tableName: string): {
-    select(...columns: string[]): {
-      whereRaw(sql: string, bindings?: unknown[]): Promise<Array<{ id: string }>>
-    }
-  }
-}
-
 const FIXED_TIME = new Date("2026-04-15T10:00:00.000Z")
 
 const IDS = {
@@ -253,7 +233,7 @@ async function ensureSeedCustomers(
 ) {
   const query = container.resolve(ContainerRegistrationKeys.QUERY)
   const customerModule =
-    container.resolve<CustomerModuleService>(Modules.CUSTOMER)
+    container.resolve(Modules.CUSTOMER)
   const customerDefinitions = definitions.map(buildSeedCustomerDefinition)
   const emailToDefinition = new Map(
     customerDefinitions.map((definition) => [definition.email, definition])
@@ -345,7 +325,7 @@ async function listPlanOfferTargets(container: MedusaContainer) {
 function pickSeedTargets(
   products: ProductRecord[],
   offers: PlanOfferRecord[]
-): { success: TargetContext; blocked: TargetContext } {
+): { success: TargetContext, blocked: TargetContext } {
   const offeredProductIds = new Set(offers.map((offer) => offer.product_id))
 
   const candidates = products
@@ -588,7 +568,7 @@ async function ensureRenewalOrders(
 ) {
   const query = container.resolve(ContainerRegistrationKeys.QUERY)
   const link = container.resolve(ContainerRegistrationKeys.LINK)
-  const pgConnection = container.resolve<PgConnection>(
+  const pgConnection = container.resolve(
     ContainerRegistrationKeys.PG_CONNECTION
   )
   const subscriptionById = new Map(subscriptions.map((sub) => [sub.id, sub]))
@@ -725,7 +705,7 @@ async function createSeedOrder(
     renewal_cycle_id?: string
   }
 ) {
-  const orderModule = container.resolve<OrderModuleService>(Modules.ORDER)
+  const orderModule = container.resolve(Modules.ORDER)
   const customerEmail = input.subscription.customer_snapshot?.email
 
   if (!customerEmail) {

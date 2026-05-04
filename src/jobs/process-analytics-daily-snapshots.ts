@@ -16,17 +16,6 @@ const JOB_NAME = "process-analytics-daily-snapshots"
 const JOB_LOCK_KEY = "jobs:analytics-daily-snapshots"
 const DEFAULT_LOOKBACK_DAYS = 3
 
-type LockingService = {
-  execute<T>(
-    keys: string | string[],
-    job: () => Promise<T>,
-    args?: {
-      timeout?: number
-      provider?: string
-    }
-  ): Promise<T>
-}
-
 function getLogger(container: MedusaContainer) {
   return container.resolve("logger")
 }
@@ -168,7 +157,7 @@ export default async function processAnalyticsDailySnapshotsJob(
   container: MedusaContainer
 ) {
   const logger = getLogger(container)
-  const locking = container.resolve<LockingService>(Modules.LOCKING)
+  const locking = container.resolve(Modules.LOCKING)
   const correlationId = createAnalyticsCorrelationId(`${JOB_NAME}-lock`)
 
   try {

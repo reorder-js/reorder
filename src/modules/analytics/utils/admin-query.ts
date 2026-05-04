@@ -26,17 +26,6 @@ import {
   logAnalyticsEvent,
 } from "./observability"
 
-type QueryLike = {
-  graph(input: Record<string, unknown>): Promise<{
-    data?: unknown[]
-    metadata?: {
-      count?: number
-      take?: number
-      skip?: number
-    }
-  }>
-}
-
 type SubscriptionMetricsDailyRecord = {
   id: string
   metric_date: string
@@ -104,15 +93,11 @@ const METRIC_LABELS: Record<AnalyticsMetricKey, string> = {
 }
 
 function getQuery(container: MedusaContainer) {
-  return container.resolve<QueryLike>(ContainerRegistrationKeys.QUERY)
+  return container.resolve(ContainerRegistrationKeys.QUERY)
 }
 
 function getLogger(container: MedusaContainer) {
-  return container.resolve<{
-    info: (message: string) => void
-    warn: (message: string) => void
-    error: (message: string) => void
-  }>("logger")
+  return container.resolve("logger")
 }
 
 function toUtcDayStart(value: Date | string) {
@@ -186,7 +171,7 @@ function diffDaysInclusive(dateFrom: Date, dateTo: Date) {
   return (
     Math.floor(
       (toUtcDayStart(dateTo).getTime() - toUtcDayStart(dateFrom).getTime()) /
-        (24 * 60 * 60 * 1000)
+      (24 * 60 * 60 * 1000)
     ) + 1
   )
 }
@@ -604,9 +589,9 @@ function deriveKpiSet(buckets: BucketSummary[]) {
   )
   const averageActiveBase = buckets.length
     ? buckets.reduce(
-        (sum, bucket) => sum + bucket.avg_daily_active_subscriptions_count,
-        0
-      ) / buckets.length
+      (sum, bucket) => sum + bucket.avg_daily_active_subscriptions_count,
+      0
+    ) / buckets.length
     : 0
   const churnRate = computeChurnRate(totalChurned, averageActiveBase)
   const ltv = computeLtv(latestMrr, churnRate)

@@ -317,11 +317,11 @@ function mapSubscriptionStatus(status: string | null | undefined) {
 function mapOrderSummary(
   record:
     | {
-        id?: string | null
-        display_id?: number | null
-        status?: string | null
-        created_at?: string | null
-      }
+      id?: string | null
+      display_id?: number | null
+      status?: string | null
+      created_at?: string | null
+    }
     | null
     | undefined
 ): SubscriptionAdminOrderSummary | null {

@@ -319,15 +319,15 @@ export const applyRetentionOfferStep = createStep(
       finalized_by: input.decided_by ?? null,
       metadata: appendCancellationManualAction(
         {
-        ...(cancellationCase.metadata ?? {}),
-        ...(input.metadata ?? {}),
-        applied_retention_offer: {
-          event_id: createdEvent.id,
-          offer_type: input.offer_type,
-          final_outcome: finalOutcome,
-          applied_at: appliedAt.toISOString(),
+          ...(cancellationCase.metadata ?? {}),
+          ...(input.metadata ?? {}),
+          applied_retention_offer: {
+            event_id: createdEvent.id,
+            offer_type: input.offer_type,
+            final_outcome: finalOutcome,
+            applied_at: appliedAt.toISOString(),
+          },
         },
-      },
         {
           action: "apply_offer",
           who: input.decided_by ?? null,

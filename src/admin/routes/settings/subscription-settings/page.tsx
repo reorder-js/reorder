@@ -350,8 +350,8 @@ const SubscriptionSettingsPage = () => {
                 >
                   {currentSettings.updated_at
                     ? `Last updated at ${new Date(
-                        currentSettings.updated_at
-                      ).toLocaleString()}`
+                      currentSettings.updated_at
+                    ).toLocaleString()}`
                     : "No persisted settings record exists yet."}
                 </Text>
                 <Text
@@ -380,7 +380,9 @@ const SubscriptionSettingsPage = () => {
             <Alert variant="warning">
               <div className="flex flex-col gap-1">
                 <Text size="small" leading="compact" weight="plus">
-                  Unsaved changes in: {changedSections.join(", ")}
+                  Unsaved changes in:
+                  {" "}
+                  {changedSections.join(", ")}
                 </Text>
                 <Text size="small" leading="compact">
                   {hasWideImpactChanges

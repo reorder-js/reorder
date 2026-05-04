@@ -29,40 +29,40 @@ type EnsureNextRenewalCycleStepOutput = {
 
 type EnsureNextRenewalCycleCompensation =
   | {
-      action: "created"
-      renewal_cycle_id: string
-    }
+    action: "created"
+    renewal_cycle_id: string
+  }
   | {
-      action: "updated"
-      previous: {
-        id: string
-        approval_required: boolean
-        approval_status: RenewalApprovalStatus | null
-        approval_decided_at: Date | null
-        approval_decided_by: string | null
-        approval_reason: string | null
-      }
+    action: "updated"
+    previous: {
+      id: string
+      approval_required: boolean
+      approval_status: RenewalApprovalStatus | null
+      approval_decided_at: Date | null
+      approval_decided_by: string | null
+      approval_reason: string | null
     }
+  }
   | {
-      action: "deleted"
-      previous: Array<{
-        id: string
-        subscription_id: string
-        scheduled_for: Date
-        processed_at: Date | null
-        status: RenewalCycleStatus
-        approval_required: boolean
-        approval_status: RenewalApprovalStatus | null
-        approval_decided_at: Date | null
-        approval_decided_by: string | null
-        approval_reason: string | null
-        generated_order_id: string | null
-        applied_pending_update_data: Record<string, unknown> | null
-        last_error: string | null
-        attempt_count: number
-        metadata: Record<string, unknown> | null
-      }>
-    }
+    action: "deleted"
+    previous: Array<{
+      id: string
+      subscription_id: string
+      scheduled_for: Date
+      processed_at: Date | null
+      status: RenewalCycleStatus
+      approval_required: boolean
+      approval_status: RenewalApprovalStatus | null
+      approval_decided_at: Date | null
+      approval_decided_by: string | null
+      approval_reason: string | null
+      generated_order_id: string | null
+      applied_pending_update_data: Record<string, unknown> | null
+      last_error: string | null
+      attempt_count: number
+      metadata: Record<string, unknown> | null
+    }>
+  }
 
 export const ensureNextRenewalCycleStep = createStep(
   "ensure-next-renewal-cycle",
@@ -184,10 +184,10 @@ export const ensureNextRenewalCycleStep = createStep(
     const existingBehavior =
       (
         existingCycle.metadata?.settings_policy as
-          | {
-              default_renewal_behavior?: SubscriptionRenewalBehavior
-            }
-          | undefined
+        | {
+          default_renewal_behavior?: SubscriptionRenewalBehavior
+        }
+        | undefined
       )?.default_renewal_behavior ??
       (settings.is_persisted
         ? settings.default_renewal_behavior
@@ -244,18 +244,18 @@ export const ensureNextRenewalCycleStep = createStep(
           settings_version:
             (
               existingCycle.metadata?.settings_policy as
-                | {
-                    settings_version?: number
-                  }
-                | undefined
+              | {
+                settings_version?: number
+              }
+              | undefined
             )?.settings_version ?? settings.version,
           is_persisted:
             (
               existingCycle.metadata?.settings_policy as
-                | {
-                    is_persisted?: boolean
-                  }
-                | undefined
+              | {
+                is_persisted?: boolean
+              }
+              | undefined
             )?.is_persisted ?? settings.is_persisted,
         },
       },
@@ -284,7 +284,7 @@ export const ensureNextRenewalCycleStep = createStep(
     )
   },
   async function (
-    compensation: EnsureNextRenewalCycleCompensation,
+    compensation: EnsureNextRenewalCycleCompensation | undefined,
     { container }
   ) {
     if (!compensation) {
