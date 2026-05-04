@@ -145,20 +145,20 @@ const statusFilter = filterHelper.accessor("status", {
   options: [...statusFilterOptions],
 })
 
-const trialFilter = filterHelper.accessor("trial.is_trial", {
+const trialFilter = filterHelper.custom({
   id: "is_trial",
   type: "radio",
   label: "Trial",
-  options: [...booleanFilterOptions],
+  options: booleanFilterOptions.map((o) => ({ label: o.label, value: String(o.value) })),
 })
 
 const skipNextCycleFilter = filterHelper.accessor("skip_next_cycle", {
   type: "radio",
   label: "Skip next cycle",
-  options: [...booleanFilterOptions],
+  options: booleanFilterOptions.map((o) => ({ label: o.label, value: String(o.value) })),
 })
 
-const nextRenewalFilter = filterHelper.accessor("next_renewal_at", {
+const nextRenewalFilter = filterHelper.custom({
   id: "next_renewal",
   type: "radio",
   label: "Next renewal",
@@ -573,7 +573,7 @@ const SubscriptionsPage = () => {
                                     )
 
                                 if (!nextValues.length) {
-                                  const { ...rest } = current
+                                  const { status: _status, ...rest } = current
 
                                   return rest
                                 }

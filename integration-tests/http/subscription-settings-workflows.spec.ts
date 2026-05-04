@@ -4,7 +4,6 @@ import {
   createStep,
   createWorkflow,
   StepResponse,
-  transform,
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
 import { MedusaError } from "@medusajs/framework/utils"
@@ -34,10 +33,7 @@ const failingSubscriptionSettingsWorkflow = createWorkflow(
   "failing-subscription-settings-workflow",
   function (input: UpdateSubscriptionSettingsStepInput) {
     const result = updateSubscriptionSettingsStep(input)
-    const failureInput = transform({ result }, () => {
-      return {}
-    })
-    const forcedFailure = forceFailureStep(failureInput)
+    const forcedFailure = forceFailureStep()
 
     return new WorkflowResponse({
       result,

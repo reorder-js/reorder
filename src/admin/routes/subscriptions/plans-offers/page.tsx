@@ -72,7 +72,7 @@ const frequencyFilterOptions = [
 const discountRangeFilterOptions = [
   { label: "1-9", min: 1, max: 9 },
   { label: "10-24", min: 10, max: 24 },
-  { label: "25+", min: 25 },
+  { label: "25+", min: 25, max: undefined },
 ] as const
 
 const statusFilter = filterHelper.accessor("status", {
@@ -81,14 +81,14 @@ const statusFilter = filterHelper.accessor("status", {
   options: [...statusFilterOptions],
 })
 
-const scopeFilter = filterHelper.accessor("target.scope", {
+const scopeFilter = filterHelper.custom({
   id: "scope",
   type: "radio",
   label: "Scope",
   options: [...scopeFilterOptions],
 })
 
-const frequencyFilter = filterHelper.accessor("allowed_frequencies", {
+const frequencyFilter = filterHelper.custom({
   id: "frequency",
   type: "radio",
   label: "Frequency",
@@ -579,7 +579,6 @@ const PlansOffersPage = () => {
 
                           return next
                         })
-                        setVariantRowSelection({})
                       }}
                     />
                   )

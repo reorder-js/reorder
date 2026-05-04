@@ -186,6 +186,12 @@ export const EditPlanOfferDrawer = ({
         type: PlanOfferDiscountType
         value: number
       }>
+      rules: {
+        minimum_cycles: number | null
+        trial_enabled: boolean
+        trial_days: number | null
+        stacking_policy: string
+      }
     }) =>
       sdk.client.fetch<PlanOfferAdminDetailResponse>(
         `/admin/subscription-offers/${planOfferId}`,

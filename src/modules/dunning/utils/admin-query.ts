@@ -390,7 +390,7 @@ async function mapListItems(
   container: MedusaContainer,
   records: DunningCaseRecord[]
 ) {
-  const [lastAttemptStatusMap, subscriptionMap, renewalMap, orderMap] =
+  const [_lastAttemptStatusMap, subscriptionMap, renewalMap, orderMap] =
     await Promise.all([
       getLastAttemptStatusMap(container, records.map((record) => record.id)),
       getSubscriptionMap(
@@ -420,8 +420,7 @@ async function mapListItems(
       renewalMap.get(record.renewal_cycle_id) ?? null,
       record.renewal_order_id
         ? orderMap.get(record.renewal_order_id) ?? null
-        : null,
-      lastAttemptStatusMap.get(record.id) ?? null
+        : null
     )
   )
 }

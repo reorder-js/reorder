@@ -22,6 +22,7 @@ import {
   usePrompt,
 } from "@medusajs/ui"
 import {
+  DescendingSorting,
   EllipsisHorizontal,
   Pause,
   PencilSquare,
@@ -1076,25 +1077,39 @@ const SubscriptionDetailPage = () => {
                         )
                       : null}
                   </div>
-                  <DataTable.SortingMenu
-                    direction={activityLogSorting?.desc ? "desc" : "asc"}
-                    sortBy={activityLogSorting?.id ?? "created_at"}
-                    onSort={(sort: any) => {
-                      setActivityLogSorting({
-                        id: sort.sortBy,
-                        desc: sort.direction === "desc",
-                      })
-                      setActivityLogPagination((current) => ({
-                        ...current,
-                        pageIndex: 0,
-                      }))
-                    }}
-                    fields={[
-                      { label: "Created", value: "created_at" },
-                      { label: "Event", value: "event_type" },
-                      { label: "Actor", value: "actor_display" },
-                    ]}
-                  />
+                  <DropdownMenu>
+                    <DropdownMenu.Trigger asChild>
+                      <IconButton size="small" variant="transparent">
+                        <DescendingSorting />
+                      </IconButton>
+                    </DropdownMenu.Trigger>
+                    <DropdownMenu.Content align="end">
+                      {[
+                        { label: "Created", value: "created_at" },
+                        { label: "Event", value: "event_type" },
+                        { label: "Actor", value: "actor_display" },
+                      ].map((field) => (
+                        <DropdownMenu.Item
+                          key={field.value}
+                          onSelect={() => {
+                            setActivityLogSorting((prev) => ({
+                              id: field.value,
+                              desc: prev?.id === field.value ? !prev.desc : true,
+                            }))
+                            setActivityLogPagination((current) => ({
+                              ...current,
+                              pageIndex: 0,
+                            }))
+                          }}
+                        >
+                          {field.label}
+                          {activityLogSorting?.id === field.value
+                            ? activityLogSorting.desc ? " ↓" : " ↑"
+                            : null}
+                        </DropdownMenu.Item>
+                      ))}
+                    </DropdownMenu.Content>
+                  </DropdownMenu>
                 </div>
                 {hasActivityLogDateFrom || hasActivityLogDateTo
                   ? (
@@ -1233,7 +1248,7 @@ const SubscriptionDetailPage = () => {
                                     )
                                   : (
                                       <Table.Row>
-                                        <Table.Cell colSpan={activityLogColumns.length}>
+                                        <td colSpan={activityLogColumns.length} className="px-6 py-4">
                                           <Text
                                             size="small"
                                             leading="compact"
@@ -1241,13 +1256,13 @@ const SubscriptionDetailPage = () => {
                                           >
                                             No activity log events found.
                                           </Text>
-                                        </Table.Cell>
+                                        </td>
                                       </Table.Row>
                                     )}
                               </Table.Body>
                             </Table>
                           </div>
-                          <DataTable.Pagination
+                          <Table.Pagination
                             count={logsData?.count ?? 0}
                             pageSize={activityLogPagination.pageSize}
                             pageIndex={activityLogPagination.pageIndex}

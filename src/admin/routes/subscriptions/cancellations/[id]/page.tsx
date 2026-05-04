@@ -291,8 +291,8 @@ const CancellationDetailPage = () => {
       id: offer.id,
       title: formatOfferType(offer.offer_type),
       date: offer.applied_at ?? offer.decided_at ?? offer.created_at,
-      status: formatOfferDecisionStatus(offer.decision_status),
-      color: getOfferDecisionColor(offer.decision_status),
+      status: formatOfferDecisionStatus(offer.decision_status)!,
+      color: getOfferDecisionColor(offer.decision_status)!,
       description:
         offer.decision_reason ||
         describeOfferPayload(offer) ||
@@ -304,8 +304,8 @@ const CancellationDetailPage = () => {
         id: `${cancellation.id}-final-outcome`,
         title: "Final outcome",
         date: cancellation.finalized_at,
-        status: formatFinalOutcome(cancellation.final_outcome),
-        color: getFinalOutcomeColor(cancellation.final_outcome),
+        status: formatFinalOutcome(cancellation.final_outcome)!,
+        color: getFinalOutcomeColor(cancellation.final_outcome)!,
         description:
           cancellation.cancellation_effective_at &&
           cancellation.final_outcome === CancellationFinalOutcomeAdmin.CANCELED
