@@ -25,7 +25,7 @@
     "plugin",
     "medusa-plugin",
     "medusa-plugin-integration",
-    "medusa-plugin-payment",
+    "medusa-plugin-other",
     "medusa-v2"
   ],
   "scripts": {
