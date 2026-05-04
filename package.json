@@ -23,9 +23,9 @@
   "keywords": [
     "medusa",
     "plugin",
-    "medusa-plugin-other",
     "medusa-plugin",
     "medusa-plugin-integration",
+    "medusa-plugin-payment",
     "medusa-v2"
   ],
   "scripts": {
