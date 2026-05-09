@@ -1,6 +1,6 @@
 {
   "name": "@reorderjs/reorder",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "Open Source Subscription Medusa Plugin.",
   "author": "Reorder (https://reorderjs.com)",
   "license": "MIT",
@@ -36,12 +36,12 @@
     "test:integration:modules": "TEST_TYPE=integration:modules NODE_OPTIONS=--experimental-vm-modules jest --silent=false --runInBand --forceExit"
   },
   "devDependencies": {
-    "@medusajs/admin-sdk": "2.12.4",
-    "@medusajs/cli": "2.12.4",
-    "@medusajs/framework": "2.12.4",
-    "@medusajs/icons": "2.12.4",
-    "@medusajs/medusa": "2.12.4",
-    "@medusajs/test-utils": "2.12.4",
+    "@medusajs/admin-sdk": "2.13.6",
+    "@medusajs/cli": "2.13.6",
+    "@medusajs/framework": "2.13.6",
+    "@medusajs/icons": "2.13.6",
+    "@medusajs/medusa": "2.13.6",
+    "@medusajs/test-utils": "2.13.6",
     "@medusajs/ui": "4.0.25",
     "@swc/core": "^1.7.28",
     "@swc/jest": "^0.2.39",
@@ -59,12 +59,12 @@
     "yalc": "^1.0.0-pre.53"
   },
   "peerDependencies": {
-    "@medusajs/admin-sdk": "2.12.4",
-    "@medusajs/cli": "2.12.4",
-    "@medusajs/framework": "2.12.4",
-    "@medusajs/icons": "2.12.4",
-    "@medusajs/medusa": "2.12.4",
-    "@medusajs/test-utils": "2.12.4",
+    "@medusajs/admin-sdk": "2.13.6",
+    "@medusajs/cli": "2.13.6",
+    "@medusajs/framework": "2.13.6",
+    "@medusajs/icons": "2.13.6",
+    "@medusajs/medusa": "2.13.6",
+    "@medusajs/test-utils": "2.13.6",
     "@medusajs/ui": "4.0.25"
   },
   "engines": {
