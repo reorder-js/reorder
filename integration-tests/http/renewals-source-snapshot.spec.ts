@@ -1,12 +1,9 @@
 import { medusaIntegrationTestRunner } from "@medusajs/test-utils"
 import path from "path"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
-import { RENEWAL_MODULE } from "../../src/modules/renewal"
-import type RenewalModuleService from "../../src/modules/renewal/service"
 import { RenewalCycleStatus } from "../../src/modules/renewal/types"
 import { SUBSCRIPTION_MODULE } from "../../src/modules/subscription"
 import type SubscriptionModuleService from "../../src/modules/subscription/service"
-import { SubscriptionFrequencyInterval } from "../../src/modules/subscription/types"
 import { PlanOfferFrequencyInterval, PlanOfferScope } from "../../src/modules/plan-offer/types"
 import { processRenewalCycleWorkflow } from "../../src/workflows"
 import {
