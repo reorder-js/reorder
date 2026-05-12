@@ -20,11 +20,11 @@ export type UpsertPlanOfferInput = {
   variant_id?: string | null
   is_enabled: boolean
   allowed_frequencies: Array<{
-    interval: PlanOfferFrequencyInterval | "week" | "month" | "year"
+    interval: PlanOfferFrequencyInterval | "day" | "week" | "month" | "year"
     value: number
   }>
   discounts?: Array<{
-    interval: PlanOfferFrequencyInterval | "week" | "month" | "year"
+    interval: PlanOfferFrequencyInterval | "day" | "week" | "month" | "year"
     frequency_value: number
     type: PlanOfferDiscountType | "percentage" | "fixed"
     value: number
@@ -138,6 +138,9 @@ function normalizeFrequencyInterval(
   interval: UpsertPlanOfferInput["allowed_frequencies"][number]["interval"]
 ): PlanOfferFrequencyInterval {
   switch (interval) {
+    case "day":
+    case PlanOfferFrequencyInterval.DAY:
+      return PlanOfferFrequencyInterval.DAY
     case "week":
     case PlanOfferFrequencyInterval.WEEK:
       return PlanOfferFrequencyInterval.WEEK

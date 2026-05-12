@@ -299,6 +299,7 @@ function readFrequencyInterval(metadata?: Record<string, unknown> | null) {
   const value = metadata?.frequency_interval
 
   if (
+    value === SubscriptionFrequencyInterval.DAY ||
     value === SubscriptionFrequencyInterval.WEEK ||
     value === SubscriptionFrequencyInterval.MONTH ||
     value === SubscriptionFrequencyInterval.YEAR
