@@ -6,6 +6,7 @@ import type SubscriptionModuleService from "../../src/modules/subscription/servi
 import {
   SubscriptionFrequencyInterval,
   SubscriptionPaymentContext,
+  SubscriptionSourceSnapshot,
   SubscriptionStatus,
 } from "../../src/modules/subscription/types"
 
@@ -23,6 +24,7 @@ type SubscriptionSeedInput = {
   skip_next_cycle?: boolean
   is_trial?: boolean
   payment_context?: SubscriptionPaymentContext | null
+  source_snapshot?: SubscriptionSourceSnapshot
 }
 
 export async function createAdminAuthHeaders(container: MedusaContainer) {
@@ -172,6 +174,20 @@ export async function createSubscriptionSeed(
       province: "Mazowieckie",
       country_code: "PL",
       phone: "+48123123123",
+    },
+    source_snapshot: input.source_snapshot ?? {
+      product_id: productId,
+      variant_id: variantId,
+      title: "Subscription Product - Default Variant",
+      quantity: 1,
+      unit_price: 2999,
+      subtitle: null,
+      sku: "SUB-SKU-001",
+      is_discountable: true,
+      is_tax_inclusive: false,
+      requires_shipping: true,
+      tax_lines: [],
+      adjustments: [],
     },
     payment_context:
       input.payment_context === undefined

@@ -7,6 +7,7 @@ import type {
   SubscriptionPricingSnapshot,
   SubscriptionProductSnapshot,
   SubscriptionShippingAddress,
+  SubscriptionSourceSnapshot,
 } from "../../modules/subscription/types"
 import { SubscriptionStatus } from "../../modules/subscription/types"
 
@@ -25,6 +26,7 @@ export type CreateSubscriptionRecordStepInput = {
   product_snapshot: SubscriptionProductSnapshot
   pricing_snapshot: SubscriptionPricingSnapshot | null
   shipping_address: SubscriptionShippingAddress
+  source_snapshot: SubscriptionSourceSnapshot
   payment_context: SubscriptionPaymentContext
   is_trial: boolean
   trial_ends_at: string | null
@@ -69,6 +71,7 @@ export const createSubscriptionRecordStep = createStep(
       pricing_snapshot: input.pricing_snapshot,
       shipping_address: input.shipping_address,
       payment_context: input.payment_context,
+      source_snapshot: input.source_snapshot,
       pending_update_data: null,
       metadata: {
         source: "store_cart_subscribe",

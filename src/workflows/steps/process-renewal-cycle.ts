@@ -32,6 +32,9 @@ import { resolveProductSubscriptionConfig } from "../../modules/plan-offer/utils
 import { SUBSCRIPTION_MODULE } from "../../modules/subscription"
 import SubscriptionModuleService from "../../modules/subscription/service"
 import {
+  type SubscriptionPaymentContext,
+  type SubscriptionSourceSnapshot,
+  type SubscriptionType,
   SubscriptionFrequencyInterval,
   SubscriptionPendingUpdateData,
   SubscriptionStatus,
@@ -187,14 +190,14 @@ async function loadCycle(
 async function loadSubscription(
   container: MedusaContainer,
   id: string
-): Promise<SubscriptionRecord> {
+): Promise<SubscriptionType> {
   const subscriptionModule =
     container.resolve<SubscriptionModuleService>(SUBSCRIPTION_MODULE)
 
   try {
     return (await subscriptionModule.retrieveSubscription(
       id
-    )) as unknown as SubscriptionRecord
+    )) as SubscriptionType
   } catch {
     throw subscriptionErrors.notFound("Subscription", id)
   }
@@ -258,7 +261,7 @@ async function loadOrderTotal(
 async function validateSubscriptionEligibility(
   container: MedusaContainer,
   cycle: RenewalCycleRecord,
-  subscription: SubscriptionRecord
+  subscription: SubscriptionType
 ) {
   if (
     subscription.status !== SubscriptionStatus.ACTIVE &&
@@ -354,17 +357,91 @@ async function resolveAppliedPendingChanges(
   return {
     variant_id: pending.variant_id,
     variant_title: pending.variant_title,
+    sku: pending.sku ?? null,
     frequency_interval: pending.frequency_interval,
     frequency_value: pending.frequency_value,
     effective_at: pending.effective_at,
   }
 }
 
+async function loadOrderItemSnapshot(
+  container: MedusaContainer,
+  orderId: string,
+  productId: string,
+  variantId: string
+): Promise<SubscriptionSourceSnapshot> {
+  const query = container.resolve(ContainerRegistrationKeys.QUERY)
+
+  const { data: orders } = await query.graph({
+    entity: "order",
+    fields: [
+      "id",
+      "items.id",
+      "items.title",
+      "items.subtitle",
+      "items.quantity",
+      "items.unit_price",
+      "items.product_id",
+      "items.variant_id",
+      "items.is_discountable",
+      "items.is_tax_inclusive",
+      "items.requires_shipping",
+      "items.variant_sku",
+      "items.tax_lines.code",
+      "items.tax_lines.rate",
+      "items.tax_lines.description",
+      "items.adjustments.amount",
+      "items.adjustments.code",
+      "items.adjustments.description",
+    ],
+    filters: { id: orderId },
+  })
+
+  const order = orders[0]
+  const item = order?.items?.[0]
+
+  if (!item) {
+    throw renewalErrors.invalidData(
+      `Renewal order '${orderId}' has no line items to snapshot`
+    )
+  }
+
+  return {
+    product_id: item.product_id ?? productId,
+    variant_id: item.variant_id ?? variantId,
+    title: item.title,
+    subtitle: item.subtitle ?? null,
+    quantity: item.quantity,
+    unit_price: item.unit_price,
+    sku: item.variant_sku ?? null,
+    is_discountable: item.is_discountable ?? null,
+    is_tax_inclusive: item.is_tax_inclusive ?? null,
+    requires_shipping: item.requires_shipping ?? null,
+    tax_lines: item.tax_lines?.map((tl: any) => ({
+      code: tl.code,
+      rate: tl.rate,
+      description: tl.description ?? null,
+    })) ?? null,
+    adjustments: item.adjustments?.map((adj: any) => ({
+      amount: adj.amount,
+      code: adj.code ?? null,
+      description: adj.description ?? null,
+    })) ?? null,
+  }
+}
+
 function buildOrderItems(
   cart: CartRecord,
-  subscription: SubscriptionRecord,
+  subscription: SubscriptionType,
   appliedPendingChanges: RenewalAppliedPendingUpdateData | null
 ) {
+  if (!subscription.source_snapshot) {
+    throw renewalErrors.invalidData(
+      `Subscription '${subscription.id}' is missing 'source_snapshot' required for renewal order creation`
+    )
+  }
+
+  const sourceSnapshot = subscription.source_snapshot as SubscriptionSourceSnapshot
   const sourceItem =
     cart.items?.find((item) => item.variant_id === subscription.variant_id) ??
     cart.items?.[0]
@@ -375,27 +452,38 @@ function buildOrderItems(
     )
   }
 
-  const variantId = appliedPendingChanges?.variant_id ?? subscription.variant_id
-  const variantTitle =
-    appliedPendingChanges?.variant_title ??
-    sourceItem.variant_title ??
-    subscription.product_snapshot.variant_title
+  if (appliedPendingChanges) {
+    return [
+      {
+        product_id: subscription.product_id,
+        variant_id: appliedPendingChanges.variant_id,
+        title: appliedPendingChanges.variant_title,
+        variant_title: appliedPendingChanges.variant_title,
+        variant_sku: appliedPendingChanges.sku ?? null,
+        quantity: sourceSnapshot.quantity,
+        requires_shipping: sourceSnapshot.requires_shipping ?? true,
+        is_discountable: sourceSnapshot.is_discountable ?? true,
+        metadata: {
+          renewal_source_cart_id: cart.id,
+        },
+      },
+    ] as any[]
+  }
 
   return [
     {
-      title: sourceItem.title ?? variantTitle,
-      quantity: sourceItem.quantity ?? 1,
-      product_id: subscription.product_id,
-      product_title: subscription.product_snapshot.product_title,
-      variant_id: variantId,
-      variant_title: variantTitle,
-      variant_sku:
-        sourceItem.variant_sku ??
-        subscription.pending_update_data?.sku ??
-        subscription.product_snapshot.sku ??
-        undefined,
-      requires_shipping: sourceItem.requires_shipping ?? true,
-      is_discountable: sourceItem.is_discountable ?? true,
+      product_id: sourceSnapshot.product_id,
+      variant_id: sourceSnapshot.variant_id ?? undefined,
+      title: sourceSnapshot.title,
+      subtitle: sourceSnapshot.subtitle,
+      quantity: sourceSnapshot.quantity,
+      unit_price: sourceSnapshot.unit_price,
+      requires_shipping: sourceSnapshot.requires_shipping ?? true,
+      is_discountable: sourceSnapshot.is_discountable ?? true,
+      // TODO: to consider whether we should rerun tax calculation here?
+      tax_lines: sourceSnapshot.tax_lines,
+      // TODO: should all/some/any adjustments be preserved?
+      adjustments: sourceSnapshot.adjustments,
       metadata: {
         renewal_source_cart_id: cart.id,
       },
@@ -418,7 +506,7 @@ function buildShippingMethods(cart: CartRecord) {
 async function createRenewalOrder(
   container: MedusaContainer,
   cycle: RenewalCycleRecord,
-  subscription: SubscriptionRecord,
+  subscription: SubscriptionType,
   cart: CartRecord,
   appliedPendingChanges: RenewalAppliedPendingUpdateData | null
 ) {
@@ -457,7 +545,7 @@ async function createRenewalOrder(
   const total = await loadOrderTotal(container, order.id)
 
   if (total > 0) {
-    const paymentContext = subscription.payment_context
+    const paymentContext = subscription.payment_context as SubscriptionPaymentContext
 
     if (
       !paymentContext?.payment_provider_id ||
@@ -716,6 +804,7 @@ export const processRenewalCycleStep = createStep(
     try {
       const scheduledAnchor = new Date(cycle.scheduled_for)
       let generatedOrderId: string | null = null
+      let resolvedSourceSnapshot: SubscriptionSourceSnapshot | null = null
 
       if (!subscription.skip_next_cycle) {
         if (!subscription.cart_id) {
@@ -734,6 +823,15 @@ export const processRenewalCycleStep = createStep(
         )
 
         generatedOrderId = order.id
+
+        if (appliedPendingChanges) {
+          resolvedSourceSnapshot = await loadOrderItemSnapshot(
+            container,
+            order.id,
+            subscription.product_id,
+            appliedPendingChanges.variant_id
+          )
+        }
       }
 
       const nextInterval =
@@ -753,7 +851,7 @@ export const processRenewalCycleStep = createStep(
             ...subscription.product_snapshot,
             variant_id: appliedPendingChanges.variant_id,
             variant_title: appliedPendingChanges.variant_title,
-            sku: subscription.pending_update_data?.sku ?? subscription.product_snapshot.sku,
+            sku: appliedPendingChanges.sku ?? subscription.product_snapshot.sku,
           }
         : subscription.product_snapshot
 
@@ -768,6 +866,7 @@ export const processRenewalCycleStep = createStep(
         last_renewal_at: finishedAt,
         skip_next_cycle: false,
         pending_update_data: appliedPendingChanges ? null : subscription.pending_update_data,
+        ...(resolvedSourceSnapshot ? { source_snapshot: resolvedSourceSnapshot } : {}),
       })
 
       const updatedCycle = await renewalModule.updateRenewalCycles({

@@ -307,7 +307,7 @@ async function getActiveProductSourceMap(
     },
   })
 
-  const productRecords = data as PlanOfferRecord[]
+  const productRecords = data as unknown as PlanOfferRecord[]
 
   return new Map(
     productRecords.map((record) => [record.product_id, record])
@@ -543,7 +543,7 @@ export async function listAdminPlanOffers(
     })
 
     return {
-      plan_offers: await mapListItems(container, data as PlanOfferRecord[]),
+      plan_offers: await mapListItems(container, data as unknown as PlanOfferRecord[]),
       count,
       limit: take,
       offset: skip,
@@ -563,7 +563,7 @@ export async function listAdminPlanOffers(
       : undefined,
   })
 
-  let items = await mapListItems(container, data as PlanOfferRecord[])
+  let items = await mapListItems(container, data as unknown as PlanOfferRecord[])
 
   if (input.q) {
     items = items.filter((item) => matchesSearch(item, input.q!))
@@ -608,7 +608,7 @@ export async function getAdminPlanOfferDetail(
     },
   })
 
-  const record = (data as PlanOfferRecord[])[0]
+  const record = (data as unknown as PlanOfferRecord[])[0]
 
   if (!record) {
     throw planOfferErrors.notFound("PlanOffer", id)

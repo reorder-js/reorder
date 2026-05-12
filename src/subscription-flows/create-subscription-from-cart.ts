@@ -1,4 +1,5 @@
 import {
+  type WorkflowData,
   createWorkflow,
   transform,
   when,
@@ -26,12 +27,6 @@ import {
 
 export type CreateSubscriptionFromCartWorkflowInput =
   ValidateSubscriptionCartStepInput
-
-type OrderRecord = {
-  id: string
-  display_id?: string | number | null
-  created_at: string | Date
-}
 
 const SUBSCRIPTION_ORDER_LINK_ENTRY_POINT = "subscription_order"
 
@@ -81,7 +76,7 @@ export const createSubscriptionFromCartWorkflow = createWorkflow(
       name: "retrieve-existing-subscription-order-links",
     })
 
-    const existingSubscriptionId = transform(
+    const existingSubscriptionId: WorkflowData<string | null> = transform(
       { existingLinks },
       ({ existingLinks }) => {
         const first = existingLinks.data?.[0] as
@@ -112,7 +107,7 @@ export const createSubscriptionFromCartWorkflow = createWorkflow(
     const createSubscriptionInput = transform(
       { validatedCart, orderQuery, orderId },
       ({ validatedCart, orderQuery, orderId }) => {
-        const order = orderQuery.data as OrderRecord | undefined
+        const order = orderQuery.data
 
         if (!order) {
           throw new Error(`Completed order '${orderId}' was not found`)
@@ -147,6 +142,7 @@ export const createSubscriptionFromCartWorkflow = createWorkflow(
           customer_snapshot: validatedCart.customer_snapshot,
           product_snapshot: validatedCart.product_snapshot,
           pricing_snapshot: validatedCart.pricing_snapshot,
+          source_snapshot: validatedCart.source_snapshot,
           shipping_address: validatedCart.shipping_address,
           payment_context: validatedCart.payment_context,
           is_trial: validatedCart.trial_days > 0,
@@ -226,6 +222,7 @@ export const createSubscriptionFromCartWorkflow = createWorkflow(
         "product_snapshot",
         "pricing_snapshot",
         "shipping_address",
+        "source_snapshot",
         "payment_context",
         "pending_update_data",
         "metadata",

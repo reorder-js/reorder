@@ -16,7 +16,7 @@ import {
   SubscriptionDiscountType,
   SubscriptionFrequencyInterval,
 } from "../../../admin/types/subscription"
-import { SubscriptionFrequencyInterval as SourceSubscriptionFrequencyInterval } from "../types"
+import { type SubscriptionQueryType, SubscriptionFrequencyInterval as SourceSubscriptionFrequencyInterval } from "../types"
 import { getEffectiveNextRenewalAt } from "./effective-next-renewal"
 import { subscriptionErrors } from "./errors"
 
@@ -140,6 +140,7 @@ const listFields = [
   "customer_snapshot",
   "product_snapshot",
   "pricing_snapshot",
+  "source_snapshot",
   "created_at",
   "updated_at",
 ] as const
@@ -228,8 +229,8 @@ function mapPendingUpdateData(
   }
 }
 
-function mapListItem(record: SubscriptionRecord): SubscriptionAdminListItem {
-  const customer = record.customer_snapshot ?? {}
+function mapListItem(record: SubscriptionQueryType): SubscriptionAdminListItem {
+  const customer = record.customer_snapshot
   const product = record.product_snapshot ?? {}
 
   const frequency: SubscriptionAdminFrequency = {
@@ -259,8 +260,8 @@ function mapListItem(record: SubscriptionRecord): SubscriptionAdminListItem {
             : SubscriptionAdminStatus.PAST_DUE,
     customer: {
       id: record.customer_id,
-      full_name: customer.full_name ?? "Unknown customer",
-      email: customer.email ?? "",
+      full_name: customer?.full_name ?? "Unknown customer",
+      email: customer?.email ?? "",
     },
     product: {
       product_id: record.product_id,
@@ -270,7 +271,7 @@ function mapListItem(record: SubscriptionRecord): SubscriptionAdminListItem {
       sku: product.sku ?? null,
     },
     frequency,
-    next_renewal_at: record.next_renewal_at,
+    next_renewal_at: record.next_renewal_at ?? null,
     effective_next_renewal_at:
       getEffectiveNextRenewalAt({
         next_renewal_at: record.next_renewal_at,
@@ -281,7 +282,7 @@ function mapListItem(record: SubscriptionRecord): SubscriptionAdminListItem {
       })?.toISOString() ?? null,
     trial: {
       is_trial: record.is_trial,
-      trial_ends_at: record.trial_ends_at,
+      trial_ends_at: record.trial_ends_at ?? null,
     },
     discount: mapDiscount(record.pricing_snapshot),
     skip_next_cycle: record.skip_next_cycle,
@@ -289,7 +290,7 @@ function mapListItem(record: SubscriptionRecord): SubscriptionAdminListItem {
   }
 }
 
-function mapDetail(record: SubscriptionRecord): SubscriptionAdminDetail {
+function mapDetail(record: SubscriptionQueryType): SubscriptionAdminDetail {
   return {
     ...mapListItem(record),
     created_at: record.created_at,
@@ -541,7 +542,7 @@ export async function listAdminSubscriptions(
     })
 
     return {
-      subscriptions: (data as SubscriptionRecord[]).map(mapListItem),
+      subscriptions: (data as unknown as SubscriptionQueryType[]).map(mapListItem),
       count,
       limit: take,
       offset: skip,
@@ -561,7 +562,7 @@ export async function listAdminSubscriptions(
       : undefined,
   })
 
-  let items = (data as SubscriptionRecord[]).map(mapListItem)
+  let items = (data as unknown as SubscriptionQueryType[]).map(mapListItem)
 
   if (input.q) {
     items = items.filter((item) => matchesSearch(item, input.q!))
@@ -593,7 +594,7 @@ export async function getAdminSubscriptionDetail(
     },
   })
 
-  const subscription = (data as SubscriptionRecord[])[0]
+  const subscription = data[0]
 
   if (!subscription) {
     throw subscriptionErrors.notFound("Subscription", id)
@@ -680,7 +681,7 @@ export async function getAdminSubscriptionDetail(
 
   return {
     subscription: {
-      ...mapDetail(subscription),
+      ...mapDetail(subscription as unknown as SubscriptionQueryType),
       initial_order: initialOrder,
       renewal_orders: renewalOrders,
     },

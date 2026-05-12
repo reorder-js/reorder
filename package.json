@@ -1,6 +1,6 @@
 {
   "name": "@bethinkpl/reorder",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Customized version of @reorderjs/reorder.",
   "license": "MIT",
   "files": [
@@ -23,8 +23,12 @@
     "build": "medusa plugin:build",
     "dev": "medusa plugin:develop",
     "prepublishOnly": "medusa plugin:build",
-    "test:integration:http": "TEST_TYPE=integration:http NODE_OPTIONS=--experimental-vm-modules jest --silent=false --runInBand --forceExit",
-    "test:integration:modules": "TEST_TYPE=integration:modules NODE_OPTIONS=--experimental-vm-modules jest --silent=false --runInBand --forceExit"
+    "test:integration:http": "npm run test:db:up && npm run test:integration:http:run; npm run test:db:down",
+    "test:integration:http:run": "TEST_TYPE=integration:http NODE_OPTIONS=--experimental-vm-modules jest --silent=false --runInBand --forceExit",
+    "test:integration:modules": "npm run test:db:up && npm run test:integration:modules:run; npm run test:db:down",
+    "test:integration:modules:run": "TEST_TYPE=integration:modules NODE_OPTIONS=--experimental-vm-modules jest --silent=false --runInBand --forceExit",
+    "test:db:up": "docker compose -f docker-compose.test.yml --env-file .env.test up -d --wait ",
+    "test:db:down": "docker compose -f docker-compose.test.yml --env-file .env.test down"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

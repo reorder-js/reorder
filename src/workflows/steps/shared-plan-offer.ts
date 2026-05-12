@@ -358,7 +358,7 @@ export async function findPlanOfferByTarget(
     filters,
   })
 
-  const records = data as Array<Omit<PlanOfferRecord, "scope"> & {
+  const records = data as unknown as Array<Omit<PlanOfferRecord, "scope"> & {
     scope: "product" | "variant"
   }>
 
@@ -401,7 +401,7 @@ export async function getPlanOfferRecordById(
     },
   })
 
-  const record = (data as Array<Omit<PlanOfferRecord, "scope"> & {
+  const record = (data as unknown as Array<Omit<PlanOfferRecord, "scope"> & {
     scope: "product" | "variant"
   }>)[0]
 

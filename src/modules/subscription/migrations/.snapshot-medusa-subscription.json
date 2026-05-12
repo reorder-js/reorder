@@ -216,6 +216,15 @@
           "nullable": true,
           "mappedType": "json"
         },
+        "source_snapshot": {
+          "name": "source_snapshot",
+          "type": "jsonb",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "json"
+        },
         "shipping_address": {
           "name": "shipping_address",
           "type": "jsonb",

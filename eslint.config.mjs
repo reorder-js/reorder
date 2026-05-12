@@ -12,18 +12,17 @@ const base = stylistic.configs.customize({
   jsx: true,
 })
 
-globalIgnores([
-  "node_modules/",
-  "dist/",
-  "build/",
-  ".medusa/",
-  ".cache/",
-  ".yarn/",
-  "jest.config.js",
-  "integration-tests/setup.js",
-])
-
 export default defineConfig([
+  globalIgnores([
+    "node_modules/",
+    "dist/",
+    "build/",
+    ".medusa/",
+    ".cache/",
+    ".yarn/",
+    "jest.config.js",
+    "integration-tests/setup.js",
+  ]),
   tsConfigs.recommended,
   {
     plugins: {

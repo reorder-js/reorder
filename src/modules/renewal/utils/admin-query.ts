@@ -277,6 +277,7 @@ function mapPendingChanges(
   return {
     variant_id: value.variant_id,
     variant_title: value.variant_title,
+    sku: value.sku ?? null,
     frequency_interval: value.frequency_interval,
     frequency_value: value.frequency_value,
     effective_at: value.effective_at,

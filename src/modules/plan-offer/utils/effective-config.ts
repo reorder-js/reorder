@@ -85,7 +85,7 @@ export async function resolveProductSubscriptionConfig(
       },
     })
 
-    const variantRecord = (variantData as PlanOfferRecord[])[0]
+    const variantRecord = (variantData as unknown as PlanOfferRecord[])[0]
 
     if (variantRecord) {
       return mapRecordToEffectiveConfig(variantRecord)
@@ -105,7 +105,7 @@ export async function resolveProductSubscriptionConfig(
     },
   })
 
-  const productRecord = (productData as PlanOfferRecord[])[0]
+  const productRecord = (productData as unknown as PlanOfferRecord[])[0]
 
   if (productRecord) {
     return {

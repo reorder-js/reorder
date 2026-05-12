@@ -9,6 +9,7 @@ import {
   type SubscriptionPricingSnapshot,
   type SubscriptionProductSnapshot,
   type SubscriptionShippingAddress,
+  type SubscriptionSourceSnapshot,
 } from "../../modules/subscription/types"
 import { subscriptionErrors } from "../../modules/subscription/utils/errors"
 
@@ -74,6 +75,7 @@ export type ValidatedSubscriptionCart = {
   }
   product_snapshot: SubscriptionProductSnapshot
   pricing_snapshot: SubscriptionPricingSnapshot | null
+  source_snapshot: SubscriptionSourceSnapshot
   shipping_address: SubscriptionShippingAddress
   payment_context: SubscriptionPaymentContext
   trial_days: number
@@ -102,9 +104,9 @@ export const validateSubscriptionCartStep = createStep(
     validateCartPurchaseMode(cart.metadata)
 
     const items = cart.items ?? []
-    const subscriptionItems = items.filter((item) =>
-      isSubscriptionItem(item.metadata)
-    )
+    const subscriptionItems = items.filter((item: any) =>
+      isSubscriptionItem(item!.metadata)
+    ) as NonNullable<(typeof items)[number]>[]
 
     if (!subscriptionItems.length) {
       throw subscriptionErrors.invalidData(
@@ -171,7 +173,7 @@ export const validateSubscriptionCartStep = createStep(
       frequencyValue
     )
 
-    const paymentContext = await buildPaymentContext(container, cart)
+    const paymentContext = await buildPaymentContext(container, cart as CartRecord)
 
     return new StepResponse<ValidatedSubscriptionCart>({
       cart_id: cart.id,
@@ -179,8 +181,8 @@ export const validateSubscriptionCartStep = createStep(
       frequency_interval: frequencyInterval,
       frequency_value: frequencyValue,
       customer_snapshot: {
-        email: readCustomerEmail(cart),
-        full_name: buildCustomerName(cart.customer),
+        email: readCustomerEmail(cart as CartRecord),
+        full_name: buildCustomerName(cart.customer as CartRecord["customer"]),
       },
       product_snapshot: {
         product_id: productId,
@@ -190,6 +192,29 @@ export const validateSubscriptionCartStep = createStep(
         sku: subscriptionItem.variant?.sku ?? null,
       },
       pricing_snapshot: pricingSnapshot,
+      source_snapshot: {
+        product_id: productId,
+        variant_id: variantId,
+        title: subscriptionItem.title,
+        subtitle: subscriptionItem.subtitle,
+        unit_price: subscriptionItem.unit_price,
+        quantity: subscriptionItem.quantity,
+        is_discountable: subscriptionItem.is_discountable,
+        is_tax_inclusive: subscriptionItem.is_tax_inclusive,
+        requires_shipping: subscriptionItem.requires_shipping,
+        sku: subscriptionItem.variant_sku,
+        adjustments: subscriptionItem.adjustments?.filter(Boolean).map((v: any) => ({
+          amount: v!.amount,
+          code: v!.code,
+          description: v!.description,
+        })),
+        tax_lines: subscriptionItem.tax_lines?.filter(Boolean).map((v: any) => ({
+          rate: v!.rate,
+          code: v!.code,
+          description: v!.description,
+        })),
+
+      },
       shipping_address: buildShippingAddress(cart.shipping_address),
       payment_context: paymentContext,
       trial_days:
@@ -203,7 +228,7 @@ export const validateSubscriptionCartStep = createStep(
 async function loadCart(
   container: MedusaContainer,
   cartId: string
-): Promise<CartRecord> {
+) {
   const query = container.resolve(ContainerRegistrationKeys.QUERY)
   const { data } = await query.graph({
     entity: "cart",
@@ -233,13 +258,11 @@ async function loadCart(
     },
   })
 
-  const cart = (data as CartRecord[])[0]
-
-  if (!cart) {
+  if (data.length < 1) {
     throw subscriptionErrors.notFound("Cart", cartId)
   }
 
-  return cart
+  return data[0]
 }
 
 function isSubscriptionItem(metadata?: Record<string, unknown> | null) {

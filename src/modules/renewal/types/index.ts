@@ -30,6 +30,7 @@ export type RenewalApprovalSummary = {
 export type RenewalAppliedPendingUpdateData = {
   variant_id: string
   variant_title: string
+  sku: string | null
   frequency_interval: SubscriptionFrequencyInterval
   frequency_value: number
   effective_at: string | null
