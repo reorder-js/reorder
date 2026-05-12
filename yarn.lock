@@ -1758,12 +1758,14 @@ __metadata:
     "@swc/jest": "npm:^0.2.39"
     "@types/jest": "npm:^29.5.14"
     "@types/jsonwebtoken": "npm:^9"
+    "@types/luxon": "npm:^3"
     "@types/node": "npm:^20.0.0"
     "@types/react": "npm:^18.3.2"
     "@types/react-dom": "npm:^18.2.25"
     eslint: "npm:^10.3.0"
     jest: "npm:^29.7.0"
     jsonwebtoken: "npm:^9.0.3"
+    luxon: "npm:^3.7.2"
     prop-types: "npm:^15.8.1"
     react: "npm:^18.2.0"
     react-dom: "npm:^18.2.0"
@@ -9457,6 +9459,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@types/luxon@npm:^3":
+  version: 3.7.1
+  resolution: "@types/luxon@npm:3.7.1"
+  checksum: 10c0/2db30c13b58adcd86daa447faa3ba59515fe907ead8ee3e6bb716d662812af0619d712f6c1eb190cdd7f9d2c00444c3ecd80af0f36e8143eb0c5e7339d6b2aca
+  languageName: node
+  linkType: hard
+
 "@types/mime@npm:^1":
   version: 1.3.5
   resolution: "@types/mime@npm:1.3.5"
@@ -14369,6 +14378,13 @@ __metadata:
   version: 3.5.0
   resolution: "luxon@npm:3.5.0"
   checksum: 10c0/335789bba95077db831ef99894edadeb23023b3eb2137a1b56acd0d290082b691cf793143d69e30bc069ec95f0b49f36419f48e951c68014f19ffe12045e3494
+  languageName: node
+  linkType: hard
+
+"luxon@npm:^3.7.2":
+  version: 3.7.2
+  resolution: "luxon@npm:3.7.2"
+  checksum: 10c0/ed8f0f637826c08c343a29dd478b00628be93bba6f068417b1d8896b61cb61c6deacbe1df1e057dbd9298334044afa150f9aaabbeb3181418ac8520acfdc2ae2
   languageName: node
   linkType: hard
 
