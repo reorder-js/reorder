@@ -1,7 +1,6 @@
 import type { InferTypeOf } from "@medusajs/framework/types"
 import Subscription from "./../models/subscription"
-
-type Override<T, U> = Omit<T, keyof U> & U
+import type { Override } from "../../../utils/types"
 
 export enum SubscriptionStatus {
   ACTIVE = "active",
