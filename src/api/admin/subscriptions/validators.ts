@@ -24,7 +24,7 @@ const subscriptionStatusSchema = z.enum([
   "past_due",
 ])
 
-const subscriptionFrequencyIntervalSchema = z.enum(["week", "month", "year"])
+const subscriptionFrequencyIntervalSchema = z.enum(["day", "week", "month", "year"])
 
 export const GetAdminSubscriptionsSchema = createFindParams({
   offset: 0,

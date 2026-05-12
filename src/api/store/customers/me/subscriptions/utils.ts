@@ -25,7 +25,7 @@ type SubscriptionStoreListItem = {
   status: string
   created_at?: string | Date | null
   next_renewal_at: string | null
-  frequency_interval: "week" | "month" | "year"
+  frequency_interval: "day" | "week" | "month" | "year"
   frequency_value: number
   skip_next_cycle: boolean
   product_snapshot?: {
@@ -43,7 +43,7 @@ type ActiveCancellationRecord = {
 type SubscriptionStoreDetailRecord = SubscriptionStoreListItem & {
   product_id: string
   variant_id: string
-  frequency_interval: "week" | "month" | "year"
+  frequency_interval: "day" | "week" | "month" | "year"
   frequency_value: number
   skip_next_cycle: boolean
   last_renewal_at?: string | Date | null
@@ -55,7 +55,7 @@ type SubscriptionStoreDetailRecord = SubscriptionStoreListItem & {
     variant_id: string
     variant_title: string | null
     sku: string | null
-    frequency_interval: "week" | "month" | "year"
+    frequency_interval: "day" | "week" | "month" | "year"
     frequency_value: number
     effective_at: string | null
     requested_at: string

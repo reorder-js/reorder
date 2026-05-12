@@ -16,7 +16,7 @@ const stringToBoolean = z.preprocess((value) => {
 }, z.boolean())
 
 const planOfferScopeSchema = z.enum(["product", "variant"])
-const planOfferFrequencyIntervalSchema = z.enum(["week", "month", "year"])
+const planOfferFrequencyIntervalSchema = z.enum(["day", "week", "month", "year"])
 const planOfferDiscountTypeSchema = z.enum(["percentage", "fixed"])
 const planOfferStackingPolicySchema = z.enum([
   "allowed",

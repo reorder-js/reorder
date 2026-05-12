@@ -33,7 +33,7 @@ const frequencyArrayFilter = z.preprocess((value) => {
   }
 
   return value
-}, z.array(z.string().regex(/^(week|month|year):[1-9]\d*$/)).optional())
+}, z.array(z.string().regex(/^(day|week|month|year):[1-9]\d*$/)).optional())
 
 function validateDateWindow(
   value: { date_from?: string, date_to?: string },

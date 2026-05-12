@@ -3,7 +3,7 @@ import { CancellationReasonCategory } from "../../../../../modules/cancellation/
 
 const metadataSchema = z.record(z.string(), z.unknown()).optional()
 const optionalDateTime = z.string().datetime().optional()
-const subscriptionFrequencyIntervalSchema = z.enum(["week", "month", "year"])
+const subscriptionFrequencyIntervalSchema = z.enum(["day", "week", "month", "year"])
 
 export const PostStoreStartCancellationSchema = z.object({
   reason: z.string().trim().min(1),

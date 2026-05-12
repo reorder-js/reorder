@@ -24,11 +24,13 @@ export const POST = async (
       requested_by: req.auth_context.actor_id,
       variant_id: subscription.variant_id,
       frequency_interval:
-        req.validatedBody.frequency_interval === "week"
-          ? SubscriptionFrequencyInterval.WEEK
-          : req.validatedBody.frequency_interval === "month"
-            ? SubscriptionFrequencyInterval.MONTH
-            : SubscriptionFrequencyInterval.YEAR,
+        req.validatedBody.frequency_interval === "day"
+          ? SubscriptionFrequencyInterval.DAY
+          : req.validatedBody.frequency_interval === "week"
+            ? SubscriptionFrequencyInterval.WEEK
+            : req.validatedBody.frequency_interval === "month"
+              ? SubscriptionFrequencyInterval.MONTH
+              : SubscriptionFrequencyInterval.YEAR,
       frequency_value: req.validatedBody.frequency_value,
       effective_at: req.validatedBody.effective_at,
     },
