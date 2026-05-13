@@ -4,11 +4,11 @@ import { Modules } from "@medusajs/framework/utils"
 import { SUBSCRIPTION_MODULE } from "../../src/modules/subscription"
 import type SubscriptionModuleService from "../../src/modules/subscription/service"
 import {
-  SubscriptionFrequencyInterval,
   SubscriptionPaymentContext,
   SubscriptionSourceSnapshot,
   SubscriptionStatus,
 } from "../../src/modules/subscription/types"
+import { FrequencyInterval } from "../../src/common/types/frequency-interval"
 
 type SubscriptionSeedInput = {
   id?: string
@@ -18,7 +18,7 @@ type SubscriptionSeedInput = {
   cart_id?: string | null
   product_id?: string
   variant_id?: string
-  frequency_interval?: SubscriptionFrequencyInterval
+  frequency_interval?: FrequencyInterval
   frequency_value?: number
   next_renewal_at?: Date | null
   skip_next_cycle?: boolean
@@ -133,7 +133,7 @@ export async function createSubscriptionSeed(
     product_id: productId,
     variant_id: variantId,
     frequency_interval:
-      input.frequency_interval ?? SubscriptionFrequencyInterval.MONTH,
+      input.frequency_interval ?? FrequencyInterval.MONTH,
     frequency_value: input.frequency_value ?? 1,
     started_at: new Date(),
     next_renewal_at:

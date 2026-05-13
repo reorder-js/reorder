@@ -38,7 +38,6 @@ import {
   PlanOfferAdminDetailResponse,
   PlanOfferAdminListItem,
   PlanOfferAdminStatus,
-  PlanOfferFrequencyInterval,
   PlanOfferScope,
 } from "../../../types/plan-offer"
 import { CreatePlanOfferModal } from "./components/create-plan-offer-modal"
@@ -47,6 +46,7 @@ import {
   PlanOfferProductPickerModal,
   PlanOfferVariantPickerModal,
 } from "./components/selection-modals"
+import { FrequencyInterval } from "../../../../common/types/frequency-interval"
 
 const PAGE_SIZE = 20
 
@@ -64,10 +64,10 @@ const scopeFilterOptions = [
 ] as const
 
 const frequencyFilterOptions = [
-  { label: "Daily", value: PlanOfferFrequencyInterval.DAY },
-  { label: "Weekly", value: PlanOfferFrequencyInterval.WEEK },
-  { label: "Monthly", value: PlanOfferFrequencyInterval.MONTH },
-  { label: "Yearly", value: PlanOfferFrequencyInterval.YEAR },
+  { label: "Daily", value: FrequencyInterval.DAY },
+  { label: "Weekly", value: FrequencyInterval.WEEK },
+  { label: "Monthly", value: FrequencyInterval.MONTH },
+  { label: "Yearly", value: FrequencyInterval.YEAR },
 ] as const
 
 const discountRangeFilterOptions = [
@@ -234,7 +234,7 @@ const PlansOffersPage = () => {
 
   const frequencyFilterValue = useMemo(() => {
     return typeof filtering.frequency === "string"
-      ? (filtering.frequency as PlanOfferFrequencyInterval)
+      ? (filtering.frequency as FrequencyInterval)
       : undefined
   }, [filtering])
   const productIdFilterValue = useMemo(() => {
@@ -938,15 +938,15 @@ function formatStatusFilter(status: PlanOfferAdminStatus) {
   return status === PlanOfferAdminStatus.ENABLED ? "Enabled" : "Disabled"
 }
 
-function formatFrequencyFilter(frequency: PlanOfferFrequencyInterval) {
+function formatFrequencyFilter(frequency: FrequencyInterval) {
   switch (frequency) {
-    case PlanOfferFrequencyInterval.DAY:
+    case FrequencyInterval.DAY:
       return "Daily"
-    case PlanOfferFrequencyInterval.WEEK:
+    case FrequencyInterval.WEEK:
       return "Weekly"
-    case PlanOfferFrequencyInterval.MONTH:
+    case FrequencyInterval.MONTH:
       return "Monthly"
-    case PlanOfferFrequencyInterval.YEAR:
+    case FrequencyInterval.YEAR:
       return "Yearly"
   }
 }

@@ -14,11 +14,11 @@ import {
   SubscriptionAdminShippingAddress,
   SubscriptionAdminStatus,
   SubscriptionDiscountType,
-  SubscriptionFrequencyInterval,
 } from "../../../admin/types/subscription"
-import { type SubscriptionQueryType, SubscriptionFrequencyInterval as SourceSubscriptionFrequencyInterval } from "../types"
+import { type SubscriptionQueryType } from "../types"
 import { getEffectiveNextRenewalAt } from "./effective-next-renewal"
 import { subscriptionErrors } from "./errors"
+import { FrequencyInterval } from "../../../common/types/frequency-interval"
 
 export type ListAdminSubscriptionsInput = {
   limit?: number
@@ -218,14 +218,7 @@ function mapPendingUpdateData(
   return {
     variant_id: pendingUpdateData.variant_id,
     variant_title: pendingUpdateData.variant_title,
-    frequency_interval:
-      pendingUpdateData.frequency_interval === "day"
-        ? SubscriptionFrequencyInterval.DAY
-        : pendingUpdateData.frequency_interval === "week"
-          ? SubscriptionFrequencyInterval.WEEK
-          : pendingUpdateData.frequency_interval === "month"
-            ? SubscriptionFrequencyInterval.MONTH
-            : SubscriptionFrequencyInterval.YEAR,
+    frequency_interval: pendingUpdateData.frequency_interval,
     frequency_value: pendingUpdateData.frequency_value,
     effective_at: pendingUpdateData.effective_at,
   }
@@ -236,14 +229,7 @@ function mapListItem(record: SubscriptionQueryType): SubscriptionAdminListItem {
   const product = record.product_snapshot ?? {}
 
   const frequency: SubscriptionAdminFrequency = {
-    interval:
-      record.frequency_interval === "day"
-        ? SubscriptionFrequencyInterval.DAY
-        : record.frequency_interval === "week"
-          ? SubscriptionFrequencyInterval.WEEK
-          : record.frequency_interval === "month"
-            ? SubscriptionFrequencyInterval.MONTH
-            : SubscriptionFrequencyInterval.YEAR,
+    interval: record.frequency_interval,
     value: record.frequency_value,
     label: formatFrequencyLabel(
       record.frequency_interval,
@@ -281,7 +267,7 @@ function mapListItem(record: SubscriptionQueryType): SubscriptionAdminListItem {
         next_renewal_at: record.next_renewal_at,
         skip_next_cycle: record.skip_next_cycle,
         frequency_interval:
-          record.frequency_interval as SourceSubscriptionFrequencyInterval,
+          record.frequency_interval as FrequencyInterval,
         frequency_value: record.frequency_value,
       })?.toISOString() ?? null,
     trial: {
@@ -374,7 +360,7 @@ function mapOrderSubscriptionSummary(
           next_renewal_at: record.next_renewal_at ?? null,
           skip_next_cycle: Boolean(record.skip_next_cycle),
           frequency_interval:
-            record.frequency_interval as SourceSubscriptionFrequencyInterval,
+            record.frequency_interval as FrequencyInterval,
           frequency_value: record.frequency_value,
         })?.toISOString() ?? null,
     },

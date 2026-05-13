@@ -1,44 +1,44 @@
+import { FrequencyInterval } from "../../common/types/frequency-interval"
 import {
   advanceCadence,
   buildSubscriptionInput,
 } from "../create-subscription-from-cart"
-import { SubscriptionFrequencyInterval } from "../../modules/subscription/types"
 
 describe("advanceCadence", () => {
   const anchor = new Date("2025-03-15T12:00:00.000Z")
 
   it("advances by days", () => {
-    const result = advanceCadence(anchor, SubscriptionFrequencyInterval.DAY, 3)
+    const result = advanceCadence(anchor, FrequencyInterval.DAY, 3)
     expect(result).toEqual(new Date("2025-03-18T12:00:00.000Z"))
   })
 
   it("advances by 1 day", () => {
-    const result = advanceCadence(anchor, SubscriptionFrequencyInterval.DAY, 1)
+    const result = advanceCadence(anchor, FrequencyInterval.DAY, 1)
     expect(result).toEqual(new Date("2025-03-16T12:00:00.000Z"))
   })
 
   it("advances by weeks", () => {
-    const result = advanceCadence(anchor, SubscriptionFrequencyInterval.WEEK, 2)
+    const result = advanceCadence(anchor, FrequencyInterval.WEEK, 2)
     expect(result).toEqual(new Date("2025-03-29T12:00:00.000Z"))
   })
 
   it("advances by 1 week", () => {
-    const result = advanceCadence(anchor, SubscriptionFrequencyInterval.WEEK, 1)
+    const result = advanceCadence(anchor, FrequencyInterval.WEEK, 1)
     expect(result).toEqual(new Date("2025-03-22T12:00:00.000Z"))
   })
 
   it("advances by months", () => {
-    const result = advanceCadence(anchor, SubscriptionFrequencyInterval.MONTH, 2)
+    const result = advanceCadence(anchor, FrequencyInterval.MONTH, 2)
     expect(result).toEqual(new Date("2025-05-15T12:00:00.000Z"))
   })
 
   it("advances by 1 month", () => {
-    const result = advanceCadence(anchor, SubscriptionFrequencyInterval.MONTH, 1)
+    const result = advanceCadence(anchor, FrequencyInterval.MONTH, 1)
     expect(result).toEqual(new Date("2025-04-15T12:00:00.000Z"))
   })
 
   it("advances by years", () => {
-    const result = advanceCadence(anchor, SubscriptionFrequencyInterval.YEAR, 1)
+    const result = advanceCadence(anchor, FrequencyInterval.YEAR, 1)
     expect(result).toEqual(new Date("2026-03-15T12:00:00.000Z"))
   })
 
@@ -103,7 +103,7 @@ describe("buildSubscriptionInput", () => {
   }
 
   function buildInput(
-    interval: SubscriptionFrequencyInterval,
+    interval: FrequencyInterval,
     value: number,
     trialDays = 0
   ) {
@@ -120,7 +120,7 @@ describe("buildSubscriptionInput", () => {
 
   describe("non-trial subscriptions", () => {
     it("calculates next_renewal_at for day interval", () => {
-      const result = buildInput(SubscriptionFrequencyInterval.DAY, 3)
+      const result = buildInput(FrequencyInterval.DAY, 3)
 
       expect(result.next_renewal_at).toEqual("2025-03-18T12:00:00.000Z")
       expect(result.is_trial).toBe(false)
@@ -130,7 +130,7 @@ describe("buildSubscriptionInput", () => {
     })
 
     it("calculates next_renewal_at for week interval", () => {
-      const result = buildInput(SubscriptionFrequencyInterval.WEEK, 2)
+      const result = buildInput(FrequencyInterval.WEEK, 2)
 
       expect(result.next_renewal_at).toEqual("2025-03-29T12:00:00.000Z")
       expect(result.is_trial).toBe(false)
@@ -138,7 +138,7 @@ describe("buildSubscriptionInput", () => {
     })
 
     it("calculates next_renewal_at for month interval", () => {
-      const result = buildInput(SubscriptionFrequencyInterval.MONTH, 1)
+      const result = buildInput(FrequencyInterval.MONTH, 1)
 
       expect(result.next_renewal_at).toEqual("2025-04-15T12:00:00.000Z")
       expect(result.is_trial).toBe(false)
@@ -146,7 +146,7 @@ describe("buildSubscriptionInput", () => {
     })
 
     it("calculates next_renewal_at for year interval", () => {
-      const result = buildInput(SubscriptionFrequencyInterval.YEAR, 1)
+      const result = buildInput(FrequencyInterval.YEAR, 1)
 
       expect(result.next_renewal_at).toEqual("2026-03-15T12:00:00.000Z")
       expect(result.is_trial).toBe(false)
@@ -156,7 +156,7 @@ describe("buildSubscriptionInput", () => {
 
   describe("trial subscriptions", () => {
     it("sets next_renewal_at to trial end date for day interval", () => {
-      const result = buildInput(SubscriptionFrequencyInterval.DAY, 1, 7)
+      const result = buildInput(FrequencyInterval.DAY, 1, 7)
 
       expect(result.next_renewal_at).toEqual("2025-03-22T12:00:00.000Z")
       expect(result.trial_ends_at).toEqual("2025-03-22T12:00:00.000Z")
@@ -164,7 +164,7 @@ describe("buildSubscriptionInput", () => {
     })
 
     it("sets next_renewal_at to trial end date for month interval", () => {
-      const result = buildInput(SubscriptionFrequencyInterval.MONTH, 1, 14)
+      const result = buildInput(FrequencyInterval.MONTH, 1, 14)
 
       expect(result.next_renewal_at).toEqual("2025-03-29T12:00:00.000Z")
       expect(result.trial_ends_at).toEqual("2025-03-29T12:00:00.000Z")
@@ -174,7 +174,7 @@ describe("buildSubscriptionInput", () => {
 
   describe("common output fields", () => {
     it("maps order and cart identifiers", () => {
-      const result = buildInput(SubscriptionFrequencyInterval.DAY, 1)
+      const result = buildInput(FrequencyInterval.DAY, 1)
 
       expect(result.customer_id).toEqual("cus_123")
       expect(result.cart_id).toEqual("cart_456")
@@ -184,7 +184,7 @@ describe("buildSubscriptionInput", () => {
     })
 
     it("includes snapshots and payment context", () => {
-      const result = buildInput(SubscriptionFrequencyInterval.WEEK, 1)
+      const result = buildInput(FrequencyInterval.WEEK, 1)
 
       expect(result.customer_snapshot).toEqual(baseCart.customer_snapshot)
       expect(result.product_snapshot).toEqual(baseCart.product_snapshot)

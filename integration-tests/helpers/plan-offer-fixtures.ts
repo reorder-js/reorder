@@ -3,7 +3,6 @@ import { PLAN_OFFER_MODULE } from "../../src/modules/plan-offer"
 import type PlanOfferModuleService from "../../src/modules/plan-offer/service"
 import {
   PlanOfferDiscountType,
-  PlanOfferFrequencyInterval,
   PlanOfferScope,
   PlanOfferStackingPolicy,
 } from "../../src/modules/plan-offer/types"
@@ -12,6 +11,7 @@ import {
   createProductWithVariant,
   createSubscriptionSeed,
 } from "./subscription-fixtures"
+import { FrequencyInterval } from "../../src/common/types/frequency-interval"
 
 type PlanOfferSeedInput = {
   id?: string
@@ -21,11 +21,11 @@ type PlanOfferSeedInput = {
   variant_id?: string | null
   is_enabled?: boolean
   allowed_frequencies?: Array<{
-    interval: PlanOfferFrequencyInterval
+    interval: FrequencyInterval
     value: number
   }>
   discount_per_frequency?: Array<{
-    interval: PlanOfferFrequencyInterval
+    interval: FrequencyInterval
     value: number
     discount_type: PlanOfferDiscountType
     discount_value: number
@@ -50,7 +50,7 @@ export async function createPlanOfferSeed(
 
   const allowedFrequencies = input.allowed_frequencies ?? [
     {
-      interval: PlanOfferFrequencyInterval.MONTH,
+      interval: FrequencyInterval.MONTH,
       value: 1,
     },
   ]

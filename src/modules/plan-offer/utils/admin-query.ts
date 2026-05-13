@@ -11,7 +11,6 @@ import {
   PlanOfferAdminRules,
   PlanOfferAdminStatus,
   PlanOfferDiscountType,
-  PlanOfferFrequencyInterval,
   PlanOfferScope as AdminPlanOfferScope,
 } from "../../../admin/types/plan-offer"
 import type {
@@ -130,14 +129,7 @@ function mapFrequencyOption(
   frequency: PlanOfferAllowedFrequency
 ): PlanOfferAdminFrequencyOption {
   return {
-    interval:
-      frequency.interval === "day"
-        ? PlanOfferFrequencyInterval.DAY
-        : frequency.interval === "week"
-          ? PlanOfferFrequencyInterval.WEEK
-          : frequency.interval === "month"
-            ? PlanOfferFrequencyInterval.MONTH
-            : PlanOfferFrequencyInterval.YEAR,
+    interval: frequency.interval,
     value: frequency.value,
     label: formatFrequencyLabel(frequency.interval, frequency.value),
   }
@@ -152,14 +144,7 @@ function mapDiscountValue(
       : `${discount.discount_value} off`
 
   return {
-    interval:
-      discount.interval === "day"
-        ? PlanOfferFrequencyInterval.DAY
-        : discount.interval === "week"
-          ? PlanOfferFrequencyInterval.WEEK
-          : discount.interval === "month"
-            ? PlanOfferFrequencyInterval.MONTH
-            : PlanOfferFrequencyInterval.YEAR,
+    interval: discount.interval,
     frequency_value: discount.value,
     type:
       discount.discount_type === "percentage"

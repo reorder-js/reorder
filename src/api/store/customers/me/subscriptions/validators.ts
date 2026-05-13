@@ -1,9 +1,10 @@
 import { z } from "zod"
 import { CancellationReasonCategory } from "../../../../../modules/cancellation/types"
+import { FrequencyInterval } from "../../../../../common/types/frequency-interval"
 
 const metadataSchema = z.record(z.string(), z.unknown()).optional()
 const optionalDateTime = z.string().datetime().optional()
-const subscriptionFrequencyIntervalSchema = z.enum(["day", "week", "month", "year"])
+const subscriptionFrequencyIntervalSchema = z.nativeEnum(FrequencyInterval)
 
 export const PostStoreStartCancellationSchema = z.object({
   reason: z.string().trim().min(1),

@@ -2,7 +2,6 @@ import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 import { SUBSCRIPTION_MODULE } from "../../modules/subscription"
 import type SubscriptionModuleService from "../../modules/subscription/service"
 import type {
-  SubscriptionFrequencyInterval,
   SubscriptionPaymentContext,
   SubscriptionPricingSnapshot,
   SubscriptionProductSnapshot,
@@ -10,6 +9,7 @@ import type {
   SubscriptionSourceSnapshot,
 } from "../../modules/subscription/types"
 import { SubscriptionStatus } from "../../modules/subscription/types"
+import type { FrequencyInterval } from "../../common/types/frequency-interval"
 
 export type CreateSubscriptionRecordStepInput = {
   customer_id: string
@@ -17,7 +17,7 @@ export type CreateSubscriptionRecordStepInput = {
   order_id: string
   order_display_id: string | number | null
   started_at: string
-  frequency_interval: SubscriptionFrequencyInterval
+  frequency_interval: FrequencyInterval
   frequency_value: number
   customer_snapshot: {
     email: string

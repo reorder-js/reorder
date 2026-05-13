@@ -4,7 +4,6 @@ import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 import type { PlanOfferDiscountPerFrequency } from "../../modules/plan-offer/types"
 import { resolveProductSubscriptionConfig } from "../../modules/plan-offer/utils/effective-config"
 import {
-  SubscriptionFrequencyInterval,
   type SubscriptionPaymentContext,
   type SubscriptionPricingSnapshot,
   type SubscriptionProductSnapshot,
@@ -12,6 +11,7 @@ import {
   type SubscriptionSourceSnapshot,
 } from "../../modules/subscription/types"
 import { subscriptionErrors } from "../../modules/subscription/utils/errors"
+import { FrequencyInterval, isFrequencyInterval } from "../../common/types/frequency-interval"
 
 export type ValidateSubscriptionCartStepInput = {
   cart_id: string
@@ -67,7 +67,7 @@ type CartRecord = {
 export type ValidatedSubscriptionCart = {
   cart_id: string
   customer_id: string
-  frequency_interval: SubscriptionFrequencyInterval
+  frequency_interval: FrequencyInterval
   frequency_value: number
   customer_snapshot: {
     email: string
@@ -299,10 +299,7 @@ function readFrequencyInterval(metadata?: Record<string, unknown> | null) {
   const value = metadata?.frequency_interval
 
   if (
-    value === SubscriptionFrequencyInterval.DAY ||
-    value === SubscriptionFrequencyInterval.WEEK ||
-    value === SubscriptionFrequencyInterval.MONTH ||
-    value === SubscriptionFrequencyInterval.YEAR
+    isFrequencyInterval(value)
   ) {
     return value
   }
@@ -332,7 +329,7 @@ function readFrequencyValue(metadata?: Record<string, unknown> | null) {
 
 function buildPricingSnapshot(
   discounts: PlanOfferDiscountPerFrequency[],
-  interval: SubscriptionFrequencyInterval,
+  interval: FrequencyInterval,
   value: number
 ): SubscriptionPricingSnapshot | null {
   const discount = discounts.find(

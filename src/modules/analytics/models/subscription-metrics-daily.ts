@@ -1,9 +1,9 @@
 import { model } from "@medusajs/framework/utils"
 import { CancellationReasonCategory } from "../../cancellation/types"
 import {
-  SubscriptionFrequencyInterval,
   SubscriptionStatus,
 } from "../../subscription/types"
+import { FrequencyInterval } from "../../../common/types/frequency-interval"
 
 const SubscriptionMetricsDaily = model
   .define("subscription_metrics_daily", {
@@ -14,7 +14,7 @@ const SubscriptionMetricsDaily = model
     product_id: model.text(),
     variant_id: model.text(),
     status: model.enum(SubscriptionStatus),
-    frequency_interval: model.enum(SubscriptionFrequencyInterval),
+    frequency_interval: model.enum(FrequencyInterval),
     frequency_value: model.number(),
     currency_code: model.text().nullable(),
     is_active: model.boolean().default(false),

@@ -3,9 +3,9 @@ import { SUBSCRIPTION_MODULE } from ".."
 import Subscription from "../models/subscription"
 import SubscriptionModuleService from "../service"
 import {
-  SubscriptionFrequencyInterval,
   SubscriptionStatus,
 } from "../types"
+import { FrequencyInterval } from "../../../common/types/frequency-interval"
 
 moduleIntegrationTestRunner<SubscriptionModuleService>({
   moduleName: SUBSCRIPTION_MODULE,
@@ -20,7 +20,7 @@ moduleIntegrationTestRunner<SubscriptionModuleService>({
           customer_id: "cus_module_001",
           product_id: "prod_module_001",
           variant_id: "variant_module_001",
-          frequency_interval: SubscriptionFrequencyInterval.MONTH,
+          frequency_interval: FrequencyInterval.MONTH,
           frequency_value: 1,
           started_at: new Date(),
           next_renewal_at: new Date(),
@@ -87,7 +87,7 @@ moduleIntegrationTestRunner<SubscriptionModuleService>({
           customer_id: "cus_module_002",
           product_id: "prod_module_002",
           variant_id: "variant_module_002",
-          frequency_interval: SubscriptionFrequencyInterval.MONTH,
+          frequency_interval: FrequencyInterval.MONTH,
           frequency_value: 1,
           started_at: new Date(),
           next_renewal_at: new Date(),
@@ -159,7 +159,7 @@ moduleIntegrationTestRunner<SubscriptionModuleService>({
           customer_id: "cus_module_day_001",
           product_id: "prod_module_day_001",
           variant_id: "variant_module_day_001",
-          frequency_interval: SubscriptionFrequencyInterval.DAY,
+          frequency_interval: FrequencyInterval.DAY,
           frequency_value: 3,
           started_at: new Date(),
           next_renewal_at: new Date(),
@@ -216,7 +216,7 @@ moduleIntegrationTestRunner<SubscriptionModuleService>({
 
         expect(retrieved.id).toEqual(created.id)
         expect(retrieved.reference).toEqual("SUB-MODULE-DAY-001")
-        expect(retrieved.frequency_interval).toEqual(SubscriptionFrequencyInterval.DAY)
+        expect(retrieved.frequency_interval).toEqual(FrequencyInterval.DAY)
         expect(retrieved.frequency_value).toEqual(3)
       })
     })

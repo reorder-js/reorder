@@ -28,7 +28,6 @@ import {
 import { PLAN_OFFER_MODULE } from "../src/modules/plan-offer"
 import type PlanOfferModuleService from "../src/modules/plan-offer/service"
 import {
-  PlanOfferFrequencyInterval,
   PlanOfferScope,
   PlanOfferStackingPolicy,
 } from "../src/modules/plan-offer/types"
@@ -42,7 +41,6 @@ import {
 import { SUBSCRIPTION_MODULE } from "../src/modules/subscription"
 import type SubscriptionModuleService from "../src/modules/subscription/service"
 import {
-  SubscriptionFrequencyInterval,
   SubscriptionStatus,
 } from "../src/modules/subscription/types"
 import { SETTINGS_MODULE } from "../src/modules/settings"
@@ -51,6 +49,7 @@ import {
   SubscriptionCancellationBehavior,
   SubscriptionRenewalBehavior,
 } from "../src/modules/settings/types"
+import { FrequencyInterval } from "../src/common/types/frequency-interval"
 
 type ProductRecord = {
   id: string
@@ -365,7 +364,7 @@ function buildSubscriptionRecord(input: {
   customer: SeedCustomerRecord
   target: TargetContext
   status: SubscriptionStatus
-  frequency_interval: SubscriptionFrequencyInterval
+  frequency_interval: FrequencyInterval
   frequency_value: number
   next_renewal_at: Date | null
   skip_next_cycle: boolean
@@ -936,7 +935,7 @@ function buildAnalyticsSnapshotRecord(input: {
   product_id: string
   variant_id: string
   status: SubscriptionStatus
-  frequency_interval: SubscriptionFrequencyInterval
+  frequency_interval: FrequencyInterval
   frequency_value: number
   currency_code: string | null
   active_subscriptions_count: number
@@ -1085,15 +1084,15 @@ export default async function seedSubscriptionsTestData({
     is_enabled: true,
     allowed_frequencies: [
       {
-        interval: PlanOfferFrequencyInterval.MONTH,
+        interval: FrequencyInterval.MONTH,
         value: 1,
       },
       {
-        interval: PlanOfferFrequencyInterval.MONTH,
+        interval: FrequencyInterval.MONTH,
         value: 2,
       },
     ],
-    frequency_intervals: [PlanOfferFrequencyInterval.MONTH],
+    frequency_intervals: [FrequencyInterval.MONTH],
     discount_per_frequency: [],
     rules: {
       minimum_cycles: 1,
@@ -1202,11 +1201,11 @@ export default async function seedSubscriptionsTestData({
     is_enabled: true,
     allowed_frequencies: [
       {
-        interval: PlanOfferFrequencyInterval.MONTH,
+        interval: FrequencyInterval.MONTH,
         value: 1,
       },
     ],
-    frequency_intervals: [PlanOfferFrequencyInterval.MONTH],
+    frequency_intervals: [FrequencyInterval.MONTH],
     discount_per_frequency: [],
     rules: {
       minimum_cycles: 1,
@@ -1247,7 +1246,7 @@ export default async function seedSubscriptionsTestData({
       customer: getSeedCustomer(IDS.subSuccess),
       target: targets.success,
       status: SubscriptionStatus.ACTIVE,
-      frequency_interval: SubscriptionFrequencyInterval.MONTH,
+      frequency_interval: FrequencyInterval.MONTH,
       frequency_value: 1,
       next_renewal_at: successScheduledFor,
       skip_next_cycle: true,
@@ -1262,7 +1261,7 @@ export default async function seedSubscriptionsTestData({
       customer: getSeedCustomer(IDS.subPaused),
       target: targets.success,
       status: SubscriptionStatus.PAUSED,
-      frequency_interval: SubscriptionFrequencyInterval.MONTH,
+      frequency_interval: FrequencyInterval.MONTH,
       frequency_value: 1,
       next_renewal_at: pausedScheduledFor,
       skip_next_cycle: true,
@@ -1278,7 +1277,7 @@ export default async function seedSubscriptionsTestData({
       customer: getSeedCustomer(IDS.subCancelEffective),
       target: targets.success,
       status: SubscriptionStatus.ACTIVE,
-      frequency_interval: SubscriptionFrequencyInterval.MONTH,
+      frequency_interval: FrequencyInterval.MONTH,
       frequency_value: 1,
       next_renewal_at: cancelScheduledFor,
       skip_next_cycle: true,
@@ -1294,7 +1293,7 @@ export default async function seedSubscriptionsTestData({
       customer: getSeedCustomer(IDS.subApprovalPending),
       target: targets.success,
       status: SubscriptionStatus.ACTIVE,
-      frequency_interval: SubscriptionFrequencyInterval.MONTH,
+      frequency_interval: FrequencyInterval.MONTH,
       frequency_value: 1,
       next_renewal_at: approvalScheduledFor,
       skip_next_cycle: true,
@@ -1302,7 +1301,7 @@ export default async function seedSubscriptionsTestData({
         variant_id: targets.success.variant_id,
         variant_title: targets.success.variant_title,
         sku: targets.success.sku,
-        frequency_interval: SubscriptionFrequencyInterval.MONTH,
+        frequency_interval: FrequencyInterval.MONTH,
         frequency_value: 2,
         effective_at: null,
         requested_at: FIXED_TIME.toISOString(),
@@ -1319,7 +1318,7 @@ export default async function seedSubscriptionsTestData({
       customer: getSeedCustomer(IDS.subPolicyBlocked),
       target: targets.blocked,
       status: SubscriptionStatus.ACTIVE,
-      frequency_interval: SubscriptionFrequencyInterval.MONTH,
+      frequency_interval: FrequencyInterval.MONTH,
       frequency_value: 1,
       next_renewal_at: policyBlockedScheduledFor,
       skip_next_cycle: true,
@@ -1327,7 +1326,7 @@ export default async function seedSubscriptionsTestData({
         variant_id: targets.blocked.variant_id,
         variant_title: targets.blocked.variant_title,
         sku: targets.blocked.sku,
-        frequency_interval: SubscriptionFrequencyInterval.MONTH,
+        frequency_interval: FrequencyInterval.MONTH,
         frequency_value: 2,
         effective_at: null,
         requested_at: FIXED_TIME.toISOString(),
@@ -1344,7 +1343,7 @@ export default async function seedSubscriptionsTestData({
       customer: getSeedCustomer(IDS.subFailedHistory),
       target: targets.success,
       status: SubscriptionStatus.ACTIVE,
-      frequency_interval: SubscriptionFrequencyInterval.MONTH,
+      frequency_interval: FrequencyInterval.MONTH,
       frequency_value: 1,
       next_renewal_at: failedHistoryScheduledFor,
       skip_next_cycle: false,
@@ -1360,7 +1359,7 @@ export default async function seedSubscriptionsTestData({
       customer: getSeedCustomer(IDS.subDunningRetryScheduled),
       target: targets.success,
       status: SubscriptionStatus.PAST_DUE,
-      frequency_interval: SubscriptionFrequencyInterval.MONTH,
+      frequency_interval: FrequencyInterval.MONTH,
       frequency_value: 1,
       next_renewal_at: addDays(FIXED_TIME, 1),
       skip_next_cycle: false,
@@ -1377,7 +1376,7 @@ export default async function seedSubscriptionsTestData({
       customer: getSeedCustomer(IDS.subCancellationOpenBilling),
       target: targets.success,
       status: SubscriptionStatus.PAST_DUE,
-      frequency_interval: SubscriptionFrequencyInterval.MONTH,
+      frequency_interval: FrequencyInterval.MONTH,
       frequency_value: 1,
       next_renewal_at: cancellationOpenBillingAt,
       skip_next_cycle: false,
@@ -1394,7 +1393,7 @@ export default async function seedSubscriptionsTestData({
       customer: getSeedCustomer(IDS.subCancellationRetainedDiscount),
       target: targets.success,
       status: SubscriptionStatus.ACTIVE,
-      frequency_interval: SubscriptionFrequencyInterval.MONTH,
+      frequency_interval: FrequencyInterval.MONTH,
       frequency_value: 1,
       next_renewal_at: cancellationRetainedDiscountAt,
       skip_next_cycle: false,
@@ -1410,7 +1409,7 @@ export default async function seedSubscriptionsTestData({
       customer: getSeedCustomer(IDS.subCancellationPaused),
       target: targets.success,
       status: SubscriptionStatus.PAUSED,
-      frequency_interval: SubscriptionFrequencyInterval.MONTH,
+      frequency_interval: FrequencyInterval.MONTH,
       frequency_value: 1,
       next_renewal_at: cancellationPausedAt,
       skip_next_cycle: false,
@@ -1427,7 +1426,7 @@ export default async function seedSubscriptionsTestData({
       customer: getSeedCustomer(IDS.subCancellationCanceledImmediate),
       target: targets.blocked,
       status: SubscriptionStatus.CANCELLED,
-      frequency_interval: SubscriptionFrequencyInterval.MONTH,
+      frequency_interval: FrequencyInterval.MONTH,
       frequency_value: 1,
       next_renewal_at: null,
       skip_next_cycle: false,
@@ -1445,7 +1444,7 @@ export default async function seedSubscriptionsTestData({
       customer: getSeedCustomer(IDS.subCancellationCanceledEndCycle),
       target: targets.blocked,
       status: SubscriptionStatus.CANCELLED,
-      frequency_interval: SubscriptionFrequencyInterval.MONTH,
+      frequency_interval: FrequencyInterval.MONTH,
       frequency_value: 1,
       next_renewal_at: null,
       skip_next_cycle: false,
@@ -1463,7 +1462,7 @@ export default async function seedSubscriptionsTestData({
       customer: getSeedCustomer(IDS.subCancellationOpenPrice),
       target: targets.success,
       status: SubscriptionStatus.ACTIVE,
-      frequency_interval: SubscriptionFrequencyInterval.MONTH,
+      frequency_interval: FrequencyInterval.MONTH,
       frequency_value: 1,
       next_renewal_at: cancellationOpenPriceAt,
       skip_next_cycle: false,
@@ -1479,7 +1478,7 @@ export default async function seedSubscriptionsTestData({
       customer: getSeedCustomer(IDS.subCancellationOpenPaused),
       target: targets.success,
       status: SubscriptionStatus.PAUSED,
-      frequency_interval: SubscriptionFrequencyInterval.MONTH,
+      frequency_interval: FrequencyInterval.MONTH,
       frequency_value: 1,
       next_renewal_at: cancellationOpenPausedAt,
       skip_next_cycle: false,
@@ -1496,7 +1495,7 @@ export default async function seedSubscriptionsTestData({
       customer: getSeedCustomer(IDS.subDunningAwaitingManual),
       target: targets.success,
       status: SubscriptionStatus.PAST_DUE,
-      frequency_interval: SubscriptionFrequencyInterval.MONTH,
+      frequency_interval: FrequencyInterval.MONTH,
       frequency_value: 1,
       next_renewal_at: addDays(FIXED_TIME, 2),
       skip_next_cycle: false,
@@ -1513,7 +1512,7 @@ export default async function seedSubscriptionsTestData({
       customer: getSeedCustomer(IDS.subDunningRecovered),
       target: targets.success,
       status: SubscriptionStatus.ACTIVE,
-      frequency_interval: SubscriptionFrequencyInterval.MONTH,
+      frequency_interval: FrequencyInterval.MONTH,
       frequency_value: 1,
       next_renewal_at: addDays(FIXED_TIME, 14),
       skip_next_cycle: false,
@@ -1530,7 +1529,7 @@ export default async function seedSubscriptionsTestData({
       customer: getSeedCustomer(IDS.subDunningUnrecovered),
       target: targets.success,
       status: SubscriptionStatus.PAST_DUE,
-      frequency_interval: SubscriptionFrequencyInterval.MONTH,
+      frequency_interval: FrequencyInterval.MONTH,
       frequency_value: 1,
       next_renewal_at: addDays(FIXED_TIME, -1),
       skip_next_cycle: false,
@@ -1547,7 +1546,7 @@ export default async function seedSubscriptionsTestData({
       customer: getSeedCustomer(IDS.subDunningManualOverride),
       target: targets.success,
       status: SubscriptionStatus.PAST_DUE,
-      frequency_interval: SubscriptionFrequencyInterval.MONTH,
+      frequency_interval: FrequencyInterval.MONTH,
       frequency_value: 1,
       next_renewal_at: addDays(FIXED_TIME, 3),
       skip_next_cycle: false,
@@ -1564,7 +1563,7 @@ export default async function seedSubscriptionsTestData({
       customer: getSeedCustomer(IDS.subAnalyticsBiMonthly),
       target: targets.success,
       status: SubscriptionStatus.ACTIVE,
-      frequency_interval: SubscriptionFrequencyInterval.MONTH,
+      frequency_interval: FrequencyInterval.MONTH,
       frequency_value: 2,
       next_renewal_at: addDays(FIXED_TIME, 18),
       skip_next_cycle: false,
@@ -2653,7 +2652,7 @@ export default async function seedSubscriptionsTestData({
         product_id: targets.success.product_id,
         variant_id: targets.success.variant_id,
         status: SubscriptionStatus.ACTIVE,
-        frequency_interval: SubscriptionFrequencyInterval.MONTH,
+        frequency_interval: FrequencyInterval.MONTH,
         frequency_value: 1,
         currency_code: "USD",
         active_subscriptions_count: 1,
@@ -2673,7 +2672,7 @@ export default async function seedSubscriptionsTestData({
         product_id: targets.success.product_id,
         variant_id: targets.success.variant_id,
         status: SubscriptionStatus.ACTIVE,
-        frequency_interval: SubscriptionFrequencyInterval.MONTH,
+        frequency_interval: FrequencyInterval.MONTH,
         frequency_value: 2,
         currency_code: "USD",
         active_subscriptions_count: 1,
@@ -2693,7 +2692,7 @@ export default async function seedSubscriptionsTestData({
         product_id: targets.success.product_id,
         variant_id: targets.success.variant_id,
         status: SubscriptionStatus.PAUSED,
-        frequency_interval: SubscriptionFrequencyInterval.MONTH,
+        frequency_interval: FrequencyInterval.MONTH,
         frequency_value: 1,
         currency_code: null,
         active_subscriptions_count: 0,
@@ -2713,7 +2712,7 @@ export default async function seedSubscriptionsTestData({
         product_id: targets.success.product_id,
         variant_id: targets.success.variant_id,
         status: SubscriptionStatus.PAST_DUE,
-        frequency_interval: SubscriptionFrequencyInterval.MONTH,
+        frequency_interval: FrequencyInterval.MONTH,
         frequency_value: 1,
         currency_code: null,
         active_subscriptions_count: 0,
@@ -2733,7 +2732,7 @@ export default async function seedSubscriptionsTestData({
         product_id: targets.blocked.product_id,
         variant_id: targets.blocked.variant_id,
         status: SubscriptionStatus.CANCELLED,
-        frequency_interval: SubscriptionFrequencyInterval.MONTH,
+        frequency_interval: FrequencyInterval.MONTH,
         frequency_value: 1,
         currency_code: null,
         active_subscriptions_count: 0,
@@ -2754,7 +2753,7 @@ export default async function seedSubscriptionsTestData({
         product_id: targets.blocked.product_id,
         variant_id: targets.blocked.variant_id,
         status: SubscriptionStatus.CANCELLED,
-        frequency_interval: SubscriptionFrequencyInterval.MONTH,
+        frequency_interval: FrequencyInterval.MONTH,
         frequency_value: 1,
         currency_code: null,
         active_subscriptions_count: 0,

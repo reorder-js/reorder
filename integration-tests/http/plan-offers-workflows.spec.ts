@@ -15,9 +15,9 @@ import {
   createProductWithVariant,
 } from "../helpers/plan-offer-fixtures"
 import {
-  PlanOfferFrequencyInterval,
   PlanOfferScope,
 } from "../../src/modules/plan-offer/types"
+import { FrequencyInterval } from "../../src/common/types/frequency-interval"
 
 medusaIntegrationTestRunner({
   medusaConfigFile: path.resolve(process.cwd(), "integration-tests"),
@@ -47,7 +47,7 @@ medusaIntegrationTestRunner({
           is_enabled: true,
           allowed_frequencies: [
             {
-              interval: PlanOfferFrequencyInterval.YEAR,
+              interval: FrequencyInterval.YEAR,
               value: 1,
             },
           ],

@@ -29,6 +29,7 @@ import {
   useAdminAnalyticsProductsQuery,
   useAdminAnalyticsTrendsQuery,
 } from "./data-loading"
+import { FrequencyInterval } from "../../../../common/types/frequency-interval"
 
 const DEFAULT_FILTERS: AdminAnalyticsFilters = {
   date_from: toLocalDateInputValue(addDays(new Date(), -29)),
@@ -876,13 +877,13 @@ function formatGroupBy(value: AnalyticsGroupBy) {
 
 function formatFrequency(value: AnalyticsFrequencyFilter) {
   switch (value.interval) {
-    case "day":
+    case FrequencyInterval.DAY:
       return value.value === 1 ? "Daily" : `Every ${value.value} days`
-    case "week":
+    case FrequencyInterval.WEEK:
       return value.value === 1 ? "Weekly" : `Every ${value.value} weeks`
-    case "month":
+    case FrequencyInterval.MONTH:
       return value.value === 1 ? "Monthly" : `Every ${value.value} months`
-    case "year":
+    case FrequencyInterval.YEAR:
       return value.value === 1 ? "Yearly" : `Every ${value.value} years`
   }
 }

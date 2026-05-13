@@ -4,13 +4,14 @@ import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { RenewalCycleStatus } from "../../src/modules/renewal/types"
 import { SUBSCRIPTION_MODULE } from "../../src/modules/subscription"
 import type SubscriptionModuleService from "../../src/modules/subscription/service"
-import { PlanOfferFrequencyInterval, PlanOfferScope } from "../../src/modules/plan-offer/types"
+import { PlanOfferScope } from "../../src/modules/plan-offer/types"
 import { processRenewalCycleWorkflow } from "../../src/workflows"
 import {
   createRenewalCycleSeed,
   createSubscriptionSeed,
 } from "../helpers/renewal-fixtures"
 import { createPlanOfferSeed } from "../helpers/plan-offer-fixtures"
+import { FrequencyInterval } from "../../src/common/types/frequency-interval"
 
 const mockCreateOrderRun = jest.fn()
 const mockCreateOrUpdateOrderPaymentCollectionRun = jest.fn()
@@ -174,7 +175,7 @@ medusaIntegrationTestRunner({
           is_enabled: true,
           allowed_frequencies: [
             {
-              interval: PlanOfferFrequencyInterval.MONTH,
+              interval: FrequencyInterval.MONTH,
               value: 1,
             },
           ],

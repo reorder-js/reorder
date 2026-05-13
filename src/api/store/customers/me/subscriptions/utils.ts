@@ -8,10 +8,10 @@ import { CancellationCaseStatus } from "../../../../../modules/cancellation/type
 import { DunningCaseStatus } from "../../../../../modules/dunning/types"
 import { resolveProductSubscriptionConfig } from "../../../../../modules/plan-offer/utils/effective-config"
 import {
-  SubscriptionFrequencyInterval,
   SubscriptionStatus,
 } from "../../../../../modules/subscription/types"
 import { getEffectiveNextRenewalAt } from "../../../../../modules/subscription/utils/effective-next-renewal"
+import type { FrequencyInterval } from "../../../../../common/types/frequency-interval"
 
 const ACTIVE_CANCELLATION_STATUSES = [
   CancellationCaseStatus.REQUESTED,
@@ -187,7 +187,7 @@ export async function listStoreCustomerSubscriptions(
           next_renewal_at: subscription.next_renewal_at,
           skip_next_cycle: subscription.skip_next_cycle,
           frequency_interval:
-            subscription.frequency_interval as SubscriptionFrequencyInterval,
+            subscription.frequency_interval as FrequencyInterval,
           frequency_value: subscription.frequency_value,
         })
       ),
@@ -451,7 +451,7 @@ export async function getStoreSubscriptionDetailResponse(
           next_renewal_at: subscription.next_renewal_at,
           skip_next_cycle: subscription.skip_next_cycle,
           frequency_interval:
-            subscription.frequency_interval as SubscriptionFrequencyInterval,
+            subscription.frequency_interval as FrequencyInterval,
           frequency_value: subscription.frequency_value,
         })
       ),

@@ -2,12 +2,12 @@ import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 import { SUBSCRIPTION_MODULE } from "../../modules/subscription"
 import SubscriptionModuleService from "../../modules/subscription/service"
 import {
-  SubscriptionFrequencyInterval,
   SubscriptionPendingUpdateData,
   SubscriptionShippingAddress,
   SubscriptionStatus,
 } from "../../modules/subscription/types"
 import { subscriptionErrors } from "../../modules/subscription/utils/errors"
+import type { FrequencyInterval } from "../../common/types/frequency-interval"
 
 export type PauseSubscriptionStepInput = {
   id: string
@@ -22,7 +22,7 @@ export type SubscriptionWorkflowRecord = {
   status: SubscriptionStatus
   customer_id: string
   updated_at: Date
-  frequency_interval: SubscriptionFrequencyInterval
+  frequency_interval: FrequencyInterval
   frequency_value: number
   next_renewal_at: Date | null
   paused_at: Date | null

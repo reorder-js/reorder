@@ -1,4 +1,4 @@
-import { SubscriptionFrequencyInterval } from "../../subscription/types"
+import type { FrequencyInterval } from "../../../common/types/frequency-interval"
 
 export enum RenewalCycleStatus {
   SCHEDULED = "scheduled",
@@ -31,7 +31,7 @@ export type RenewalAppliedPendingUpdateData = {
   variant_id: string
   variant_title: string
   sku: string | null
-  frequency_interval: SubscriptionFrequencyInterval
+  frequency_interval: FrequencyInterval
   frequency_value: number
   effective_at: string | null
 }

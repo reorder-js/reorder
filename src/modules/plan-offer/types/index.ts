@@ -1,13 +1,8 @@
+import type { FrequencyInterval } from "../../../common/types/frequency-interval"
+
 export enum PlanOfferScope {
   PRODUCT = "product",
   VARIANT = "variant",
-}
-
-export enum PlanOfferFrequencyInterval {
-  DAY = "day",
-  WEEK = "week",
-  MONTH = "month",
-  YEAR = "year",
 }
 
 export enum PlanOfferDiscountType {
@@ -22,12 +17,12 @@ export enum PlanOfferStackingPolicy {
 }
 
 export type PlanOfferAllowedFrequency = {
-  interval: PlanOfferFrequencyInterval
+  interval: FrequencyInterval
   value: number
 }
 
 export type PlanOfferDiscountPerFrequency = {
-  interval: PlanOfferFrequencyInterval
+  interval: FrequencyInterval
   value: number
   discount_type: PlanOfferDiscountType
   discount_value: number

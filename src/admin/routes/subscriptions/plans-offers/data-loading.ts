@@ -9,10 +9,10 @@ import {
   PlanOfferAdminDetailResponse,
   PlanOfferAdminListResponse,
   PlanOfferAdminStatus,
-  PlanOfferFrequencyInterval,
   PlanOfferScope,
 } from "../../../types/plan-offer"
 import { HttpTypes } from "@medusajs/framework/types"
+import type { FrequencyInterval } from "../../../../common/types/frequency-interval"
 
 type UseAdminPlanOffersDisplayQueryInput = {
   pagination: DataTablePaginationState
@@ -44,7 +44,7 @@ export const adminPlanOffersQueryKeys = {
     search: string
     status?: PlanOfferAdminStatus
     scope?: PlanOfferScope
-    frequency?: PlanOfferFrequencyInterval
+    frequency?: FrequencyInterval
     productId?: string
     variantId?: string
     discountMin?: number
@@ -84,7 +84,7 @@ export function getAdminPlanOffersDisplayQueryInput(
       : undefined
   const frequency =
     typeof input.filtering.frequency === "string"
-      ? (input.filtering.frequency as PlanOfferFrequencyInterval)
+      ? (input.filtering.frequency as FrequencyInterval)
       : undefined
   const productId =
     typeof input.filtering.product_id === "string"

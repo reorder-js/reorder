@@ -35,7 +35,6 @@ import {
   type SubscriptionPaymentContext,
   type SubscriptionSourceSnapshot,
   type SubscriptionType,
-  SubscriptionFrequencyInterval,
   SubscriptionPendingUpdateData,
   SubscriptionStatus,
 } from "../../modules/subscription/types"
@@ -44,6 +43,7 @@ import { subscriptionErrors } from "../../modules/subscription/utils/errors"
 import { startDunningWorkflow } from "../start-dunning"
 import { persistSubscriptionLogEvent } from "./create-subscription-log-event"
 import { toISOStringOrNull } from "../utils/date-output"
+import type { FrequencyInterval } from "../../common/types/frequency-interval"
 
 type CartRecord = {
   id: string
@@ -81,7 +81,7 @@ type SubscriptionRecord = {
   cart_id: string | null
   product_id: string
   variant_id: string
-  frequency_interval: SubscriptionFrequencyInterval
+  frequency_interval: FrequencyInterval
   frequency_value: number
   next_renewal_at: Date | null
   last_renewal_at: Date | null

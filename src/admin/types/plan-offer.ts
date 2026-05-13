@@ -1,3 +1,5 @@
+import type { FrequencyInterval } from "../../common/types/frequency-interval"
+
 export enum PlanOfferAdminStatus {
   ENABLED = "enabled",
   DISABLED = "disabled",
@@ -6,13 +8,6 @@ export enum PlanOfferAdminStatus {
 export enum PlanOfferScope {
   PRODUCT = "product",
   VARIANT = "variant",
-}
-
-export enum PlanOfferFrequencyInterval {
-  DAY = "day",
-  WEEK = "week",
-  MONTH = "month",
-  YEAR = "year",
 }
 
 export enum PlanOfferDiscountType {
@@ -30,13 +25,13 @@ export type PlanOfferAdminTarget = {
 }
 
 export type PlanOfferAdminFrequencyOption = {
-  interval: PlanOfferFrequencyInterval
+  interval: FrequencyInterval
   value: number
   label: string
 }
 
 export type PlanOfferAdminDiscountValue = {
-  interval: PlanOfferFrequencyInterval
+  interval: FrequencyInterval
   frequency_value: number
   type: PlanOfferDiscountType
   value: number
@@ -95,11 +90,11 @@ export type CreatePlanOfferAdminRequest = {
   variant_id?: string | null
   is_enabled: boolean
   allowed_frequencies: Array<{
-    interval: PlanOfferFrequencyInterval
+    interval: FrequencyInterval
     value: number
   }>
   discounts?: Array<{
-    interval: PlanOfferFrequencyInterval
+    interval: FrequencyInterval
     frequency_value: number
     value: number
     type: PlanOfferDiscountType

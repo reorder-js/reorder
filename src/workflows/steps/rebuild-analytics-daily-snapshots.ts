@@ -22,12 +22,13 @@ import {
   ActivityLogEventType,
 } from "../../modules/activity-log/types"
 import {
-  SubscriptionFrequencyInterval,
+
   SubscriptionStatus,
 } from "../../modules/subscription/types"
 import {
   RebuildAnalyticsDailySnapshotsStepOutput,
 } from "./normalize-analytics-rebuild-range"
+import { FrequencyInterval } from "../../common/types/frequency-interval"
 
 type SubscriptionAnalyticsRecord = {
   id: string
@@ -35,7 +36,7 @@ type SubscriptionAnalyticsRecord = {
   product_id: string
   variant_id: string
   status: SubscriptionStatus
-  frequency_interval: SubscriptionFrequencyInterval
+  frequency_interval: FrequencyInterval
   frequency_value: number
   started_at: string
   paused_at: string | null
@@ -85,7 +86,7 @@ type SubscriptionMetricsDailyRecord = {
   product_id: string
   variant_id: string
   status: SubscriptionStatus
-  frequency_interval: SubscriptionFrequencyInterval
+  frequency_interval: FrequencyInterval
   frequency_value: number
   currency_code: string | null
   is_active: boolean
@@ -160,18 +161,18 @@ function toUtcDayEnd(dayStart: Date) {
 
 function normalizeMonthlyRecurringValue(
   amount: number,
-  interval: SubscriptionFrequencyInterval,
+  interval: FrequencyInterval,
   value: number
 ) {
   if (!Number.isFinite(amount) || !Number.isFinite(value) || value <= 0) {
     return null
   }
 
-  if (interval === SubscriptionFrequencyInterval.WEEK) {
+  if (interval === FrequencyInterval.WEEK) {
     return Number(((amount * 52) / (12 * value)).toFixed(2))
   }
 
-  if (interval === SubscriptionFrequencyInterval.MONTH) {
+  if (interval === FrequencyInterval.MONTH) {
     return Number((amount / value).toFixed(2))
   }
 

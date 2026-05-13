@@ -17,11 +17,9 @@ import {
   createSubscriptionSeed,
 } from "../helpers/plan-offer-fixtures"
 import {
-  PlanOfferFrequencyInterval,
   PlanOfferScope,
 } from "../../src/modules/plan-offer/types"
 import {
-  SubscriptionFrequencyInterval,
   SubscriptionStatus,
 } from "../../src/modules/subscription/types"
 import { ACTIVITY_LOG_MODULE } from "../../src/modules/activity-log"
@@ -30,6 +28,7 @@ import {
   ActivityLogActorType,
   ActivityLogEventType,
 } from "../../src/modules/activity-log/types"
+import { FrequencyInterval } from "../../src/common/types/frequency-interval"
 
 medusaIntegrationTestRunner({
   medusaConfigFile: path.resolve(process.cwd(), "integration-tests"),
@@ -240,7 +239,7 @@ medusaIntegrationTestRunner({
           is_enabled: true,
           allowed_frequencies: [
             {
-              interval: PlanOfferFrequencyInterval.MONTH,
+              interval: FrequencyInterval.MONTH,
               value: 2,
             },
           ],
@@ -257,7 +256,7 @@ medusaIntegrationTestRunner({
           input: {
             id: subscription.id,
             variant_id: variant.id,
-            frequency_interval: SubscriptionFrequencyInterval.MONTH,
+            frequency_interval: FrequencyInterval.MONTH,
             frequency_value: 2,
             requested_by: "admin_test",
           },

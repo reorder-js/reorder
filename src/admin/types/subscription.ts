@@ -1,15 +1,10 @@
+import type { FrequencyInterval } from "../../common/types/frequency-interval"
+
 export enum SubscriptionAdminStatus {
   ACTIVE = "active",
   PAUSED = "paused",
   CANCELLED = "cancelled",
   PAST_DUE = "past_due",
-}
-
-export enum SubscriptionFrequencyInterval {
-  DAY = "day",
-  WEEK = "week",
-  MONTH = "month",
-  YEAR = "year",
 }
 
 export enum SubscriptionDiscountType {
@@ -32,7 +27,7 @@ export type SubscriptionAdminProduct = {
 }
 
 export type SubscriptionAdminFrequency = {
-  interval: SubscriptionFrequencyInterval
+  interval: FrequencyInterval
   value: number
   label: string
 }
@@ -51,7 +46,7 @@ export type SubscriptionAdminDiscount = {
 export type SubscriptionAdminPendingPlanChange = {
   variant_id: string
   variant_title: string
-  frequency_interval: SubscriptionFrequencyInterval
+  frequency_interval: FrequencyInterval
   frequency_value: number
   effective_at: string | null
 }

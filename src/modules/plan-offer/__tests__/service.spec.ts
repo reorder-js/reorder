@@ -4,10 +4,10 @@ import PlanOffer from "../models/plan-offer"
 import PlanOfferModuleService from "../service"
 import {
   PlanOfferDiscountType,
-  PlanOfferFrequencyInterval,
   PlanOfferScope,
   PlanOfferStackingPolicy,
 } from "../types"
+import { FrequencyInterval } from "../../../common/types/frequency-interval"
 
 moduleIntegrationTestRunner<PlanOfferModuleService>({
   moduleName: PLAN_OFFER_MODULE,
@@ -24,14 +24,14 @@ moduleIntegrationTestRunner<PlanOfferModuleService>({
           is_enabled: true,
           allowed_frequencies: [
             {
-              interval: PlanOfferFrequencyInterval.MONTH,
+              interval: FrequencyInterval.MONTH,
               value: 1,
             },
           ] as any,
           frequency_intervals: ["month"],
           discount_per_frequency: [
             {
-              interval: PlanOfferFrequencyInterval.MONTH,
+              interval: FrequencyInterval.MONTH,
               value: 1,
               discount_type: PlanOfferDiscountType.PERCENTAGE,
               discount_value: 10,
@@ -64,7 +64,7 @@ moduleIntegrationTestRunner<PlanOfferModuleService>({
           is_enabled: true,
           allowed_frequencies: [
             {
-              interval: PlanOfferFrequencyInterval.MONTH,
+              interval: FrequencyInterval.MONTH,
               value: 1,
             },
           ] as any,
@@ -80,11 +80,11 @@ moduleIntegrationTestRunner<PlanOfferModuleService>({
           frequency_intervals: ["month", "year"],
           allowed_frequencies: [
             {
-              interval: PlanOfferFrequencyInterval.MONTH,
+              interval: FrequencyInterval.MONTH,
               value: 1,
             },
             {
-              interval: PlanOfferFrequencyInterval.YEAR,
+              interval: FrequencyInterval.YEAR,
               value: 1,
             },
           ] as any,
@@ -105,7 +105,7 @@ moduleIntegrationTestRunner<PlanOfferModuleService>({
           is_enabled: true,
           allowed_frequencies: [
             {
-              interval: PlanOfferFrequencyInterval.DAY,
+              interval: FrequencyInterval.DAY,
               value: 1,
             },
           ] as any,

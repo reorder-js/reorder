@@ -6,8 +6,9 @@ import {
   createProductWithVariant,
   createSubscriptionSeed,
 } from "../helpers/plan-offer-fixtures"
-import { PlanOfferFrequencyInterval, PlanOfferScope } from "../../src/modules/plan-offer/types"
-import { SubscriptionFrequencyInterval, SubscriptionStatus } from "../../src/modules/subscription/types"
+import { PlanOfferScope } from "../../src/modules/plan-offer/types"
+import { SubscriptionStatus } from "../../src/modules/subscription/types"
+import { FrequencyInterval } from "../../src/common/types/frequency-interval"
 
 medusaIntegrationTestRunner({
   medusaConfigFile: path.resolve(process.cwd(), "integration-tests"),
@@ -28,7 +29,7 @@ medusaIntegrationTestRunner({
           variant_id: null,
           is_enabled: true,
           allowed_frequencies: [
-            { interval: PlanOfferFrequencyInterval.MONTH, value: 2 },
+            { interval: FrequencyInterval.MONTH, value: 2 },
           ],
         })
 
@@ -237,7 +238,7 @@ medusaIntegrationTestRunner({
           variant_id: null,
           is_enabled: true,
           allowed_frequencies: [
-            { interval: PlanOfferFrequencyInterval.DAY, value: 2 },
+            { interval: FrequencyInterval.DAY, value: 2 },
           ],
         })
 
@@ -246,7 +247,7 @@ medusaIntegrationTestRunner({
           status: SubscriptionStatus.ACTIVE,
           product_id: product.id,
           variant_id: variant.id,
-          frequency_interval: SubscriptionFrequencyInterval.DAY,
+          frequency_interval: FrequencyInterval.DAY,
           frequency_value: 2,
         })
 
