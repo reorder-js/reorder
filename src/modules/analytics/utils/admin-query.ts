@@ -6,7 +6,6 @@ import {
   AnalyticsExportAdminResponse,
   AnalyticsExportFormat,
   AnalyticsFrequencyFilter,
-  AnalyticsFrequencyInterval,
   AnalyticsGroupBy,
   AnalyticsKpiSummary,
   AnalyticsKpisAdminResponse,
@@ -25,6 +24,7 @@ import {
   isSlowAnalyticsRead,
   logAnalyticsEvent,
 } from "./observability"
+import { type FrequencyInterval, isFrequencyInterval } from "../../../common/types/frequency-interval"
 
 type SubscriptionMetricsDailyRecord = {
   id: string
@@ -34,7 +34,7 @@ type SubscriptionMetricsDailyRecord = {
   product_id: string
   variant_id: string
   status: AnalyticsSubscriptionStatus
-  frequency_interval: AnalyticsFrequencyInterval
+  frequency_interval: FrequencyInterval
   frequency_value: number
   currency_code: string | null
   is_active: boolean
@@ -197,7 +197,7 @@ function parseFrequencyToken(token: string): AnalyticsFrequencyFilter {
 
   if (
     !interval ||
-    !["week", "month", "year"].includes(interval) ||
+    !isFrequencyInterval(interval) ||
     !Number.isFinite(parsedValue) ||
     parsedValue <= 0
   ) {
@@ -208,7 +208,7 @@ function parseFrequencyToken(token: string): AnalyticsFrequencyFilter {
   }
 
   return {
-    interval: interval as AnalyticsFrequencyInterval,
+    interval: interval as FrequencyInterval,
     value: parsedValue,
   }
 }
@@ -226,7 +226,7 @@ function normalizeFrequencyFilters(
     }
 
     if (
-      !["week", "month", "year"].includes(filter.interval) ||
+      !isFrequencyInterval(filter.interval) ||
       !Number.isFinite(filter.value) ||
       filter.value <= 0
     ) {

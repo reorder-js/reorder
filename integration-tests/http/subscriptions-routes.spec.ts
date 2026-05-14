@@ -6,8 +6,9 @@ import {
   createProductWithVariant,
   createSubscriptionSeed,
 } from "../helpers/plan-offer-fixtures"
-import { PlanOfferFrequencyInterval, PlanOfferScope } from "../../src/modules/plan-offer/types"
+import { PlanOfferScope } from "../../src/modules/plan-offer/types"
 import { SubscriptionStatus } from "../../src/modules/subscription/types"
+import { FrequencyInterval } from "../../src/common/types/frequency-interval"
 
 medusaIntegrationTestRunner({
   medusaConfigFile: path.resolve(process.cwd(), "integration-tests"),
@@ -140,7 +141,7 @@ medusaIntegrationTestRunner({
           variant_id: variant.id,
           is_enabled: true,
           allowed_frequencies: [
-            { interval: PlanOfferFrequencyInterval.MONTH, value: 2 },
+            { interval: FrequencyInterval.MONTH, value: 2 },
           ],
         })
         const subscription = await createSubscriptionSeed(container, {
@@ -178,7 +179,7 @@ medusaIntegrationTestRunner({
           variant_id: null,
           is_enabled: true,
           allowed_frequencies: [
-            { interval: PlanOfferFrequencyInterval.MONTH, value: 2 },
+            { interval: FrequencyInterval.MONTH, value: 2 },
           ],
         })
 

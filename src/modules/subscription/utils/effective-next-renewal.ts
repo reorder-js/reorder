@@ -1,4 +1,5 @@
-import { SubscriptionFrequencyInterval } from "../types"
+import { DateTime } from "luxon"
+import { FrequencyInterval } from "../../../common/types/frequency-interval"
 
 function toValidDate(value: string | Date | null | undefined) {
   if (!value) {
@@ -16,29 +17,27 @@ function toValidDate(value: string | Date | null | undefined) {
 
 export function addSubscriptionCadence(
   anchor: Date,
-  interval: SubscriptionFrequencyInterval,
+  interval: FrequencyInterval,
   value: number
 ) {
-  const next = new Date(anchor)
+  const dt = DateTime.fromJSDate(anchor, { zone: "utc" })
 
-  if (interval === SubscriptionFrequencyInterval.WEEK) {
-    next.setUTCDate(next.getUTCDate() + value * 7)
-    return next
+  switch (interval) {
+    case FrequencyInterval.DAY:
+      return dt.plus({ days: value }).toJSDate()
+    case FrequencyInterval.WEEK:
+      return dt.plus({ weeks: value }).toJSDate()
+    case FrequencyInterval.MONTH:
+      return dt.plus({ months: value }).toJSDate()
+    case FrequencyInterval.YEAR:
+      return dt.plus({ years: value }).toJSDate()
   }
-
-  if (interval === SubscriptionFrequencyInterval.MONTH) {
-    next.setUTCMonth(next.getUTCMonth() + value)
-    return next
-  }
-
-  next.setUTCFullYear(next.getUTCFullYear() + value)
-  return next
 }
 
 export function getEffectiveNextRenewalAt(input: {
   next_renewal_at: string | Date | null | undefined
   skip_next_cycle: boolean
-  frequency_interval: SubscriptionFrequencyInterval
+  frequency_interval: FrequencyInterval
   frequency_value: number
 }) {
   const nextRenewalAt = toValidDate(input.next_renewal_at)

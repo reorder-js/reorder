@@ -1,3 +1,5 @@
+import type { FrequencyInterval } from "../../common/types/frequency-interval"
+
 export enum AnalyticsGroupBy {
   DAY = "day",
   WEEK = "week",
@@ -17,10 +19,8 @@ export type AnalyticsSubscriptionStatus =
   | "cancelled"
   | "past_due"
 
-export type AnalyticsFrequencyInterval = "week" | "month" | "year"
-
 export type AnalyticsFrequencyFilter = {
-  interval: AnalyticsFrequencyInterval
+  interval: FrequencyInterval
   value: number
 }
 

@@ -84,6 +84,7 @@
           "primary": false,
           "nullable": false,
           "enumItems": [
+            "day",
             "week",
             "month",
             "year"

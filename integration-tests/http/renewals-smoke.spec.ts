@@ -3,7 +3,6 @@ import path from "path"
 import { SUBSCRIPTION_MODULE } from "../../src/modules/subscription"
 import type SubscriptionModuleService from "../../src/modules/subscription/service"
 import {
-  SubscriptionFrequencyInterval,
   SubscriptionStatus,
 } from "../../src/modules/subscription/types"
 import { RENEWAL_MODULE } from "../../src/modules/renewal"
@@ -22,6 +21,7 @@ import {
   forceRenewalCycleWorkflow,
   processRenewalCycleWorkflow,
 } from "../../src/workflows"
+import { FrequencyInterval } from "../../src/common/types/frequency-interval"
 
 medusaIntegrationTestRunner({
   medusaConfigFile: path.resolve(process.cwd(), "integration-tests"),
@@ -140,7 +140,7 @@ medusaIntegrationTestRunner({
         const subscription = await createSubscriptionSeed(container, {
           reference: "SUB-REN-SMOKE-PENDING-001",
           skip_next_cycle: true,
-          frequency_interval: SubscriptionFrequencyInterval.MONTH,
+          frequency_interval: FrequencyInterval.MONTH,
           frequency_value: 1,
         })
 
@@ -152,7 +152,7 @@ medusaIntegrationTestRunner({
           is_enabled: true,
           allowed_frequencies: [
             {
-              interval: SubscriptionFrequencyInterval.MONTH as any,
+              interval: FrequencyInterval.MONTH as any,
               value: 2,
             },
           ],
@@ -164,7 +164,7 @@ medusaIntegrationTestRunner({
             variant_id: subscription.variant_id,
             variant_title: "Approved Variant",
             sku: "APPROVED-SMOKE-SKU",
-            frequency_interval: SubscriptionFrequencyInterval.MONTH,
+            frequency_interval: FrequencyInterval.MONTH,
             frequency_value: 2,
             effective_at: null,
             requested_at: new Date("2026-04-01T08:00:00.000Z").toISOString(),
@@ -206,12 +206,12 @@ medusaIntegrationTestRunner({
         )
         expect(updatedCycle.applied_pending_update_data).toMatchObject({
           variant_id: subscription.variant_id,
-          frequency_interval: SubscriptionFrequencyInterval.MONTH,
+          frequency_interval: FrequencyInterval.MONTH,
           frequency_value: 2,
         })
 
         expect(updatedSubscription.frequency_interval).toEqual(
-          SubscriptionFrequencyInterval.MONTH
+          FrequencyInterval.MONTH
         )
         expect(updatedSubscription.frequency_value).toEqual(2)
         expect(updatedSubscription.pending_update_data).toBeNull()
@@ -227,7 +227,7 @@ medusaIntegrationTestRunner({
         const subscription = await createSubscriptionSeed(container, {
           reference: "SUB-REN-SMOKE-OFFER-001",
           skip_next_cycle: true,
-          frequency_interval: SubscriptionFrequencyInterval.MONTH,
+          frequency_interval: FrequencyInterval.MONTH,
           frequency_value: 1,
         })
 
@@ -239,7 +239,7 @@ medusaIntegrationTestRunner({
           is_enabled: true,
           allowed_frequencies: [
             {
-              interval: SubscriptionFrequencyInterval.MONTH as any,
+              interval: FrequencyInterval.MONTH as any,
               value: 1,
             },
           ],
@@ -251,7 +251,7 @@ medusaIntegrationTestRunner({
             variant_id: subscription.variant_id,
             variant_title: "Disallowed Variant",
             sku: "DISALLOWED-SMOKE-SKU",
-            frequency_interval: SubscriptionFrequencyInterval.MONTH,
+            frequency_interval: FrequencyInterval.MONTH,
             frequency_value: 2,
             effective_at: null,
             requested_at: new Date("2026-04-01T09:00:00.000Z").toISOString(),
@@ -299,11 +299,11 @@ medusaIntegrationTestRunner({
         expect(failedCycle.attempt_count).toEqual(0)
 
         expect(unchangedSubscription.frequency_interval).toEqual(
-          SubscriptionFrequencyInterval.MONTH
+          FrequencyInterval.MONTH
         )
         expect(unchangedSubscription.frequency_value).toEqual(1)
         expect(unchangedSubscription.pending_update_data).toMatchObject({
-          frequency_interval: SubscriptionFrequencyInterval.MONTH,
+          frequency_interval: FrequencyInterval.MONTH,
           frequency_value: 2,
         })
       })

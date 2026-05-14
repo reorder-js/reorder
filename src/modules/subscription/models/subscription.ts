@@ -1,8 +1,8 @@
 import { model } from "@medusajs/framework/utils"
 import {
-  SubscriptionFrequencyInterval,
   SubscriptionStatus,
 } from "../types"
+import { FrequencyInterval } from "../../../common/types/frequency-interval"
 
 const Subscription = model
   .define("subscription", {
@@ -13,7 +13,7 @@ const Subscription = model
     cart_id: model.text().nullable(),
     product_id: model.text(),
     variant_id: model.text(),
-    frequency_interval: model.enum(SubscriptionFrequencyInterval),
+    frequency_interval: model.enum(FrequencyInterval),
     frequency_value: model.number(),
     started_at: model.dateTime(),
     next_renewal_at: model.dateTime().nullable(),

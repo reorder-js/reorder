@@ -393,6 +393,53 @@ medusaIntegrationTestRunner({
         )
       })
 
+      it("creates a plan offer with DAY frequency interval", async () => {
+        const container = getContainer()
+        const headers = await createAdminAuthHeaders(container)
+        const { product, variant } = await createProductWithVariant(container)
+
+        const createResponse = await api.post(
+          "/admin/subscription-offers",
+          {
+            name: "PLAN-API-DAY-001",
+            scope: "variant",
+            product_id: product.id,
+            variant_id: variant.id,
+            is_enabled: true,
+            allowed_frequencies: [
+              { interval: "day", value: 1 },
+            ],
+            discounts: [
+              {
+                interval: "day",
+                frequency_value: 1,
+                type: "percentage",
+                value: 5,
+              },
+            ],
+            rules: {
+              minimum_cycles: 1,
+              trial_enabled: false,
+              trial_days: null,
+              stacking_policy: "allowed",
+            },
+            metadata: null,
+          },
+          { headers }
+        )
+
+        expect(createResponse.status).toEqual(200)
+        expect(createResponse.data.plan_offer).toMatchObject({
+          name: "PLAN-API-DAY-001",
+          allowed_frequencies: [
+            expect.objectContaining({
+              interval: "day",
+              value: 1,
+            }),
+          ],
+        })
+      })
+
       it("returns 400 for invalid validation payloads", async () => {
         const container = getContainer()
         const headers = await createAdminAuthHeaders(container)

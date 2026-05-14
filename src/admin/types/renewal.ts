@@ -37,7 +37,7 @@ export type RenewalAdminPendingChangeSummary = {
   variant_id: string
   variant_title: string
   sku: string | null
-  frequency_interval: "week" | "month" | "year"
+  frequency_interval: "day" | "week" | "month" | "year"
   frequency_value: number
   effective_at: string | null
 }

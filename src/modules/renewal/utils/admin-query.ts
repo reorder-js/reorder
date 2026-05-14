@@ -20,9 +20,9 @@ import {
   RenewalAttemptStatus,
   RenewalCycleStatus,
 } from "../types"
-import { SubscriptionFrequencyInterval } from "../../subscription/types"
 import { getEffectiveNextRenewalAt } from "../../subscription/utils/effective-next-renewal"
 import { renewalErrors } from "./errors"
+import type { FrequencyInterval } from "../../../common/types/frequency-interval"
 
 export type ListAdminRenewalsInput = {
   limit?: number
@@ -78,7 +78,7 @@ type SubscriptionRecord = {
   reference: string
   status: "active" | "paused" | "cancelled" | "past_due"
   next_renewal_at: string | null
-  frequency_interval: "week" | "month" | "year"
+  frequency_interval: "day" | "week" | "month" | "year"
   frequency_value: number
   skip_next_cycle: boolean
   customer_snapshot: {
@@ -169,7 +169,7 @@ const subscriptionFields = [
 type RenewalAdminSubscriptionProjection = {
   summary: RenewalAdminSubscriptionSummary
   next_renewal_at: string | null
-  frequency_interval: "week" | "month" | "year"
+  frequency_interval: "day" | "week" | "month" | "year"
   frequency_value: number
   skip_next_cycle: boolean
 }
@@ -388,7 +388,7 @@ function getEffectiveScheduledFor(
       next_renewal_at: subscriptionProjection.next_renewal_at,
       skip_next_cycle: subscriptionProjection.skip_next_cycle,
       frequency_interval:
-        subscriptionProjection.frequency_interval as SubscriptionFrequencyInterval,
+        subscriptionProjection.frequency_interval as FrequencyInterval,
       frequency_value: subscriptionProjection.frequency_value,
     })?.toISOString() ?? cycle.scheduled_for
   )

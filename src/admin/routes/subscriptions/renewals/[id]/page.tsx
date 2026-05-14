@@ -808,10 +808,12 @@ function formatSubscriptionStatus(
 }
 
 function formatFrequency(
-  interval: "week" | "month" | "year",
+  interval: "day" | "week" | "month" | "year",
   value: number
 ) {
   switch (interval) {
+    case "day":
+      return value === 1 ? "Every day" : `Every ${value} days`
     case "week":
       return value === 1 ? "Every week" : `Every ${value} weeks`
     case "month":

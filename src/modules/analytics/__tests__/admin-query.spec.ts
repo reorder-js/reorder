@@ -19,7 +19,7 @@ type SubscriptionMetricsDailyRecord = {
   product_id: string
   variant_id: string
   status: AnalyticsSubscriptionStatus
-  frequency_interval: "week" | "month" | "year"
+  frequency_interval: "day" | "week" | "month" | "year"
   frequency_value: number
   currency_code: string | null
   is_active: boolean
@@ -374,6 +374,50 @@ describe("analytics admin-query read model", () => {
         value: 2,
       }),
     ])
+  })
+
+  it("filters by day frequency token without errors", async () => {
+    const rows = [
+      buildRow("day_freq_a", {
+        metric_date: "2026-04-02T00:00:00.000Z",
+        subscription_id: "sub_day_freq_a",
+        product_id: "prod_day",
+        status: "active",
+        frequency_interval: "day",
+        frequency_value: 1,
+        mrr_amount: 75,
+      }),
+      buildRow("day_freq_b", {
+        metric_date: "2026-04-02T00:00:00.000Z",
+        subscription_id: "sub_day_freq_b",
+        product_id: "prod_day",
+        status: "active",
+        frequency_interval: "month",
+        frequency_value: 1,
+        mrr_amount: 200,
+      }),
+    ]
+    const { container } = createContainer(rows)
+
+    const response = await getAdminAnalyticsKpis(container, {
+      date_from: "2026-04-02T00:00:00.000Z",
+      date_to: "2026-04-02T23:59:59.999Z",
+      frequency: ["day:1"],
+      timezone: "UTC",
+    })
+
+    expect(response.kpis).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          key: AnalyticsMetricKey.MRR,
+          value: 75,
+        }),
+        expect.objectContaining({
+          key: AnalyticsMetricKey.ACTIVE_SUBSCRIPTIONS_COUNT,
+          value: 1,
+        }),
+      ])
+    )
   })
 
   it("returns null revenue metrics for mixed-currency datasets and empty series for empty datasets", async () => {

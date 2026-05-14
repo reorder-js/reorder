@@ -3,9 +3,9 @@ import { SUBSCRIPTION_MODULE } from ".."
 import Subscription from "../models/subscription"
 import SubscriptionModuleService from "../service"
 import {
-  SubscriptionFrequencyInterval,
   SubscriptionStatus,
 } from "../types"
+import { FrequencyInterval } from "../../../common/types/frequency-interval"
 
 moduleIntegrationTestRunner<SubscriptionModuleService>({
   moduleName: SUBSCRIPTION_MODULE,
@@ -20,7 +20,7 @@ moduleIntegrationTestRunner<SubscriptionModuleService>({
           customer_id: "cus_module_001",
           product_id: "prod_module_001",
           variant_id: "variant_module_001",
-          frequency_interval: SubscriptionFrequencyInterval.MONTH,
+          frequency_interval: FrequencyInterval.MONTH,
           frequency_value: 1,
           started_at: new Date(),
           next_renewal_at: new Date(),
@@ -87,7 +87,7 @@ moduleIntegrationTestRunner<SubscriptionModuleService>({
           customer_id: "cus_module_002",
           product_id: "prod_module_002",
           variant_id: "variant_module_002",
-          frequency_interval: SubscriptionFrequencyInterval.MONTH,
+          frequency_interval: FrequencyInterval.MONTH,
           frequency_value: 1,
           started_at: new Date(),
           next_renewal_at: new Date(),
@@ -150,6 +150,74 @@ moduleIntegrationTestRunner<SubscriptionModuleService>({
 
         expect(updated.status).toEqual(SubscriptionStatus.PAUSED)
         expect(updated.paused_at).toBeTruthy()
+      })
+
+      it("creates a subscription with DAY frequency interval", async () => {
+        const created = await service.createSubscriptions({
+          reference: "SUB-MODULE-DAY-001",
+          status: SubscriptionStatus.ACTIVE,
+          customer_id: "cus_module_day_001",
+          product_id: "prod_module_day_001",
+          variant_id: "variant_module_day_001",
+          frequency_interval: FrequencyInterval.DAY,
+          frequency_value: 3,
+          started_at: new Date(),
+          next_renewal_at: new Date(),
+          last_renewal_at: null,
+          paused_at: null,
+          cancelled_at: null,
+          cancel_effective_at: null,
+          skip_next_cycle: false,
+          is_trial: false,
+          trial_ends_at: null,
+          customer_snapshot: {
+            email: "module_day@example.com",
+            full_name: "Module Day Test",
+          },
+          product_snapshot: {
+            product_id: "prod_module_day_001",
+            product_title: "Module Day Product",
+            variant_id: "variant_module_day_001",
+            variant_title: "Default Variant",
+            sku: "MODULE-SKU-DAY-001",
+          },
+          source_snapshot: {
+            product_id: "prod_module_day_001",
+            variant_id: "variant_module_day_001",
+            title: "Module Day Product - Default Variant",
+            quantity: 1,
+            unit_price: 2999,
+            subtitle: null,
+            sku: "MODULE-SKU-DAY-001",
+            is_discountable: true,
+            is_tax_inclusive: false,
+            requires_shipping: true,
+            tax_lines: [],
+            adjustments: [],
+          },
+          pricing_snapshot: null,
+          shipping_address: {
+            first_name: "Jan",
+            last_name: "Kowalski",
+            company: null,
+            address_1: "Testowa 1",
+            address_2: null,
+            city: "Warszawa",
+            postal_code: "00-001",
+            province: "Mazowieckie",
+            country_code: "PL",
+            phone: null,
+          },
+          pending_update_data: null,
+          metadata: null,
+        })
+
+        const retrieved = await service.retrieveSubscription(created.id)
+
+        expect(retrieved.id).toEqual(created.id)
+        expect(retrieved.reference).toEqual("SUB-MODULE-DAY-001")
+        expect(retrieved.frequency_interval).toEqual(FrequencyInterval.DAY)
+        expect(retrieved.frequency_value).toEqual(3)
       })
     })
   },

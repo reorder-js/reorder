@@ -1,5 +1,6 @@
 import { createFindParams } from "@medusajs/medusa/api/utils/validators"
 import { z } from "zod"
+import { FrequencyInterval } from "../../../common/types/frequency-interval"
 
 const stringToBoolean = z.preprocess((value) => {
   if (typeof value === "string") {
@@ -24,7 +25,7 @@ const subscriptionStatusSchema = z.enum([
   "past_due",
 ])
 
-const subscriptionFrequencyIntervalSchema = z.enum(["week", "month", "year"])
+const subscriptionFrequencyIntervalSchema = z.nativeEnum(FrequencyInterval)
 
 export const GetAdminSubscriptionsSchema = createFindParams({
   offset: 0,

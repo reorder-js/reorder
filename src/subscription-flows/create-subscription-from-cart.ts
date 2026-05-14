@@ -113,42 +113,7 @@ export const createSubscriptionFromCartWorkflow = createWorkflow(
           throw new Error(`Completed order '${orderId}' was not found`)
         }
 
-        const startedAt = toDate(order.created_at)
-        const trialEndsAt =
-          validatedCart.trial_days > 0
-            ? addDays(startedAt, validatedCart.trial_days)
-            : null
-        const nextRenewalAt =
-          validatedCart.trial_days > 0
-            ? trialEndsAt
-            : advanceCadence(
-                startedAt,
-                validatedCart.frequency_interval,
-                validatedCart.frequency_value
-              )
-
-        if (!nextRenewalAt) {
-          throw new Error("Subscription create flow failed to calculate next renewal date")
-        }
-
-        return {
-          customer_id: validatedCart.customer_id,
-          cart_id: validatedCart.cart_id,
-          order_id: order.id,
-          order_display_id: order.display_id ?? null,
-          started_at: startedAt.toISOString(),
-          frequency_interval: validatedCart.frequency_interval,
-          frequency_value: validatedCart.frequency_value,
-          customer_snapshot: validatedCart.customer_snapshot,
-          product_snapshot: validatedCart.product_snapshot,
-          pricing_snapshot: validatedCart.pricing_snapshot,
-          source_snapshot: validatedCart.source_snapshot,
-          shipping_address: validatedCart.shipping_address,
-          payment_context: validatedCart.payment_context,
-          is_trial: validatedCart.trial_days > 0,
-          trial_ends_at: trialEndsAt ? trialEndsAt.toISOString() : null,
-          next_renewal_at: nextRenewalAt.toISOString(),
-        } satisfies CreateSubscriptionRecordStepInput
+        return buildSubscriptionInput(validatedCart, order)
       }
     )
 
@@ -263,7 +228,61 @@ function addDays(date: Date, days: number) {
   return next
 }
 
-function advanceCadence(
+export function buildSubscriptionInput(
+  validatedCart: {
+    customer_id: string
+    cart_id: string
+    frequency_interval: CreateSubscriptionRecordStepInput["frequency_interval"]
+    frequency_value: number
+    customer_snapshot: CreateSubscriptionRecordStepInput["customer_snapshot"]
+    product_snapshot: CreateSubscriptionRecordStepInput["product_snapshot"]
+    pricing_snapshot: CreateSubscriptionRecordStepInput["pricing_snapshot"]
+    source_snapshot: CreateSubscriptionRecordStepInput["source_snapshot"]
+    shipping_address: CreateSubscriptionRecordStepInput["shipping_address"]
+    payment_context: CreateSubscriptionRecordStepInput["payment_context"]
+    trial_days: number
+  },
+  order: { id: string, display_id?: string | number | null, created_at: string | Date }
+): CreateSubscriptionRecordStepInput {
+  const startedAt = toDate(order.created_at)
+  const trialEndsAt =
+    validatedCart.trial_days > 0
+      ? addDays(startedAt, validatedCart.trial_days)
+      : null
+  const nextRenewalAt =
+    validatedCart.trial_days > 0
+      ? trialEndsAt
+      : advanceCadence(
+          startedAt,
+          validatedCart.frequency_interval,
+          validatedCart.frequency_value
+        )
+
+  if (!nextRenewalAt) {
+    throw new Error("Subscription create flow failed to calculate next renewal date")
+  }
+
+  return {
+    customer_id: validatedCart.customer_id,
+    cart_id: validatedCart.cart_id,
+    order_id: order.id,
+    order_display_id: order.display_id ?? null,
+    started_at: startedAt.toISOString(),
+    frequency_interval: validatedCart.frequency_interval,
+    frequency_value: validatedCart.frequency_value,
+    customer_snapshot: validatedCart.customer_snapshot,
+    product_snapshot: validatedCart.product_snapshot,
+    pricing_snapshot: validatedCart.pricing_snapshot,
+    source_snapshot: validatedCart.source_snapshot,
+    shipping_address: validatedCart.shipping_address,
+    payment_context: validatedCart.payment_context,
+    is_trial: validatedCart.trial_days > 0,
+    trial_ends_at: trialEndsAt ? trialEndsAt.toISOString() : null,
+    next_renewal_at: nextRenewalAt.toISOString(),
+  }
+}
+
+export function advanceCadence(
   date: Date,
   interval: CreateSubscriptionRecordStepInput["frequency_interval"],
   value: number
@@ -271,6 +290,9 @@ function advanceCadence(
   const next = new Date(date)
 
   switch (interval) {
+    case "day":
+      next.setUTCDate(next.getUTCDate() + value)
+      return next
     case "week":
       next.setUTCDate(next.getUTCDate() + value * 7)
       return next

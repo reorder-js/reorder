@@ -3,7 +3,7 @@ import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 import { resolveProductSubscriptionConfig } from "../../modules/plan-offer/utils/effective-config"
 import { SUBSCRIPTION_MODULE } from "../../modules/subscription"
 import SubscriptionModuleService from "../../modules/subscription/service"
-import { SubscriptionFrequencyInterval, SubscriptionStatus } from "../../modules/subscription/types"
+import { SubscriptionStatus } from "../../modules/subscription/types"
 import { subscriptionErrors } from "../../modules/subscription/utils/errors"
 import {
   asSubscriptionUpdateInput,
@@ -11,11 +11,12 @@ import {
   SubscriptionWorkflowRecord,
   SubscriptionWorkflowStepResult,
 } from "./pause-subscription"
+import type { FrequencyInterval } from "../../common/types/frequency-interval"
 
 export type ScheduleSubscriptionPlanChangeStepInput = {
   id: string
   variant_id: string
-  frequency_interval: SubscriptionFrequencyInterval
+  frequency_interval: FrequencyInterval
   frequency_value: number
   effective_at?: string
   requested_by?: string | null

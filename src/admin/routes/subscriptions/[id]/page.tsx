@@ -60,8 +60,8 @@ import {
   SubscriptionAdminDetailResponse,
   SubscriptionAdminShippingAddress,
   SubscriptionAdminStatus,
-  SubscriptionFrequencyInterval,
 } from "../../../types/subscription"
+import { FrequencyInterval } from "../../../../common/types/frequency-interval"
 
 const ACTIVITY_LOG_PAGE_SIZE = 10
 
@@ -72,9 +72,10 @@ const scheduleableStatuses = new Set<SubscriptionAdminStatus>([
 ])
 
 const intervalOptions = [
-  { label: "Weekly", value: SubscriptionFrequencyInterval.WEEK },
-  { label: "Monthly", value: SubscriptionFrequencyInterval.MONTH },
-  { label: "Yearly", value: SubscriptionFrequencyInterval.YEAR },
+  { label: "Daily", value: FrequencyInterval.DAY },
+  { label: "Weekly", value: FrequencyInterval.WEEK },
+  { label: "Monthly", value: FrequencyInterval.MONTH },
+  { label: "Yearly", value: FrequencyInterval.YEAR },
 ] as const
 
 const activityLogColumnHelper =
@@ -170,7 +171,7 @@ const SubscriptionDetailPage = () => {
     })
   const [variantId, setVariantId] = useState("")
   const [frequencyInterval, setFrequencyInterval] =
-    useState<SubscriptionFrequencyInterval>(SubscriptionFrequencyInterval.MONTH)
+    useState<FrequencyInterval>(FrequencyInterval.MONTH)
   const [frequencyValue, setFrequencyValue] = useState("1")
   const [effectiveAt, setEffectiveAt] = useState("")
   const [shippingAddressForm, setShippingAddressForm] =
@@ -224,7 +225,7 @@ const SubscriptionDetailPage = () => {
   const planChangeMutation = useMutation({
     mutationFn: async (body: {
       variant_id: string
-      frequency_interval: SubscriptionFrequencyInterval
+      frequency_interval: FrequencyInterval
       frequency_value: number
       effective_at?: string
     }) =>
@@ -1551,7 +1552,7 @@ const SubscriptionDetailPage = () => {
                 <Select
                   value={frequencyInterval}
                   onValueChange={(value) =>
-                    setFrequencyInterval(value as SubscriptionFrequencyInterval)}
+                    setFrequencyInterval(value as FrequencyInterval)}
                 >
                   <Select.Trigger id="frequency-interval">
                     <Select.Value placeholder="Select interval" />
@@ -2057,9 +2058,13 @@ function formatStatus(status: SubscriptionAdminStatus) {
 }
 
 function formatFrequency(
-  interval: SubscriptionFrequencyInterval,
+  interval: FrequencyInterval,
   value: number
 ) {
+  if (interval === FrequencyInterval.DAY) {
+    return value === 1 ? "Every day" : `Every ${value} days`
+  }
+
   if (value === 1) {
     return `Every ${interval}`
   }

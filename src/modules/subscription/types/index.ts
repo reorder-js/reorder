@@ -1,18 +1,13 @@
 import type { InferTypeOf } from "@medusajs/framework/types"
 import Subscription from "./../models/subscription"
-import type { Override } from "../../../utils/types"
+import type { Override } from "../../../common/utils/override"
+import type { FrequencyInterval } from "../../../common/types/frequency-interval"
 
 export enum SubscriptionStatus {
   ACTIVE = "active",
   PAUSED = "paused",
   CANCELLED = "cancelled",
   PAST_DUE = "past_due",
-}
-
-export enum SubscriptionFrequencyInterval {
-  WEEK = "week",
-  MONTH = "month",
-  YEAR = "year",
 }
 
 export type SubscriptionCustomerSnapshot = {
@@ -82,7 +77,7 @@ export type SubscriptionPendingUpdateData = {
   variant_id: string
   variant_title: string
   sku: string | null
-  frequency_interval: SubscriptionFrequencyInterval
+  frequency_interval: FrequencyInterval
   frequency_value: number
   effective_at: string | null
   requested_at: string

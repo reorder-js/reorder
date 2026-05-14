@@ -15,7 +15,6 @@ import {
 import { SUBSCRIPTION_MODULE } from "../../src/modules/subscription"
 import type SubscriptionModuleService from "../../src/modules/subscription/service"
 import {
-  SubscriptionFrequencyInterval,
   SubscriptionStatus,
 } from "../../src/modules/subscription/types"
 import {
@@ -32,6 +31,7 @@ import {
   createRenewalCycleSeed,
   createSubscriptionSeed,
 } from "../helpers/renewal-fixtures"
+import { FrequencyInterval } from "../../src/common/types/frequency-interval"
 
 medusaIntegrationTestRunner({
   medusaConfigFile: path.resolve(process.cwd(), "integration-tests"),
@@ -242,7 +242,7 @@ medusaIntegrationTestRunner({
           pending_update_data: {
             variant_id: subscription.variant_id,
             variant_title: "Changed Variant",
-            frequency_interval: SubscriptionFrequencyInterval.MONTH,
+            frequency_interval: FrequencyInterval.MONTH,
             frequency_value: 2,
             effective_at: new Date("2026-05-10T00:00:00.000Z").toISOString(),
           },
@@ -283,7 +283,7 @@ medusaIntegrationTestRunner({
           pending_update_data: {
             variant_id: futureSubscription.variant_id,
             variant_title: "Future Variant",
-            frequency_interval: SubscriptionFrequencyInterval.MONTH,
+            frequency_interval: FrequencyInterval.MONTH,
             frequency_value: 2,
             effective_at: new Date("2026-05-18T00:00:00.000Z").toISOString(),
           },

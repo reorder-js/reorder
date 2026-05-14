@@ -21,15 +21,16 @@ import { sdk } from "../../../../lib/client"
 import {
   PlanOfferAdminDetailResponse,
   PlanOfferDiscountType,
-  PlanOfferFrequencyInterval,
+
 } from "../../../../types/plan-offer"
 import {
   adminPlanOffersQueryKeys,
   useAdminPlanOfferDetailQuery,
 } from "../data-loading"
+import { FrequencyInterval } from "../../../../../common/types/frequency-interval"
 
 const frequencyRowSchema = z.object({
-  interval: z.nativeEnum(PlanOfferFrequencyInterval),
+  interval: z.nativeEnum(FrequencyInterval),
   value: z.number().int().positive(),
   has_discount: z.boolean(),
   discount_type: z.nativeEnum(PlanOfferDiscountType),
@@ -177,11 +178,11 @@ export const EditPlanOfferDrawer = ({
       name: string
       is_enabled: boolean
       allowed_frequencies: Array<{
-        interval: PlanOfferFrequencyInterval
+        interval: FrequencyInterval
         value: number
       }>
       discounts: Array<{
-        interval: PlanOfferFrequencyInterval
+        interval: FrequencyInterval
         frequency_value: number
         type: PlanOfferDiscountType
         value: number
@@ -391,7 +392,7 @@ export const EditPlanOfferDrawer = ({
                           variant="secondary"
                           onClick={() =>
                             append({
-                              interval: PlanOfferFrequencyInterval.MONTH,
+                              interval: FrequencyInterval.MONTH,
                               value: 1,
                               has_discount: false,
                               discount_type: PlanOfferDiscountType.PERCENTAGE,
@@ -557,13 +558,16 @@ export const EditPlanOfferDrawer = ({
                                         <Select.Value />
                                       </Select.Trigger>
                                       <Select.Content>
-                                        <Select.Item value={PlanOfferFrequencyInterval.WEEK}>
+                                        <Select.Item value={FrequencyInterval.DAY}>
+                                          Daily
+                                        </Select.Item>
+                                        <Select.Item value={FrequencyInterval.WEEK}>
                                           Weekly
                                         </Select.Item>
-                                        <Select.Item value={PlanOfferFrequencyInterval.MONTH}>
+                                        <Select.Item value={FrequencyInterval.MONTH}>
                                           Monthly
                                         </Select.Item>
-                                        <Select.Item value={PlanOfferFrequencyInterval.YEAR}>
+                                        <Select.Item value={FrequencyInterval.YEAR}>
                                           Yearly
                                         </Select.Item>
                                       </Select.Content>

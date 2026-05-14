@@ -6,8 +6,9 @@ import {
   createProductWithVariant,
   createSubscriptionSeed,
 } from "../helpers/plan-offer-fixtures"
-import { PlanOfferFrequencyInterval, PlanOfferScope } from "../../src/modules/plan-offer/types"
+import { PlanOfferScope } from "../../src/modules/plan-offer/types"
 import { SubscriptionStatus } from "../../src/modules/subscription/types"
+import { FrequencyInterval } from "../../src/common/types/frequency-interval"
 
 medusaIntegrationTestRunner({
   medusaConfigFile: path.resolve(process.cwd(), "integration-tests"),
@@ -28,7 +29,7 @@ medusaIntegrationTestRunner({
           variant_id: null,
           is_enabled: true,
           allowed_frequencies: [
-            { interval: PlanOfferFrequencyInterval.MONTH, value: 2 },
+            { interval: FrequencyInterval.MONTH, value: 2 },
           ],
         })
 
@@ -224,6 +225,46 @@ medusaIntegrationTestRunner({
             (record: { id: string }) => record.id === latestLog.id
           )
         ).toEqual(true)
+      })
+
+      it("creates and retrieves a subscription with DAY frequency interval", async () => {
+        const container = getContainer()
+        const headers = await createAdminAuthHeaders(container)
+        const { product, variant } = await createProductWithVariant(container)
+        await createPlanOfferSeed(container, {
+          name: "PLAN-SUB-DAY-FLOW-001",
+          scope: PlanOfferScope.PRODUCT,
+          product_id: product.id,
+          variant_id: null,
+          is_enabled: true,
+          allowed_frequencies: [
+            { interval: FrequencyInterval.DAY, value: 2 },
+          ],
+        })
+
+        const subscription = await createSubscriptionSeed(container, {
+          reference: "SUB-DAY-FLOW-001",
+          status: SubscriptionStatus.ACTIVE,
+          product_id: product.id,
+          variant_id: variant.id,
+          frequency_interval: FrequencyInterval.DAY,
+          frequency_value: 2,
+        })
+
+        const detailResponse = await api.get(
+          `/admin/subscriptions/${subscription.id}`,
+          { headers }
+        )
+
+        expect(detailResponse.status).toEqual(200)
+        expect(detailResponse.data.subscription).toMatchObject({
+          id: subscription.id,
+          reference: "SUB-DAY-FLOW-001",
+          frequency: {
+            interval: "day",
+            value: 2,
+          },
+        })
       })
     })
   },

@@ -7,11 +7,12 @@ import type {
 } from "../../modules/plan-offer/types"
 import {
   PlanOfferDiscountType,
-  PlanOfferFrequencyInterval,
+
   PlanOfferScope,
   PlanOfferStackingPolicy,
 } from "../../modules/plan-offer/types"
 import { planOfferErrors } from "../../modules/plan-offer/utils/errors"
+import { FrequencyInterval } from "../../common/types/frequency-interval"
 
 export type UpsertPlanOfferInput = {
   name: string
@@ -20,11 +21,11 @@ export type UpsertPlanOfferInput = {
   variant_id?: string | null
   is_enabled: boolean
   allowed_frequencies: Array<{
-    interval: PlanOfferFrequencyInterval | "week" | "month" | "year"
+    interval: FrequencyInterval
     value: number
   }>
   discounts?: Array<{
-    interval: PlanOfferFrequencyInterval | "week" | "month" | "year"
+    interval: FrequencyInterval
     frequency_value: number
     type: PlanOfferDiscountType | "percentage" | "fixed"
     value: number
@@ -134,22 +135,6 @@ function normalizeScope(
   }
 }
 
-function normalizeFrequencyInterval(
-  interval: UpsertPlanOfferInput["allowed_frequencies"][number]["interval"]
-): PlanOfferFrequencyInterval {
-  switch (interval) {
-    case "week":
-    case PlanOfferFrequencyInterval.WEEK:
-      return PlanOfferFrequencyInterval.WEEK
-    case "month":
-    case PlanOfferFrequencyInterval.MONTH:
-      return PlanOfferFrequencyInterval.MONTH
-    case "year":
-    case PlanOfferFrequencyInterval.YEAR:
-      return PlanOfferFrequencyInterval.YEAR
-  }
-}
-
 function normalizeDiscountType(
   type: NonNullable<UpsertPlanOfferInput["discounts"]>[number]["type"]
 ): PlanOfferDiscountType {
@@ -206,7 +191,7 @@ function normalizeAllowedFrequencies(
     seen.add(key)
 
     return {
-      interval: normalizeFrequencyInterval(frequency.interval),
+      interval: frequency.interval,
       value: frequency.value,
     }
   })
@@ -262,7 +247,7 @@ function normalizeDiscounts(
     }
 
     return {
-      interval: normalizeFrequencyInterval(discount.interval),
+      interval: discount.interval,
       value: discount.frequency_value,
       discount_type: normalizeDiscountType(discount.type),
       discount_value: discount.value,

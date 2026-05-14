@@ -162,6 +162,30 @@ medusaIntegrationTestRunner({
         )
       })
 
+      it("returns KPI payload filtered by day frequency", async () => {
+        const container = getContainer()
+        const headers = await createAdminAuthHeaders(container)
+
+        await seedAnalyticsSnapshotScenario(container)
+
+        const response = await api.get(
+          "/admin/subscription-analytics/kpis?date_from=2026-04-01T00:00:00.000Z&date_to=2026-04-10T23:59:59.999Z&frequency=day:1",
+          { headers }
+        )
+
+        expect(response.status).toEqual(200)
+        expect(response.data.filters).toMatchObject({
+          frequency: [{ interval: "day", value: 1 }],
+        })
+        expect(response.data.kpis).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              key: "active_subscriptions_count",
+            }),
+          ])
+        )
+      })
+
       it("validates ranges, unsupported timezone, frequency token, and max window", async () => {
         const container = getContainer()
         const headers = await createAdminAuthHeaders(container)

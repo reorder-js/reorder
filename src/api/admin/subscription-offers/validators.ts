@@ -1,5 +1,6 @@
 import { createFindParams } from "@medusajs/medusa/api/utils/validators"
 import { z } from "zod"
+import { FrequencyInterval } from "../../../common/types/frequency-interval"
 
 const stringToBoolean = z.preprocess((value) => {
   if (typeof value === "string") {
@@ -16,7 +17,7 @@ const stringToBoolean = z.preprocess((value) => {
 }, z.boolean())
 
 const planOfferScopeSchema = z.enum(["product", "variant"])
-const planOfferFrequencyIntervalSchema = z.enum(["week", "month", "year"])
+const planOfferFrequencyIntervalSchema = z.nativeEnum(FrequencyInterval)
 const planOfferDiscountTypeSchema = z.enum(["percentage", "fixed"])
 const planOfferStackingPolicySchema = z.enum([
   "allowed",
