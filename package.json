@@ -3,6 +3,9 @@
   "version": "1.2.0",
   "description": "Customized version of @reorderjs/reorder.",
   "license": "MIT",
+  "author": {
+    "name": "Bethink"
+  },
   "files": [
     ".medusa/server"
   ],
@@ -20,6 +23,7 @@
     }
   },
   "scripts": {
+    "lint": "eslint .",
     "build": "medusa plugin:build",
     "dev": "medusa plugin:develop",
     "prepublishOnly": "medusa plugin:build",
@@ -73,6 +77,10 @@
     "node": ">=20"
   },
   "packageManager": "yarn@4.4.1",
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
   "dependencies": {
     "luxon": "^3.7.2"
   }
