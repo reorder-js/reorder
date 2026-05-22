@@ -1,4 +1,4 @@
-# `@bethinkpl/reorderjs`
+# `@bethinkpl/reorder`
 Customized fork of [@reorder/reorderjs](https://github.com/reorder-js/reorder).
 ## Changes
 ### New features
