@@ -78,6 +78,8 @@ Current files:
 
 This layer is the main protection for the implemented Admin behavior.
 
+Store checkout now emits the initial `subscription.created` activity-log entry through the subscription checkout workflow. When changing that flow, extend the workflow or HTTP integration layer to protect the emitted event.
+
 ## 4. Fixture Strategy
 
 Test data helpers are defined in:

@@ -50,3 +50,4 @@ Checkout sequencing:
 - subscription pricing is synchronized before `completeCartWorkflow`
 - the cart is refreshed before completion so payment collection and order totals use the discounted amount
 - after order creation, the order adjustment may be labeled with `subscription_discount` for Medusa Admin display
+- when the subscription record is created for the first time, the plugin also appends a `subscription.created` activity-log entry for that subscription and records the storefront customer as the actor

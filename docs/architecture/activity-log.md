@@ -97,7 +97,7 @@ The plugin already uses structured operational logging and scheduler summary met
 Those operational logs remain a separate concern.
 
 `Activity Log` should contain only business-significant, operator-facing events, such as:
-- subscription paused, resumed, canceled
+- subscription created, paused, resumed, canceled
 - plan change scheduled or applied
 - shipping address updated
 - next delivery skipped
@@ -168,6 +168,7 @@ The logical event contract is:
 - indicates who or what triggered the event
 - current planned values:
   - `user`
+  - `customer`
   - `system`
   - `scheduler`
 
@@ -236,6 +237,7 @@ The `Activity Log` should use a stable, explicit taxonomy grouped by domain pref
 
 ### Subscription Events
 
+- `subscription.created`
 - `subscription.paused`
 - `subscription.resumed`
 - `subscription.canceled`

@@ -41,6 +41,7 @@
           "primary": false,
           "nullable": false,
           "enumItems": [
+            "subscription.created",
             "subscription.paused",
             "subscription.resumed",
             "subscription.canceled",
@@ -74,6 +75,7 @@
           "nullable": false,
           "enumItems": [
             "user",
+            "customer",
             "system",
             "scheduler"
           ],

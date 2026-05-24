@@ -138,6 +138,22 @@ Important areas:
 - Keep tests self-contained. Do not depend on pre-seeded data.
 - If you change documented behavior, verify implementation and docs remain aligned.
 
+## Local Medusa backend workflow
+
+To use the local `reorder` plugin in a Medusa backend during development:
+
+- add this dependency in the Medusa backend `package.json`:
+  - `"@reorderjs/reorder": "file:../reorder"`
+- run `yarn install` in the Medusa backend after adding or updating that dependency
+
+When you make changes in this `reorder` repository and want the Medusa backend to use the newest local version, use this sequence:
+
+1. In `reorder`, run `yarn medusa plugin:publish`
+2. In the Medusa backend, run `yarn medusa db:migrate`
+3. In the Medusa backend, run `yarn install`
+
+Do not assume the Medusa backend is using the newest local plugin code until that sequence has completed.
+
 Useful commands:
 
 ```bash

@@ -1,5 +1,6 @@
 export enum ActivityLogAdminActorType {
   USER = "user",
+  CUSTOMER = "customer",
   SYSTEM = "system",
   SCHEDULER = "scheduler",
 }

@@ -1,10 +1,12 @@
 export enum ActivityLogActorType {
   USER = "user",
+  CUSTOMER = "customer",
   SYSTEM = "system",
   SCHEDULER = "scheduler",
 }
 
 export enum ActivityLogEventType {
+  SUBSCRIPTION_CREATED = "subscription.created",
   SUBSCRIPTION_PAUSED = "subscription.paused",
   SUBSCRIPTION_RESUMED = "subscription.resumed",
   SUBSCRIPTION_CANCELED = "subscription.canceled",

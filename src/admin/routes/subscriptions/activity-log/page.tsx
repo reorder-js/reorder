@@ -38,6 +38,7 @@ const columnHelper = createDataTableColumnHelper<ActivityLogAdminListItem>()
 
 const actorFilterOptions = [
   { label: "Admin", value: ActivityLogAdminActorType.USER },
+  { label: "Customer", value: ActivityLogAdminActorType.CUSTOMER },
   { label: "System", value: ActivityLogAdminActorType.SYSTEM },
   { label: "Scheduler", value: ActivityLogAdminActorType.SCHEDULER },
 ] as const
@@ -47,11 +48,13 @@ const domainPresetOptions = [
     label: "Subscriptions",
     value: "subscriptions",
     eventTypes: [
+      "subscription.created",
       "subscription.paused",
       "subscription.resumed",
       "subscription.canceled",
       "subscription.plan_change_scheduled",
       "subscription.shipping_address_updated",
+      "subscription.next_delivery_skipped",
     ],
   },
   {
@@ -863,6 +866,8 @@ function formatSummary(
 
 function formatSummaryField(value: string) {
   switch (value) {
+    case "subscription_created":
+      return "Subscription created"
     case "pending_update_data":
       return "Scheduled plan change"
     case "status":
@@ -900,6 +905,7 @@ function getEventColor(value: string) {
       return "red"
     case "renewal.succeeded":
     case "dunning.recovered":
+    case "subscription.created":
       return "green"
     case "renewal.force_requested":
     case "dunning.retry_executed":
@@ -918,6 +924,8 @@ function formatActorType(value: ActivityLogAdminActorType) {
   switch (value) {
     case ActivityLogAdminActorType.USER:
       return "Admin"
+    case ActivityLogAdminActorType.CUSTOMER:
+      return "Customer"
     case ActivityLogAdminActorType.SYSTEM:
       return "System"
     case ActivityLogAdminActorType.SCHEDULER:
@@ -929,6 +937,8 @@ function getActorColor(value: ActivityLogAdminActorType) {
   switch (value) {
     case ActivityLogAdminActorType.USER:
       return "blue"
+    case ActivityLogAdminActorType.CUSTOMER:
+      return "green"
     case ActivityLogAdminActorType.SYSTEM:
       return "grey"
     case ActivityLogAdminActorType.SCHEDULER:

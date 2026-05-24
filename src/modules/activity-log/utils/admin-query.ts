@@ -130,6 +130,8 @@ function mapActorType(actorType: ActivityLogActorType) {
   switch (actorType) {
     case ActivityLogActorType.USER:
       return ActivityLogAdminActorType.USER
+    case ActivityLogActorType.CUSTOMER:
+      return ActivityLogAdminActorType.CUSTOMER
     case ActivityLogActorType.SYSTEM:
       return ActivityLogAdminActorType.SYSTEM
     case ActivityLogActorType.SCHEDULER:
@@ -164,6 +166,16 @@ function mapActorSummary(
   record: SubscriptionLogRecord,
   user?: AdminUserRecord | null
 ): ActivityLogAdminActorSummary {
+  if (record.actor_type === ActivityLogActorType.CUSTOMER) {
+    return {
+      type: mapActorType(record.actor_type),
+      id: record.actor_id,
+      email: null,
+      name: record.customer_name ?? null,
+      display: record.customer_name ?? record.actor_id ?? "Customer",
+    }
+  }
+
   const name = buildActorName(user)
   const email = user?.email ?? null
 
@@ -177,6 +189,10 @@ function mapActorSummary(
 }
 
 function buildChangeSummary(record: SubscriptionLogRecord) {
+  if (record.event_type === "subscription.created") {
+    return "subscription_created"
+  }
+
   if (record.changed_fields?.length) {
     return record.changed_fields
       .slice(0, 3)

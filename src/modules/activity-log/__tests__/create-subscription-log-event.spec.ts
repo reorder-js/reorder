@@ -244,6 +244,69 @@ moduleIntegrationTestRunner<ActivityLogModuleService>({
           },
         })
       })
+
+      it("persists store checkout subscription creation events", async () => {
+        const logEvent = normalizeActivityLogEvent({
+          subscription_id: "sub_006",
+          customer_id: "cus_006",
+          event_type: ActivityLogEventType.SUBSCRIPTION_CREATED,
+          actor_type: ActivityLogActorType.CUSTOMER,
+          actor_id: "cus_006",
+          display: {
+            subscription_reference: "SUB-006",
+            customer_name: "Jane Doe",
+            product_title: "Coffee Club",
+            variant_title: "Monthly",
+          },
+          new_state: {
+            status: "active",
+            started_at: "2026-04-01T10:00:00.000Z",
+            next_renewal_at: "2026-05-01T10:00:00.000Z",
+            frequency_interval: "month",
+            frequency_value: 1,
+          },
+          metadata: {
+            order_id: "order_006",
+            source: "store",
+            trigger_type: "checkout",
+          },
+          dedupe: {
+            scope: "order",
+            target_id: "order_006",
+            qualifier: "sub_006",
+          },
+        })
+
+        await createSubscriptionLogEventStepHandler(
+          { log_event: logEvent },
+          stepContext as any
+        )
+
+        const records = await service.listSubscriptionLogs({
+          dedupe_key: logEvent.dedupe_key,
+        } as any)
+
+        expect(records).toHaveLength(1)
+        expect(records[0]).toMatchObject({
+          subscription_id: "sub_006",
+          customer_id: "cus_006",
+          event_type: ActivityLogEventType.SUBSCRIPTION_CREATED,
+          actor_type: ActivityLogActorType.CUSTOMER,
+          actor_id: "cus_006",
+          metadata: {
+            order_id: "order_006",
+            source: "store",
+            trigger_type: "checkout",
+          },
+          new_state: {
+            status: "active",
+            started_at: "2026-04-01T10:00:00.000Z",
+            next_renewal_at: "2026-05-01T10:00:00.000Z",
+            frequency_interval: "month",
+            frequency_value: 1,
+          },
+        })
+      })
     })
   },
 })

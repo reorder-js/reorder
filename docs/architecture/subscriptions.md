@@ -163,7 +163,7 @@ The store create flow uses:
 - `POST /store/carts/:id/subscribe`
 - `create-subscription-from-cart`
 
-The flow validates subscription metadata on the line item, synchronizes the cart pricing for the selected cadence, blocks mixed cart usage, completes the cart into a standard Medusa `order`, checks idempotency through the `subscription-order` link, creates the `subscription`, links it to `customer`, `cart`, and `order`, and creates the first upcoming `renewal_cycle`.
+The flow validates subscription metadata on the line item, synchronizes the cart pricing for the selected cadence, blocks mixed cart usage, completes the cart into a standard Medusa `order`, checks idempotency through the `subscription-order` link, creates the `subscription`, records a `subscription.created` activity-log event for newly created subscriptions with the storefront customer as the actor, links it to `customer`, `cart`, and `order`, and creates the first upcoming `renewal_cycle`.
 
 Pricing synchronization is handled by a dedicated workflow:
 - load subscription line items from the cart

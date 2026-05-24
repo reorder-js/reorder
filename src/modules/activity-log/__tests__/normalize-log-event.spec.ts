@@ -172,6 +172,53 @@ describe("normalizeActivityLogEvent", () => {
     expect(normalized.changed_fields).toBeNull()
   })
 
+  it("keeps checkout metadata for subscription creation events", () => {
+    const normalized = normalizeActivityLogEvent({
+      subscription_id: "sub_123",
+      customer_id: "cus_123",
+      event_type: ActivityLogEventType.SUBSCRIPTION_CREATED,
+      actor_type: ActivityLogActorType.CUSTOMER,
+      actor_id: "cus_123",
+      display: {
+        subscription_reference: "SUB-123",
+        customer_name: "Jane Doe",
+        product_title: "Coffee Club",
+        variant_title: "Monthly",
+      },
+      new_state: {
+        status: "active",
+        started_at: "2026-04-01T10:00:00.000Z",
+        next_renewal_at: "2026-05-01T10:00:00.000Z",
+      },
+      metadata: {
+        order_id: "order_123",
+        source: "store",
+        trigger_type: "checkout",
+      },
+      dedupe: {
+        scope: "order",
+        target_id: "order_123",
+        qualifier: "sub_123",
+      },
+    })
+
+    expect(normalized.previous_state).toBeNull()
+    expect(normalized.changed_fields).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          field: "status",
+          before: null,
+          after: "active",
+        }),
+      ])
+    )
+    expect(normalized.metadata).toEqual({
+      order_id: "order_123",
+      source: "store",
+      trigger_type: "checkout",
+    })
+  })
+
   it("serializes dates in state and metadata while redacting nested sensitive fields", () => {
     const normalized = normalizeActivityLogEvent({
       subscription_id: "sub_123",

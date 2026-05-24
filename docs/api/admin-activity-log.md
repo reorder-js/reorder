@@ -92,6 +92,12 @@ Filters:
 - `date_from?: string`
 - `date_to?: string`
 
+Supported actor types:
+- `user`
+- `customer`
+- `system`
+- `scheduler`
+
 ### Supported Sort Fields
 
 Database-backed:

@@ -49,7 +49,7 @@ Completed:
 - smoke-level integration between `Cancellation & Retention`, `Subscriptions`, `Renewals`, and `Dunning`
 - `Cancellation & Retention` operational hardening for audit trail, structured logging, and scheduler summary metrics
 - `Activity Log` domain model and storage
-- `Activity Log` workflow-backed event creation across `Subscriptions`, `Renewals`, `Dunning`, and `Cancellation & Retention`
+- `Activity Log` workflow-backed event creation across `Subscriptions`, store subscription checkout, `Renewals`, `Dunning`, and `Cancellation & Retention`
 - `Activity Log` admin API routes
 - `Activity Log` Admin UI: global list, event detail, and per-subscription timeline
 - `Activity Log` backend integration tests and admin flow integration coverage
@@ -126,6 +126,22 @@ For a new developer joining the project:
 3. Read the API document for that area.
 4. Read the Admin UI document if you touch dashboard flows.
 5. Read the testing document before changing behavior.
+
+## Local Development
+
+To use the local `reorder` plugin in a Medusa backend during development:
+
+- add this dependency in the Medusa backend `package.json`:
+  - `"@reorderjs/reorder": "file:../reorder"`
+- run `yarn install` in the Medusa backend after adding or updating that dependency
+
+When you make changes in this `reorder` repository and want the Medusa backend to use the newest local version, use this sequence:
+
+1. In `reorder`, run `yarn medusa plugin:publish`
+2. In the Medusa backend, run `yarn medusa db:migrate`
+3. In the Medusa backend, run `yarn install`
+
+Do not assume the Medusa backend is using the newest local plugin code until that sequence has completed.
 
 ## Implemented Areas
 

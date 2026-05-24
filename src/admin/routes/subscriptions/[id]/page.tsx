@@ -81,6 +81,7 @@ const activityLogColumnHelper =
 
 const activityLogActorFilterOptions = [
   { label: "Admin", value: ActivityLogAdminActorType.USER },
+  { label: "Customer", value: ActivityLogAdminActorType.CUSTOMER },
   { label: "System", value: ActivityLogAdminActorType.SYSTEM },
   { label: "Scheduler", value: ActivityLogAdminActorType.SCHEDULER },
 ] as const;
@@ -90,6 +91,7 @@ const activityLogDomainFilterOptions = [
     label: "Subscriptions",
     value: "subscriptions",
     eventTypes: [
+      "subscription.created",
       "subscription.paused",
       "subscription.resumed",
       "subscription.canceled",
@@ -2122,6 +2124,7 @@ function getActivityEventColor(eventType: string) {
       return "red" as const;
     case "renewal.succeeded":
     case "dunning.recovered":
+    case "subscription.created":
       return "green" as const;
     case "renewal.force_requested":
     case "dunning.retry_executed":
@@ -2151,6 +2154,8 @@ function formatActivityActorType(value: ActivityLogAdminActorType) {
   switch (value) {
     case ActivityLogAdminActorType.USER:
       return "Admin";
+    case ActivityLogAdminActorType.CUSTOMER:
+      return "Customer";
     case ActivityLogAdminActorType.SYSTEM:
       return "System";
     case ActivityLogAdminActorType.SCHEDULER:
@@ -2184,6 +2189,8 @@ function formatActivitySummary(
 
 function formatActivitySummaryField(value: string) {
   switch (value) {
+    case "subscription_created":
+      return "Subscription created";
     case "pending_update_data":
       return "Scheduled plan change";
     case "status":
@@ -2216,6 +2223,8 @@ function getActivityActorColor(value: ActivityLogAdminActorType) {
   switch (value) {
     case ActivityLogAdminActorType.USER:
       return "blue" as const;
+    case ActivityLogAdminActorType.CUSTOMER:
+      return "green" as const;
     case ActivityLogAdminActorType.SYSTEM:
       return "grey" as const;
     case ActivityLogAdminActorType.SCHEDULER:

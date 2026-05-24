@@ -133,6 +133,7 @@ Covered through integration tests:
 Additional coverage already exists in area-specific suites for:
 - `Renewals` event emission and outcome logging
 - `Cancellation & Retention` event emission and payload presence
+- store checkout creation payload normalization at the module layer for `subscription.created`
 
 ### Admin API Coverage
 

@@ -23,6 +23,12 @@ import {
   validateSubscriptionCartStep,
   type ValidateSubscriptionCartStepInput,
 } from "../workflows/steps/validate-subscription-cart"
+import { createSubscriptionLogEventStep } from "../workflows/steps/create-subscription-log-event"
+import { normalizeActivityLogEvent } from "../modules/activity-log/utils/normalize-log-event"
+import {
+  ActivityLogActorType,
+  ActivityLogEventType,
+} from "../modules/activity-log/types"
 
 export type CreateSubscriptionFromCartWorkflowInput =
   ValidateSubscriptionCartStepInput
@@ -160,7 +166,66 @@ export const createSubscriptionFromCartWorkflow = createWorkflow(
       { existingSubscriptionId },
       ({ existingSubscriptionId }) => !existingSubscriptionId
     ).then(() => {
-      return createSubscriptionRecordStep(createSubscriptionInput)
+      const createdSubscription = createSubscriptionRecordStep(createSubscriptionInput)
+
+      const logInput = transform(
+        { createdSubscription, createSubscriptionInput },
+        ({ createdSubscription, createSubscriptionInput }) => {
+          if (!createdSubscription?.id) {
+            throw new Error(
+              "Subscription create flow did not create a subscription log target"
+            )
+          }
+
+          return {
+          log_event: normalizeActivityLogEvent({
+            subscription_id: createdSubscription.id,
+            customer_id: createSubscriptionInput.customer_id,
+            event_type: ActivityLogEventType.SUBSCRIPTION_CREATED,
+            actor_type: ActivityLogActorType.CUSTOMER,
+            actor_id: createSubscriptionInput.customer_id,
+            display: {
+              subscription_reference: buildSubscriptionReference(
+                createSubscriptionInput.order_display_id,
+                createSubscriptionInput.order_id
+              ),
+              customer_name:
+                createSubscriptionInput.customer_snapshot.full_name ?? null,
+              product_title:
+                createSubscriptionInput.product_snapshot.product_title ?? null,
+              variant_title:
+                createSubscriptionInput.product_snapshot.variant_title ?? null,
+            },
+            previous_state: null,
+            new_state: {
+              status: "active",
+              started_at: createSubscriptionInput.started_at,
+              next_renewal_at: createSubscriptionInput.next_renewal_at,
+              frequency_interval: createSubscriptionInput.frequency_interval,
+              frequency_value: createSubscriptionInput.frequency_value,
+              is_trial: createSubscriptionInput.is_trial,
+              trial_ends_at: createSubscriptionInput.trial_ends_at,
+            },
+            metadata: {
+              order_id: createSubscriptionInput.order_id,
+              source: "store",
+              trigger_type: "checkout",
+            },
+            dedupe: {
+              scope: "order",
+              target_id: createSubscriptionInput.order_id,
+              qualifier: createdSubscription.id,
+            },
+          }),
+          }
+        }
+      )
+
+      createSubscriptionLogEventStep(logInput).config({
+        name: "create-subscription-created-log-event",
+      })
+
+      return createdSubscription
     })
 
     const createdSubscriptionId = transform(
@@ -258,6 +323,17 @@ export default createSubscriptionFromCartWorkflow
 
 function toDate(value: string | Date) {
   return value instanceof Date ? value : new Date(value)
+}
+
+function buildSubscriptionReference(
+  orderDisplayId: string | number | null,
+  orderId: string
+) {
+  if (orderDisplayId !== null && orderDisplayId !== undefined) {
+    return `SUB-${String(orderDisplayId)}`
+  }
+
+  return `SUB-${orderId}`
 }
 
 function addDays(date: Date, days: number) {
