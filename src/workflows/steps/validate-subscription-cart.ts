@@ -175,7 +175,7 @@ export const validateSubscriptionCartStep = createStep(
 
     const paymentContext = await buildPaymentContext(container, cart as CartRecord)
 
-    const requiresShippingAddress = items.some((item) => item?.requires_shipping)
+    const requiresShippingAddress = items.some((item: any) => item?.requires_shipping)
 
     return new StepResponse<ValidatedSubscriptionCart>({
       cart_id: cart.id,
