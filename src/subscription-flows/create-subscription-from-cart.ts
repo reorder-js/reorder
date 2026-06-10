@@ -1,5 +1,4 @@
 import {
-  type WorkflowData,
   createWorkflow,
   transform,
   when,
@@ -24,22 +23,19 @@ import {
   validateSubscriptionCartStep,
   type ValidateSubscriptionCartStepInput,
 } from "../workflows/steps/validate-subscription-cart"
+import { addCompleteAllowedMetadataEntryStep } from "./steps/add-complete-allowed-metadata-entry"
 
 export type CreateSubscriptionFromCartWorkflowInput =
   ValidateSubscriptionCartStepInput
 
-const SUBSCRIPTION_ORDER_LINK_ENTRY_POINT = "subscription_order"
-
 export const createSubscriptionFromCartWorkflow = createWorkflow(
   "create-subscription-from-cart",
   function (input: CreateSubscriptionFromCartWorkflowInput) {
-    const lockInput = transform({ input }, ({ input }) => ({
+    acquireLockStep({
       key: input.cart_id,
       timeout: 30,
       ttl: 120,
-    }))
-
-    acquireLockStep(lockInput)
+    })
 
     const pricingSync = syncSubscriptionCartPricingStep({
       cart_id: input.cart_id,
@@ -53,10 +49,13 @@ export const createSubscriptionFromCartWorkflow = createWorkflow(
     })
 
     const validatedCart = validateSubscriptionCartStep(input)
+    addCompleteAllowedMetadataEntryStep({ cartId: input.cart_id })
+
     const completedCart = completeCartWorkflow.runAsStep({
       input: transform({ refreshedCart, input }, ({ input }) => ({
         id: input.cart_id,
       })),
+
     })
     const orderId = transform({ completedCart }, ({ completedCart }) => {
       return completedCart.id
@@ -66,34 +65,9 @@ export const createSubscriptionFromCartWorkflow = createWorkflow(
       order_id: orderId,
     })
 
-    const existingLinks = useQueryGraphStep({
-      entity: SUBSCRIPTION_ORDER_LINK_ENTRY_POINT,
-      fields: ["subscription.id"],
-      filters: {
-        order_id: orderId,
-      },
-    }).config({
-      name: "retrieve-existing-subscription-order-links",
-    })
-
-    const existingSubscriptionId: WorkflowData<string | null> = transform(
-      { existingLinks },
-      ({ existingLinks }) => {
-        const first = existingLinks.data?.[0] as
-          | {
-            subscription?: {
-              id?: string | null
-            } | null
-          }
-          | undefined
-
-        return first?.subscription?.id ?? null
-      }
-    )
-
     const orderQuery = useQueryGraphStep({
       entity: "order",
-      fields: ["id", "display_id", "created_at"],
+      fields: ["id", "display_id", "created_at", "subscription.id"],
       filters: {
         id: [orderId],
       },
@@ -104,63 +78,47 @@ export const createSubscriptionFromCartWorkflow = createWorkflow(
       name: "load-completed-subscription-order",
     })
 
-    const createSubscriptionInput = transform(
-      { validatedCart, orderQuery, orderId },
-      ({ validatedCart, orderQuery, orderId }) => {
-        const order = orderQuery.data
+    const existingSubscriptionId = transform({ orderQuery }, ({ orderQuery }) => orderQuery.data.subscription?.id)
 
-        if (!order) {
-          throw new Error(`Completed order '${orderId}' was not found`)
+    // If order isn't linked to subscription then we are running this workflow for the 1st time and we should create the subscription for it
+    const createdSubscription = when("create-subscription", { existingSubscriptionId }, ({ existingSubscriptionId }) => !existingSubscriptionId).then(() => {
+      const createSubscriptionInput = transform(
+        { validatedCart, orderQuery, orderId },
+        ({ validatedCart, orderQuery, orderId }) => {
+          const order = orderQuery.data
+
+          if (!order) {
+            throw new Error(`Completed order '${orderId}' was not found`)
+          }
+
+          return buildSubscriptionInput(validatedCart, order)
         }
+      )
 
-        return buildSubscriptionInput(validatedCart, order)
-      }
-    )
+      const createdSubscription = createSubscriptionRecordStep(createSubscriptionInput)
 
-    const createdSubscription = when(
-      { existingSubscriptionId },
-      ({ existingSubscriptionId }) => !existingSubscriptionId
-    ).then(() => {
-      return createSubscriptionRecordStep(createSubscriptionInput)
-    })
-
-    const createdSubscriptionId = transform(
-      { createdSubscription },
-      ({ createdSubscription }) => createdSubscription?.id ?? null
-    )
-
-    when(
-      { createdSubscriptionId, validatedCart, orderId },
-      ({ createdSubscriptionId }) => !!createdSubscriptionId
-    ).then(() => {
-      return linkSubscriptionCommerceEntitiesStep({
-        subscription_id: createdSubscriptionId,
+      linkSubscriptionCommerceEntitiesStep({
+        subscription_id: createdSubscription.id,
         customer_id: validatedCart.customer_id,
         cart_id: validatedCart.cart_id,
         order_id: orderId,
       }).config({
         name: "create-subscription-commerce-links",
       })
+
+      createInitialRenewalCycleStep({
+        subscription_id: createdSubscription.id,
+      })
+
+      return createdSubscription
     })
 
-    const subscriptionId = transform(
-      { existingSubscriptionId, createdSubscriptionId },
-      ({ existingSubscriptionId, createdSubscriptionId }) => {
-        const id = existingSubscriptionId ?? createdSubscriptionId
-
-        if (!id) {
-          throw new Error("Subscription create flow did not resolve a subscription")
-        }
-
-        return id
+    const subscriptionId = transform({ existingSubscriptionId, createdSubscription }, ({ existingSubscriptionId, createdSubscription }) => {
+      if (existingSubscriptionId === undefined && createdSubscription?.id === undefined) {
+        throw new Error("Subscription create flow did not resolve existing subscription neither created new")
       }
-    )
-
-    createInitialRenewalCycleStep(
-      transform({ subscriptionId }, ({ subscriptionId }) => ({
-        subscription_id: subscriptionId,
-      }))
-    )
+      return existingSubscriptionId ?? createdSubscription!.id
+    })
 
     const subscriptionQuery = useQueryGraphStep({
       entity: "subscription",
@@ -199,14 +157,10 @@ export const createSubscriptionFromCartWorkflow = createWorkflow(
         isList: false,
       },
     }).config({
-      name: "load-created-subscription",
+      name: "load-created-or-existing-subscription",
     })
 
-    releaseLockStep(
-      transform({ subscriptionQuery, input }, ({ input }) => ({
-        key: input.cart_id,
-      }))
-    )
+    releaseLockStep({ key: input.cart_id })
 
     return new WorkflowResponse({
       type: "order" as const,
@@ -238,7 +192,7 @@ export function buildSubscriptionInput(
     product_snapshot: CreateSubscriptionRecordStepInput["product_snapshot"]
     pricing_snapshot: CreateSubscriptionRecordStepInput["pricing_snapshot"]
     source_snapshot: CreateSubscriptionRecordStepInput["source_snapshot"]
-    shipping_address: CreateSubscriptionRecordStepInput["shipping_address"]
+    shipping_address?: CreateSubscriptionRecordStepInput["shipping_address"]
     payment_context: CreateSubscriptionRecordStepInput["payment_context"]
     trial_days: number
   },
