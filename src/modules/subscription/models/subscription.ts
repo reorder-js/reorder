@@ -28,7 +28,7 @@ const Subscription = model
     product_snapshot: model.json(),
     pricing_snapshot: model.json().nullable(),
     source_snapshot: model.json(),
-    shipping_address: model.json(),
+    shipping_address: model.json().nullable(),
     payment_context: model.json().nullable(),
     pending_update_data: model.json().nullable(),
     metadata: model.json().nullable(),

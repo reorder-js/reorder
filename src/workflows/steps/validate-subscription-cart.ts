@@ -76,7 +76,7 @@ export type ValidatedSubscriptionCart = {
   product_snapshot: SubscriptionProductSnapshot
   pricing_snapshot: SubscriptionPricingSnapshot | null
   source_snapshot: SubscriptionSourceSnapshot
-  shipping_address: SubscriptionShippingAddress
+  shipping_address?: SubscriptionShippingAddress
   payment_context: SubscriptionPaymentContext
   trial_days: number
 }
@@ -175,6 +175,8 @@ export const validateSubscriptionCartStep = createStep(
 
     const paymentContext = await buildPaymentContext(container, cart as CartRecord)
 
+    const requiresShippingAddress = items.some((item) => item?.requires_shipping)
+
     return new StepResponse<ValidatedSubscriptionCart>({
       cart_id: cart.id,
       customer_id: cart.customer_id,
@@ -215,7 +217,7 @@ export const validateSubscriptionCartStep = createStep(
         })),
 
       },
-      shipping_address: buildShippingAddress(cart.shipping_address),
+      shipping_address: requiresShippingAddress ? buildShippingAddress(cart.shipping_address) : undefined,
       payment_context: paymentContext,
       trial_days:
         effectiveConfig.rules?.trial_enabled && effectiveConfig.rules.trial_days
