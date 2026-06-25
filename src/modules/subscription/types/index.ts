@@ -67,10 +67,8 @@ export type SubscriptionShippingAddress = {
 
 export type SubscriptionPaymentContext = {
   payment_provider_id: string | null
-  source_payment_collection_id: string | null
-  source_payment_session_id: string | null
-  payment_method_reference: string | null
-  customer_payment_reference: string | null
+  account_holder_id: string | null
+  payment_method_id: string | null
 }
 
 export type SubscriptionPendingUpdateData = {

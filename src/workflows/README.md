@@ -77,3 +77,38 @@ export async function GET(
   res.send(result)
 }
 ```
+
+## Extensibility Hooks
+
+### `processRenewalCycleWorkflow` — `setPaymentSessionData`
+
+`processRenewalCycleWorkflow` exposes a `setPaymentSessionData` hook that lets you control the
+`data` passed to the payment session created for a renewal's payment collection. Register a
+handler the same way you would consume any Medusa workflow hook:
+
+```ts
+import { processRenewalCycleWorkflow } from "@bethinkpl/reorder/workflows"
+import { StepResponse } from "@medusajs/framework/workflows-sdk"
+
+processRenewalCycleWorkflow.hooks.setPaymentSessionData(
+  ({ payment_collections, subscription, order }) => {
+    return new StepResponse({
+      payment_method: subscription.payment_context?.payment_method_id,
+      off_session: true,
+      confirm: true,
+      capture_method: "automatic",
+      metadata: { renewal_order_id: order?.id },
+    })
+  }
+)
+```
+
+- The handler receives the created `payment_collections`, the `subscription`, and the renewal
+  `order`. It runs once per renewal cycle.
+- The result is validated with zod and must be a record of string keys to arbitrary values
+  (`Record<string, unknown>`). Return `undefined` to keep the built-in default payment session
+  data (`payment_method`, `off_session`, `confirm`, `capture_method`).
+- When a handler returns a value it **completely replaces** the default `data` — there is no
+  merge, so include every field your payment provider needs.
+- When the renewal is skipped or the order total is `0`, no payment session is created;
+  `payment_collections` and `order` are `null` and the handler result is ignored.

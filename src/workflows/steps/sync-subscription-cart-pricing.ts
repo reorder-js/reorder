@@ -3,6 +3,7 @@ import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 import { MedusaError } from "@medusajs/framework/utils"
 import { resolveProductSubscriptionConfig } from "../../modules/plan-offer/utils/effective-config"
+import { isSubscriptionItem } from "../../common/utils/is-subscription-item"
 
 type SyncSubscriptionCartPricingStepInput = {
   cart_id: string
@@ -60,7 +61,7 @@ export const syncSubscriptionCartPricingStep = createStep(
     }
 
     const items = cart.items ?? []
-    const subscriptionItems = items.filter((item) => isSubscriptionItem(item.metadata))
+    const subscriptionItems = items.filter((item) => isSubscriptionItem(item))
 
     if (!subscriptionItems.length) {
       return new StepResponse<SyncSubscriptionCartPricingStepResult>({
@@ -223,11 +224,6 @@ async function loadCart(
   }
 
   return cart
-}
-
-function isSubscriptionItem(metadata?: Record<string, unknown> | null) {
-  const value = metadata?.is_subscription
-  return value === true || value === "true"
 }
 
 function roundCurrency(amount: number) {

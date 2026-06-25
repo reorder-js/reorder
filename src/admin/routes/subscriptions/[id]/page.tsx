@@ -802,46 +802,49 @@ const SubscriptionDetailPage = () => {
               </div>
             </div>
           </Container>
-          <Container className="divide-y p-0">
-            <div className="px-4 py-4">
-              <Text size="small" leading="compact" weight="plus">
-                Shipping address
-              </Text>
-            </div>
-            <div className="px-4 py-4">
-              <div className="grid gap-3 md:grid-cols-2">
-                <div className="flex flex-col gap-3">
-                  <DetailRow
-                    label="Recipient"
-                    value={`${subscription.shipping_address.first_name} ${subscription.shipping_address.last_name}`}
-                  />
-                  <DetailRow
-                    label="Address"
-                    value={[
-                      subscription.shipping_address.address_1,
-                      subscription.shipping_address.address_2,
-                    ]
-                      .filter(Boolean)
-                      .join(", ")}
-                  />
-                  <DetailRow
-                    label="City"
-                    value={`${subscription.shipping_address.postal_code} ${subscription.shipping_address.city}`}
-                  />
+          {subscription.shipping_address &&
+            (
+              <Container className="divide-y p-0">
+                <div className="px-4 py-4">
+                  <Text size="small" leading="compact" weight="plus">
+                    Shipping address
+                  </Text>
                 </div>
-                <div className="flex flex-col gap-3">
-                  <DetailRow
-                    label="Phone"
-                    value={subscription.shipping_address.phone || "-"}
-                  />
-                  <DetailRow
-                    label="Country"
-                    value={subscription.shipping_address.country_code.toUpperCase()}
-                  />
+                <div className="px-4 py-4">
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <div className="flex flex-col gap-3">
+                      <DetailRow
+                        label="Recipient"
+                        value={`${subscription.shipping_address.first_name} ${subscription.shipping_address.last_name}`}
+                      />
+                      <DetailRow
+                        label="Address"
+                        value={[
+                          subscription.shipping_address.address_1,
+                          subscription.shipping_address.address_2,
+                        ]
+                          .filter(Boolean)
+                          .join(", ")}
+                      />
+                      <DetailRow
+                        label="City"
+                        value={`${subscription.shipping_address.postal_code} ${subscription.shipping_address.city}`}
+                      />
+                    </div>
+                    <div className="flex flex-col gap-3">
+                      <DetailRow
+                        label="Phone"
+                        value={subscription.shipping_address.phone || "-"}
+                      />
+                      <DetailRow
+                        label="Country"
+                        value={subscription.shipping_address.country_code.toUpperCase()}
+                      />
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
-          </Container>
+              </Container>
+            )}
           <Container className="divide-y p-0">
             <div className="px-6 py-4">
               <Heading level="h2">Pending plan change</Heading>

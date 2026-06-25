@@ -24,17 +24,14 @@ import {
 import { calculateNextRetryAt } from "../../modules/dunning/utils/retry-schedule"
 import { SUBSCRIPTION_MODULE } from "../../modules/subscription"
 import type SubscriptionModuleService from "../../modules/subscription/service"
-import { SubscriptionStatus } from "../../modules/subscription/types"
+import { type SubscriptionPaymentContext, SubscriptionStatus } from "../../modules/subscription/types"
 import { subscriptionErrors } from "../../modules/subscription/utils/errors"
 
 type SubscriptionRecord = {
   id: string
   status: SubscriptionStatus
   customer_id: string
-  payment_context: {
-    payment_provider_id: string | null
-    payment_method_reference: string | null
-  } | null
+  payment_context: SubscriptionPaymentContext | null
 }
 
 type DunningCaseRecord = {
@@ -424,7 +421,7 @@ async function executePaymentRetry(
 
     if (
       !paymentContext?.payment_provider_id ||
-      !paymentContext.payment_method_reference
+      !paymentContext.payment_method_id
     ) {
       throw dunningErrors.invalidData(
         `Subscription '${subscription.id}' is missing payment retry context`
@@ -461,7 +458,7 @@ async function executePaymentRetry(
         provider_id: paymentContext.payment_provider_id,
         customer_id: subscription.customer_id,
         data: {
-          payment_method: paymentContext.payment_method_reference,
+          payment_method: paymentContext.payment_method_id,
           off_session: true,
           confirm: true,
           capture_method: "automatic",

@@ -193,10 +193,8 @@ export async function createSubscriptionSeed(
       input.payment_context === undefined
         ? {
             payment_provider_id: "pp_stripe_stripe",
-            source_payment_collection_id: `paycol_${Date.now()}`,
-            source_payment_session_id: `payses_${Date.now()}`,
-            payment_method_reference: `pm_${Date.now()}`,
-            customer_payment_reference: `cuspay_${Date.now()}`,
+            account_holder_id: `acch_${Date.now()}`,
+            payment_method_id: `pm_${Date.now()}`,
           }
         : input.payment_context,
     pending_update_data: null,

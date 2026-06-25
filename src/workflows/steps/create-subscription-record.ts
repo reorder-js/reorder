@@ -25,7 +25,7 @@ export type CreateSubscriptionRecordStepInput = {
   }
   product_snapshot: SubscriptionProductSnapshot
   pricing_snapshot: SubscriptionPricingSnapshot | null
-  shipping_address: SubscriptionShippingAddress
+  shipping_address?: SubscriptionShippingAddress
   source_snapshot: SubscriptionSourceSnapshot
   payment_context: SubscriptionPaymentContext
   is_trial: boolean

@@ -140,8 +140,8 @@ The retry should use the subscription’s saved payment context as the source fo
 
 Required context currently available in the plugin:
 - `payment_provider_id`
-- `payment_method_reference`
-- optional related customer payment context fields
+- `payment_method_id`
+- `account_holder_id` (provider-agnostic Medusa anchor)
 
 Why this is preferred:
 - `Subscription` already owns recurring payment context for off-session charging

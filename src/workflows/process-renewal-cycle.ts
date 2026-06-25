@@ -1,16 +1,25 @@
 import {
+  createHook,
   createWorkflow,
   transform,
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
 import { acquireLockStep, releaseLockStep } from "@medusajs/medusa/core-flows"
+import { z } from "zod"
 import { ensureNextRenewalCycleStep } from "./steps/ensure-next-renewal-cycle"
 import { rebuildAnalyticsDailySnapshotsWorkflow } from "./rebuild-analytics-daily-snapshots"
 import {
+  authorizeRenewalPaymentStep,
+  createRenewalOrderStep,
+  finalizeRenewalCycleStep,
+  prepareRenewalCycleStep,
   ProcessRenewalCycleStepInput,
-  processRenewalCycleStep,
 } from "./steps/process-renewal-cycle"
 import { buildAnalyticsIncrementalRebuildInput } from "./utils/analytics-incremental"
+
+export const setPaymentSessionDataResult = z
+  .record(z.string(), z.unknown())
+  .optional()
 
 export const processRenewalCycleWorkflow = createWorkflow(
   "process-renewal-cycle",
@@ -25,7 +34,33 @@ export const processRenewalCycleWorkflow = createWorkflow(
       ttl: 120,
     })
 
-    const result = processRenewalCycleStep(input)
+    const context = prepareRenewalCycleStep(input)
+    const orderResult = createRenewalOrderStep(context)
+
+    const setPaymentSessionData = createHook(
+      "setPaymentSessionData",
+      {
+        payment_collections: orderResult.payment_collections,
+        subscription: context.subscription,
+        order: orderResult.order,
+      },
+      {
+        resultValidator: setPaymentSessionDataResult,
+      }
+    )
+    const paymentSessionData = setPaymentSessionData.getResult()
+
+    authorizeRenewalPaymentStep({
+      context,
+      order_result: orderResult,
+      payment_session_data: paymentSessionData,
+    })
+
+    const result = finalizeRenewalCycleStep({
+      context,
+      order_result: orderResult,
+    })
+
     const ensureInput = transform({ result }, function ({ result }) {
       return {
         subscription_id: result.subscription_id,
@@ -33,6 +68,7 @@ export const processRenewalCycleWorkflow = createWorkflow(
     })
 
     ensureNextRenewalCycleStep(ensureInput)
+
     const incrementalAnalyticsInput = transform({ input }, function ({ input }) {
       return buildAnalyticsIncrementalRebuildInput({
         occurred_at: new Date(),
@@ -49,7 +85,9 @@ export const processRenewalCycleWorkflow = createWorkflow(
       key: lockKey,
     })
 
-    return new WorkflowResponse(result)
+    return new WorkflowResponse(result, {
+      hooks: [setPaymentSessionData],
+    })
   }
 )
 

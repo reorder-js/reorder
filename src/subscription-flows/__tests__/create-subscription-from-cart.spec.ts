@@ -89,10 +89,8 @@ describe("buildSubscriptionInput", () => {
     },
     payment_context: {
       payment_provider_id: "pp_stripe_stripe",
-      source_payment_collection_id: "paycol_1",
-      source_payment_session_id: "payses_1",
-      payment_method_reference: "pm_1",
-      customer_payment_reference: "cuspay_1",
+      account_holder_id: "acch_1",
+      payment_method_id: "pm_1",
     },
   }
 

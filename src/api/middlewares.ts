@@ -9,6 +9,7 @@ import { adminSubscriptionAnalyticsMiddlewares } from "./admin/subscription-anal
 import { adminSubscriptionSettingsMiddlewares } from "./admin/subscription-settings/middlewares"
 import { storeCustomerSubscriptionsMiddlewares } from "./store/customers/me/subscriptions/middlewares"
 import { storeProductMiddlewares } from "./store/products/middlewares"
+import { storeCartRoutesMiddlewares } from "./store/carts/middlewares"
 
 export default defineMiddlewares({
   routes: [
@@ -22,5 +23,6 @@ export default defineMiddlewares({
     ...adminCancellationsMiddlewares,
     ...storeCustomerSubscriptionsMiddlewares,
     ...storeProductMiddlewares,
+    ...storeCartRoutesMiddlewares,
   ],
 })

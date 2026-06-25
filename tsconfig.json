@@ -8,7 +8,7 @@
     "experimentalDecorators": true,
     "skipLibCheck": true,
     "skipDefaultLibCheck": true,
-    "declaration": false,
+    "declaration": true,
     "sourceMap": false,
     "inlineSourceMap": true,
     "outDir": "./.medusa/server",

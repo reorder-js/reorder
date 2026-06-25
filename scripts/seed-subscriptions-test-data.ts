@@ -425,10 +425,8 @@ function buildSubscriptionRecord(input: {
     },
     payment_context: {
       payment_provider_id: input.payment_provider_id ?? "pp_system_default",
-      source_payment_collection_id: null,
-      source_payment_session_id: null,
-      payment_method_reference: null,
-      customer_payment_reference: null,
+      account_holder_id: null,
+      payment_method_id: null,
     },
     pending_update_data:
       input.pending_update_data === undefined ? null : input.pending_update_data,

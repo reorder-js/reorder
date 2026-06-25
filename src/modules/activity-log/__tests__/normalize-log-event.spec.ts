@@ -67,7 +67,7 @@ describe("normalizeActivityLogEvent", () => {
         city: "Krakow",
         address_1: "Hidden Street 2",
         payment_context: {
-          payment_method_reference: "pm_secret",
+          payment_method_id: "pm_secret",
         },
       },
       metadata: {

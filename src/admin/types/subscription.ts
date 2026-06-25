@@ -105,7 +105,7 @@ export type SubscriptionAdminDetail = SubscriptionAdminListItem & {
   paused_at: string | null
   cancelled_at: string | null
   last_renewal_at: string | null
-  shipping_address: SubscriptionAdminShippingAddress
+  shipping_address: SubscriptionAdminShippingAddress | null
   pending_update_data: SubscriptionAdminPendingPlanChange | null
   initial_order: SubscriptionAdminOrderSummary | null
   renewal_orders: SubscriptionAdminOrderSummary[]
