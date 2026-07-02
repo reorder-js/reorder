@@ -98,3 +98,4 @@ export {
   updateSubscriptionSettingsWorkflow,
   default as updateSubscriptionSettingsWorkflowDefault,
 } from "./update-subscription-settings"
+export { validateNoSubscriptionItemsInCart } from "./hooks/complete-cart-validate"
