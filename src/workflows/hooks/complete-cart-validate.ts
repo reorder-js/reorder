@@ -6,7 +6,7 @@ export const validateNoSubscriptionItemsInCart = (cart: CartWorkflowDTO): void =
   if (!canCompleteCart(cart)) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      "Unable to directly complete cart with subscription items",
+      "Unable to directly complete cart with subscription items"
     )
   }
 }

@@ -1,7 +1,7 @@
-import type { CartWorkflowDTO } from "@medusajs/framework/types";
-import { isSubscriptionItem } from "./is-subscription-item";
+import type { CartWorkflowDTO } from "@medusajs/framework/types"
+import { isSubscriptionItem } from "./is-subscription-item"
 
-export const CartCompleteAllowedMetadataKey = "_completeAllowed" as const;
+export const CartCompleteAllowedMetadataKey = "_completeAllowed" as const
 
 /**
  * Checks whether given cart can be completed (i.e. used in `completeCartWorkflow`).
@@ -12,9 +12,9 @@ export const CartCompleteAllowedMetadataKey = "_completeAllowed" as const;
  *  - cart contains subscription items AND has special metadata property present
  */
 export const canCompleteCart = (cart: CartWorkflowDTO): boolean => {
-  if (!cart.items?.some(isSubscriptionItem)) return true;
+  if (!cart.items?.some(isSubscriptionItem)) return true
 
-  if (cart.metadata?.[CartCompleteAllowedMetadataKey] === true) return true;
+  if (cart.metadata?.[CartCompleteAllowedMetadataKey] === true) return true
 
-  return false;
-};
+  return false
+}
