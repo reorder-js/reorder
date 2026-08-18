@@ -22,6 +22,7 @@ import {
   usePrompt,
 } from "@medusajs/ui";
 import {
+  CreditCard,
   EllipsisHorizontal,
   Pause,
   PencilSquare,
@@ -47,6 +48,7 @@ import {
   useAdminSubscriptionLogDetailQuery,
   useAdminSubscriptionTimelineQuery,
   useAdminSubscriptionDetailQuery,
+  useAdminSubscriptionPaymentMethodsQuery,
   useAdminSubscriptionPlanOptionsQuery,
 } from "../data-loading";
 import { sdk } from "../../../lib/client";
@@ -57,6 +59,7 @@ import {
 } from "../../../types/activity-log";
 import {
   SubscriptionAdminDetailResponse,
+  SubscriptionAdminPaymentMethod,
   SubscriptionAdminShippingAddress,
   SubscriptionAdminStatus,
   SubscriptionFrequencyInterval,
@@ -98,6 +101,7 @@ const activityLogDomainFilterOptions = [
       "subscription.plan_change_scheduled",
       "subscription.shipping_address_updated",
       "subscription.next_delivery_skipped",
+      "subscription.payment_method_updated",
     ],
   },
   {
@@ -155,6 +159,8 @@ const SubscriptionDetailPage = () => {
   const prompt = usePrompt();
   const [planDrawerOpen, setPlanDrawerOpen] = useState(false);
   const [shippingDrawerOpen, setShippingDrawerOpen] = useState(false);
+  const [paymentMethodDrawerOpen, setPaymentMethodDrawerOpen] = useState(false);
+  const [selectedPaymentMethodId, setSelectedPaymentMethodId] = useState("");
   const [activityLogDrawerOpen, setActivityLogDrawerOpen] = useState(false);
   const [selectedLogId, setSelectedLogId] = useState<string | null>(null);
   const [activityLogFiltering, setActivityLogFiltering] =
@@ -221,6 +227,14 @@ const SubscriptionDetailPage = () => {
     subscription?.product.product_id,
     planDrawerOpen && Boolean(subscription?.product.product_id),
   );
+
+  const {
+    data: paymentMethodsData,
+    isLoading: isLoadingPaymentMethods,
+    isError: isPaymentMethodsError,
+    error: paymentMethodsError,
+  } = useAdminSubscriptionPaymentMethodsQuery(id, paymentMethodDrawerOpen);
+  const paymentMethods = paymentMethodsData?.payment_methods ?? [];
 
   const planChangeMutation = useMutation({
     mutationFn: async (body: {
@@ -338,6 +352,37 @@ const SubscriptionDetailPage = () => {
       );
     },
   });
+
+  const updatePaymentMethodMutation = useMutation({
+    mutationFn: async (body: { payment_method_id: string }) =>
+      sdk.client.fetch<SubscriptionAdminDetailResponse>(
+        `/admin/subscriptions/${id}/payment-method`,
+        {
+          method: "POST",
+          body,
+        },
+      ),
+    onSuccess: async () => {
+      await invalidateSubscriptionDetailQueries(queryClient, id, selectedLogId ?? undefined);
+      toast.success("Payment method updated");
+      setPaymentMethodDrawerOpen(false);
+    },
+    onError: (mutationError) => {
+      toast.error(
+        mutationError instanceof Error
+          ? mutationError.message
+          : "Failed to update payment method",
+      );
+    },
+  });
+
+  useEffect(() => {
+    if (!paymentMethodDrawerOpen) {
+      return;
+    }
+
+    setSelectedPaymentMethodId(subscription?.payment_method?.id ?? "");
+  }, [paymentMethodDrawerOpen, subscription?.payment_method?.id]);
 
   useEffect(() => {
     if (!planDrawerOpen || !subscription) {
@@ -729,6 +774,14 @@ const SubscriptionDetailPage = () => {
                   <PencilSquare className="text-ui-fg-subtle" />
                   <span>Edit shipping address</span>
                 </DropdownMenu.Item>
+                <DropdownMenu.Item
+                  className="flex items-center gap-x-2"
+                  disabled={isActionPending}
+                  onClick={() => setPaymentMethodDrawerOpen(true)}
+                >
+                  <CreditCard className="text-ui-fg-subtle" />
+                  <span>Change payment method</span>
+                </DropdownMenu.Item>
                 {canCancel ? (
                   <>
                     <DropdownMenu.Separator />
@@ -830,6 +883,48 @@ const SubscriptionDetailPage = () => {
                   />
                 </div>
               </div>
+            </div>
+          </Container>
+          <Container className="divide-y p-0">
+            <div className="flex items-center justify-between px-4 py-4">
+              <Text size="small" leading="compact" weight="plus">
+                Payment method
+              </Text>
+              <Button
+                size="small"
+                variant="secondary"
+                onClick={() => setPaymentMethodDrawerOpen(true)}
+              >
+                Change
+              </Button>
+            </div>
+            <div className="px-4 py-4">
+              <div className="grid gap-3 md:grid-cols-2">
+                <div className="flex flex-col gap-3">
+                  <DetailRow
+                    label="Provider"
+                    value={subscription.payment_provider_id ?? "-"}
+                  />
+                  <DetailRow
+                    label="Card"
+                    value={formatPaymentMethodLabel(subscription.payment_method)}
+                  />
+                </div>
+                <div className="flex flex-col gap-3">
+                  <DetailRow
+                    label="Expires"
+                    value={formatPaymentMethodExpiry(subscription.payment_method)}
+                  />
+                </div>
+              </div>
+              {subscription.payment_provider_id &&
+              !subscription.payment_method ? (
+                <Text size="small" className="text-ui-fg-subtle mt-3">
+                  The stored payment method could not be resolved from the
+                  payment provider. Renewals will fail until a new payment
+                  method is selected.
+                </Text>
+              ) : null}
             </div>
           </Container>
           <Container className="divide-y p-0">
@@ -1696,6 +1791,99 @@ const SubscriptionDetailPage = () => {
       </Drawer>
 
       <Drawer
+        open={paymentMethodDrawerOpen}
+        onOpenChange={setPaymentMethodDrawerOpen}
+      >
+        <Drawer.Content>
+          <Drawer.Header>
+            <Drawer.Title>Change payment method</Drawer.Title>
+          </Drawer.Header>
+          <Drawer.Body className="flex flex-1 flex-col gap-y-4 p-4">
+            {isLoadingPaymentMethods ? (
+              <div className="flex items-center gap-x-2">
+                <Spinner className="animate-spin text-ui-fg-subtle" />
+                <Text size="small">Loading saved payment methods...</Text>
+              </div>
+            ) : isPaymentMethodsError ? (
+              <Alert variant="error">
+                {paymentMethodsError instanceof Error
+                  ? paymentMethodsError.message
+                  : "Failed to load saved payment methods"}
+              </Alert>
+            ) : !paymentMethods.length ? (
+              <Alert variant="warning">
+                This customer has no saved payment method for the configured
+                payment provider. The customer must save a reusable payment
+                method before renewals can be charged.
+              </Alert>
+            ) : (
+              <div className="flex flex-col gap-y-2">
+                {paymentMethods.map((paymentMethod) => (
+                  <label
+                    key={paymentMethod.id}
+                    className="flex cursor-pointer items-center gap-x-3 rounded-lg border px-4 py-3"
+                  >
+                    <input
+                      type="radio"
+                      name="subscription-payment-method"
+                      value={paymentMethod.id}
+                      checked={selectedPaymentMethodId === paymentMethod.id}
+                      onChange={() =>
+                        setSelectedPaymentMethodId(paymentMethod.id)
+                      }
+                    />
+                    <div className="flex flex-col">
+                      <Text size="small" weight="plus">
+                        {formatPaymentMethodLabel(paymentMethod)}
+                        {paymentMethod.is_current ? " (current)" : ""}
+                      </Text>
+                      <Text size="small" className="text-ui-fg-subtle">
+                        Expires {formatPaymentMethodExpiry(paymentMethod)}
+                      </Text>
+                    </div>
+                  </label>
+                ))}
+              </div>
+            )}
+          </Drawer.Body>
+          <Drawer.Footer>
+            <div className="flex items-center justify-end gap-x-2">
+              <Drawer.Close asChild>
+                <Button
+                  size="small"
+                  variant="secondary"
+                  disabled={updatePaymentMethodMutation.isPending}
+                >
+                  Cancel
+                </Button>
+              </Drawer.Close>
+              <Button
+                size="small"
+                onClick={() => {
+                  if (!selectedPaymentMethodId) {
+                    toast.error("Select a payment method first");
+                    return;
+                  }
+
+                  updatePaymentMethodMutation.mutate({
+                    payment_method_id: selectedPaymentMethodId,
+                  });
+                }}
+                isLoading={updatePaymentMethodMutation.isPending}
+                disabled={
+                  updatePaymentMethodMutation.isPending ||
+                  !selectedPaymentMethodId ||
+                  selectedPaymentMethodId === subscription.payment_method?.id
+                }
+              >
+                Save
+              </Button>
+            </div>
+          </Drawer.Footer>
+        </Drawer.Content>
+      </Drawer>
+
+      <Drawer
         open={activityLogDrawerOpen}
         onOpenChange={(open) => {
           setActivityLogDrawerOpen(open);
@@ -2006,6 +2194,32 @@ function formatFrequency(
   }
 
   return `Every ${value} ${interval}s`;
+}
+
+function formatPaymentMethodLabel(
+  paymentMethod: SubscriptionAdminPaymentMethod | null,
+) {
+  if (!paymentMethod) {
+    return "-";
+  }
+
+  const brand = paymentMethod.brand
+    ? paymentMethod.brand.charAt(0).toUpperCase() + paymentMethod.brand.slice(1)
+    : paymentMethod.type ?? "Card";
+
+  return paymentMethod.last4
+    ? brand + " \u2022\u2022\u2022\u2022 " + paymentMethod.last4
+    : brand;
+}
+
+function formatPaymentMethodExpiry(
+  paymentMethod: SubscriptionAdminPaymentMethod | null,
+) {
+  if (!paymentMethod?.exp_month || !paymentMethod.exp_year) {
+    return "-";
+  }
+
+  return `${String(paymentMethod.exp_month).padStart(2, "0")}/${paymentMethod.exp_year}`;
 }
 
 function formatDateTime(value: string | null) {

@@ -6,11 +6,16 @@ import { resolveProductSubscriptionConfig } from "../../modules/plan-offer/utils
 import {
   SubscriptionFrequencyInterval,
   type SubscriptionPaymentContext,
+  type SubscriptionPaymentMethodRecord,
   type SubscriptionPricingSnapshot,
   type SubscriptionProductSnapshot,
   type SubscriptionShippingAddress,
 } from "../../modules/subscription/types"
 import { subscriptionErrors } from "../../modules/subscription/utils/errors"
+import {
+  sortPaymentMethodSummaries,
+  toPaymentMethodSummary,
+} from "../../modules/subscription/utils/payment-methods"
 
 export type ValidateSubscriptionCartStepInput = {
   cart_id: string
@@ -446,7 +451,7 @@ async function resolveSavedPaymentMethodReference(
 
   const paymentModule =
     container.resolve<IPaymentModuleService>(Modules.PAYMENT)
-  const paymentMethods = await paymentModule.listPaymentMethods({
+  const paymentMethods = (await paymentModule.listPaymentMethods({
     provider_id: providerId,
     context: {
       account_holder: {
@@ -454,15 +459,12 @@ async function resolveSavedPaymentMethodReference(
         data: accountHolder.data ?? {},
       },
     },
-  })
-  const latestPaymentMethod = paymentMethods
-    .slice()
-    .sort((left, right) => {
-      const leftCreated = readNumericTimestamp(left.data?.created)
-      const rightCreated = readNumericTimestamp(right.data?.created)
-
-      return rightCreated - leftCreated
-    })[0]
+  })) as SubscriptionPaymentMethodRecord[]
+  const latestPaymentMethod = sortPaymentMethodSummaries(
+    (paymentMethods ?? [])
+      .filter((paymentMethod) => !!paymentMethod?.id)
+      .map((paymentMethod) => toPaymentMethodSummary(paymentMethod, providerId))
+  )[0]
 
   if (!latestPaymentMethod?.id) {
     throw subscriptionErrors.invalidData(
@@ -471,22 +473,6 @@ async function resolveSavedPaymentMethodReference(
   }
 
   return latestPaymentMethod.id
-}
-
-function readNumericTimestamp(value: unknown) {
-  if (typeof value === "number" && Number.isFinite(value)) {
-    return value
-  }
-
-  if (typeof value === "string") {
-    const parsed = Number.parseInt(value, 10)
-
-    if (Number.isFinite(parsed)) {
-      return parsed
-    }
-  }
-
-  return 0
 }
 
 function readString(value: unknown) {

@@ -57,6 +57,7 @@ Match the task to all relevant rows before researching or coding.
 | Plan and offer changes | `docs/architecture/plan-offers.md`, `docs/api/admin-plan-offers.md`, `docs/testing/plan-offers.md` |
 | Renewal changes | `docs/architecture/renewals.md`, `docs/api/admin-renewals.md`, `docs/testing/renewals.md` |
 | Dunning changes | `docs/architecture/dunning.md`, `docs/api/admin-dunning.md`, `docs/testing/dunning.md` |
+| Payment context, payment methods, and off-session charging | `docs/architecture/payments.md`, `docs/api/store-subscription-payment-methods.md`, `docs/api/admin-subscriptions.md` |
 | Cancellation and retention changes | `docs/architecture/cancellation.md`, `docs/api/admin-cancellations.md`, `docs/testing/cancellations.md` |
 | Activity log changes | `docs/architecture/activity-log.md`, `docs/api/admin-activity-log.md`, `docs/testing/activity-log.md` |
 | Analytics changes | `docs/architecture/analytics.md`, `docs/api/admin-analytics.md`, `docs/testing/analytics.md` |

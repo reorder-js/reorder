@@ -10,6 +10,7 @@ import {
   PostAdminPauseSubscriptionSchema,
   PostAdminResumeSubscriptionSchema,
   PostAdminScheduleSubscriptionPlanChangeSchema,
+  PostAdminUpdateSubscriptionPaymentMethodSchema,
   PostAdminUpdateSubscriptionShippingAddressSchema,
 } from "./validators"
 
@@ -78,6 +79,13 @@ export const adminSubscriptionsMiddlewares: MiddlewareRoute[] = [
       validateAndTransformBody(
         PostAdminScheduleSubscriptionPlanChangeSchema
       ),
+    ],
+  },
+  {
+    matcher: "/admin/subscriptions/:id/payment-method",
+    method: "POST",
+    middlewares: [
+      validateAndTransformBody(PostAdminUpdateSubscriptionPaymentMethodSchema),
     ],
   },
   {

@@ -103,6 +103,27 @@ export type SubscriptionAdminListItem = {
   updated_at: string
 }
 
+export type SubscriptionAdminPaymentMethod = {
+  id: string
+  provider_id: string
+  type: string | null
+  brand: string | null
+  last4: string | null
+  exp_month: number | null
+  exp_year: number | null
+  created_at: number | null
+}
+
+export type SubscriptionAdminSelectablePaymentMethod =
+  SubscriptionAdminPaymentMethod & {
+    is_current: boolean
+  }
+
+export type SubscriptionAdminPaymentMethodsResponse = {
+  payment_provider_id: string | null
+  payment_methods: SubscriptionAdminSelectablePaymentMethod[]
+}
+
 export type SubscriptionAdminDetail = SubscriptionAdminListItem & {
   created_at: string
   started_at: string
@@ -113,6 +134,8 @@ export type SubscriptionAdminDetail = SubscriptionAdminListItem & {
   pending_update_data: SubscriptionAdminPendingPlanChange | null
   initial_order: SubscriptionAdminOrderSummary | null
   renewal_orders: SubscriptionAdminOrderSummary[]
+  payment_provider_id: string | null
+  payment_method: SubscriptionAdminPaymentMethod | null
 }
 
 export type SubscriptionAdminListResponse = {

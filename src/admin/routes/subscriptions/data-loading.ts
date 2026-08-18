@@ -10,6 +10,7 @@ import { invalidateAdminAnalyticsQueries } from "./analytics/data-loading"
 import {
   SubscriptionAdminListResponse,
   SubscriptionAdminDetailResponse,
+  SubscriptionAdminPaymentMethodsResponse,
   SubscriptionAdminStatus,
 } from "../../types/subscription"
 import { HttpTypes } from "@medusajs/framework/types"
@@ -41,6 +42,8 @@ type UseAdminSubscriptionTimelineQueryInput = {
 export const adminSubscriptionsQueryKeys = {
   all: ["admin-subscriptions"] as const,
   detail: (id: string) => [...adminSubscriptionsQueryKeys.all, "detail", id] as const,
+  detailPaymentMethods: (id: string) =>
+    [...adminSubscriptionsQueryKeys.all, "detail-payment-methods", id] as const,
   detailLogs: (id: string) =>
     [...adminSubscriptionsQueryKeys.all, "detail-logs", id] as const,
   detailLogsDisplay: (params: {
@@ -292,6 +295,20 @@ export function useAdminSubscriptionPlanOptionsQuery(
   })
 }
 
+export function useAdminSubscriptionPaymentMethodsQuery(
+  id?: string,
+  enabled = false
+) {
+  return useQuery<SubscriptionAdminPaymentMethodsResponse>({
+    queryKey: adminSubscriptionsQueryKeys.detailPaymentMethods(id ?? ""),
+    queryFn: () =>
+      sdk.client.fetch<SubscriptionAdminPaymentMethodsResponse>(
+        `/admin/subscriptions/${id}/payment-methods`
+      ),
+    enabled: enabled && Boolean(id),
+  })
+}
+
 export async function invalidateAdminSubscriptionsQueries(
   queryClient: QueryClient,
   id?: string,
@@ -305,6 +322,9 @@ export async function invalidateAdminSubscriptionsQueries(
       ? [
           queryClient.invalidateQueries({
             queryKey: adminSubscriptionsQueryKeys.detail(id),
+          }),
+          queryClient.invalidateQueries({
+            queryKey: adminSubscriptionsQueryKeys.detailPaymentMethods(id),
           }),
           queryClient.invalidateQueries({
             queryKey: adminSubscriptionsQueryKeys.detailLogs(id),
