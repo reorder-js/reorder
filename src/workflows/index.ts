@@ -19,6 +19,10 @@ export {
   default as updateSubscriptionShippingAddressWorkflowDefault,
 } from "./update-subscription-shipping-address"
 export {
+  updateSubscriptionPaymentMethodWorkflow,
+  default as updateSubscriptionPaymentMethodWorkflowDefault,
+} from "./update-subscription-payment-method"
+export {
   skipNextDeliveryWorkflow,
   default as skipNextDeliveryWorkflowDefault,
 } from "./skip-next-delivery"

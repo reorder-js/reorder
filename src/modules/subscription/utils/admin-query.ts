@@ -16,8 +16,16 @@ import {
   SubscriptionDiscountType,
   SubscriptionFrequencyInterval,
 } from "../../../admin/types/subscription"
-import { SubscriptionFrequencyInterval as SourceSubscriptionFrequencyInterval } from "../types"
+import {
+  SubscriptionFrequencyInterval as SourceSubscriptionFrequencyInterval,
+  type SubscriptionPaymentContext,
+  type SubscriptionPaymentMethodSummary,
+} from "../types"
 import { getEffectiveNextRenewalAt } from "./effective-next-renewal"
+import {
+  listCustomerPaymentMethods,
+  resolveCustomerPaymentMethod,
+} from "./payment-methods"
 import { subscriptionErrors } from "./errors"
 
 export type ListAdminSubscriptionsInput = {
@@ -71,6 +79,7 @@ type SubscriptionRecord = {
     label?: string | null
   } | null
   shipping_address: SubscriptionAdminShippingAddress
+  payment_context?: SubscriptionPaymentContext | null
   pending_update_data: {
     variant_id: string
     variant_title: string
@@ -179,6 +188,7 @@ const detailFields = [
   "started_at",
   "cancel_effective_at",
   "shipping_address",
+  "payment_context",
   "pending_update_data",
   "metadata",
 ] as const
@@ -354,6 +364,8 @@ function mapDetail(
     pending_update_data: mapPendingUpdateData(record.pending_update_data),
     initial_order: null,
     renewal_orders: [],
+    payment_provider_id: record.payment_context?.payment_provider_id ?? null,
+    payment_method: null,
   }
 }
 
@@ -854,12 +866,96 @@ export async function getAdminSubscriptionDetail(
         return left - right
       })[0] ?? null
 
+  const paymentContext = (subscription.payment_context ??
+    null) as SubscriptionPaymentContext | null
+
   return {
     subscription: {
       ...mapDetail(subscription, displayDataMap.get(subscription.id)),
       initial_order: initialOrder,
       renewal_orders: renewalOrders,
+      payment_provider_id: paymentContext?.payment_provider_id ?? null,
+      payment_method: await resolveSubscriptionPaymentMethodSummary(container, {
+        customer_id: subscription.customer_id,
+        payment_context: paymentContext,
+      }),
     },
+  }
+}
+
+/**
+ * Resolves the card details of the payment method a subscription renews with.
+ *
+ * Best effort: a removed payment method or an unreachable payment provider must
+ * not break the Admin subscription detail view.
+ */
+export async function resolveSubscriptionPaymentMethodSummary(
+  container: MedusaContainer,
+  input: {
+    customer_id: string
+    payment_context: SubscriptionPaymentContext | null
+  }
+): Promise<SubscriptionPaymentMethodSummary | null> {
+  const providerId = input.payment_context?.payment_provider_id ?? null
+  const paymentMethodId =
+    input.payment_context?.payment_method_reference ?? null
+
+  if (!providerId || !paymentMethodId) {
+    return null
+  }
+
+  try {
+    const resolved = await resolveCustomerPaymentMethod(container, {
+      customer_id: input.customer_id,
+      provider_id: providerId,
+      payment_method_id: paymentMethodId,
+    })
+
+    return resolved.summary
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Lists the payment methods the subscription's customer can renew with, marking
+ * the one currently stored on the subscription.
+ */
+export async function getAdminSubscriptionPaymentMethods(
+  container: MedusaContainer,
+  id: string
+) {
+  const query = container.resolve(ContainerRegistrationKeys.QUERY)
+  const { data } = await query.graph({
+    entity: "subscription",
+    fields: ["id", "customer_id", "payment_context"],
+    filters: {
+      id: [id],
+    },
+  })
+
+  const subscription = (data as SubscriptionRecord[])[0]
+
+  if (!subscription) {
+    throw subscriptionErrors.notFound("Subscription", id)
+  }
+
+  const paymentContext = (subscription.payment_context ??
+    null) as SubscriptionPaymentContext | null
+  const providerId = paymentContext?.payment_provider_id ?? null
+  const currentPaymentMethodId =
+    paymentContext?.payment_method_reference ?? null
+  const paymentMethods = await listCustomerPaymentMethods(container, {
+    customer_id: subscription.customer_id,
+    provider_id: providerId,
+  })
+
+  return {
+    payment_provider_id: providerId,
+    payment_methods: paymentMethods.map((paymentMethod) => ({
+      ...paymentMethod,
+      is_current: paymentMethod.id === currentPaymentMethodId,
+    })),
   }
 }
 

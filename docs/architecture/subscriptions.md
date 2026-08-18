@@ -18,9 +18,12 @@ The current implementation supports:
 - cancelling subscriptions
 - scheduling plan changes
 - editing the shipping address
+- changing the payment method used for renewals
 - skipping the next delivery
 - creating subscriptions from store carts
 - customer-facing Store API for subscription account actions
+
+See `architecture/payments.md` for how the payment context is captured, charged off-session, and changed.
 
 ## Architectural Overview
 

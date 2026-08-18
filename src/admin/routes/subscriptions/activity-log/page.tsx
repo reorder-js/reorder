@@ -55,6 +55,7 @@ const domainPresetOptions = [
       "subscription.plan_change_scheduled",
       "subscription.shipping_address_updated",
       "subscription.next_delivery_skipped",
+      "subscription.payment_method_updated",
     ],
   },
   {
