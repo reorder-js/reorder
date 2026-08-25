@@ -10,8 +10,13 @@ import { resolveProductSubscriptionConfig } from "../../../../../modules/plan-of
 import {
   SubscriptionFrequencyInterval,
   SubscriptionStatus,
+  type SubscriptionPaymentMethodSummary,
 } from "../../../../../modules/subscription/types"
 import { getEffectiveNextRenewalAt } from "../../../../../modules/subscription/utils/effective-next-renewal"
+import {
+  listCustomerPaymentMethods,
+  resolveCustomerPaymentMethod,
+} from "../../../../../modules/subscription/utils/payment-methods"
 
 const ACTIVE_CANCELLATION_STATUSES = [
   CancellationCaseStatus.REQUESTED,
@@ -49,6 +54,7 @@ type SubscriptionStoreDetailRecord = SubscriptionStoreListItem & {
   last_renewal_at?: string | Date | null
   payment_context?: {
     payment_provider_id?: string | null
+    payment_method_reference?: string | null
   } | null
   shipping_address?: Record<string, unknown> | null
   pending_update_data?: {
@@ -377,6 +383,97 @@ async function getLatestDunningAttempt(
   return latest ?? null
 }
 
+/**
+ * Resolves the card details of the payment method a subscription renews with.
+ *
+ * The provider lookup is best effort so that a removed payment method or an
+ * unreachable payment provider never breaks subscription detail rendering.
+ */
+export async function resolveSubscriptionPaymentMethod(
+  scope: AuthenticatedMedusaRequest["scope"],
+  input: {
+    customer_id: string
+    payment_context: {
+      payment_provider_id?: string | null
+      payment_method_reference?: string | null
+    } | null
+  }
+): Promise<SubscriptionPaymentMethodSummary | null> {
+  const providerId = input.payment_context?.payment_provider_id ?? null
+  const paymentMethodId =
+    input.payment_context?.payment_method_reference ?? null
+
+  if (!providerId || !paymentMethodId) {
+    return null
+  }
+
+  try {
+    const resolved = await resolveCustomerPaymentMethod(scope, {
+      customer_id: input.customer_id,
+      provider_id: providerId,
+      payment_method_id: paymentMethodId,
+    })
+
+    return resolved.summary
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Lists the payment methods the authenticated customer can renew a subscription
+ * with, flagging the one the subscription currently uses.
+ */
+export async function getStoreSubscriptionPaymentMethodsResponse(
+  scope: AuthenticatedMedusaRequest["scope"],
+  input: {
+    customer_id: string
+    subscription_id: string
+  }
+) {
+  const query = scope.resolve(ContainerRegistrationKeys.QUERY)
+  const { data } = await query.graph(
+    {
+      entity: "subscription",
+      fields: ["id", "customer_id", "payment_context"],
+      filters: {
+        id: [input.subscription_id],
+        customer_id: input.customer_id,
+      },
+    },
+    {
+      throwIfKeyNotFound: true,
+    }
+  )
+
+  const subscription = (data as Array<
+    Pick<SubscriptionStoreDetailRecord, "id" | "payment_context">
+  >)[0]
+
+  if (!subscription) {
+    throw new MedusaError(
+      MedusaError.Types.NOT_FOUND,
+      `Subscription '${input.subscription_id}' was not found for the authenticated customer.`
+    )
+  }
+
+  const providerId = subscription.payment_context?.payment_provider_id ?? null
+  const currentPaymentMethodId =
+    subscription.payment_context?.payment_method_reference ?? null
+  const paymentMethods = await listCustomerPaymentMethods(scope, {
+    customer_id: input.customer_id,
+    provider_id: providerId,
+  })
+
+  return {
+    payment_provider_id: providerId,
+    payment_methods: paymentMethods.map((paymentMethod) => ({
+      ...paymentMethod,
+      is_current: paymentMethod.id === currentPaymentMethodId,
+    })),
+  }
+}
+
 export async function getStoreSubscriptionDetailResponse(
   scope: AuthenticatedMedusaRequest["scope"],
   input: {
@@ -460,6 +557,10 @@ export async function getStoreSubscriptionDetailResponse(
       payment_status: mapPaymentStatus(subscription.status, dunningCase),
       payment_provider_id:
         subscription.payment_context?.payment_provider_id ?? null,
+      payment_method: await resolveSubscriptionPaymentMethod(scope, {
+        customer_id: input.customer_id,
+        payment_context: subscription.payment_context ?? null,
+      }),
       payment_recovery: mapPaymentRecovery(dunningCase, latestDunningAttempt),
       active_cancellation_case: activeCancellationCase,
       scheduled_plan_change: subscription.pending_update_data

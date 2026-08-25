@@ -51,6 +51,32 @@ export type SubscriptionPaymentContext = {
   customer_payment_reference: string | null
 }
 
+export type SubscriptionPaymentMethodSummary = {
+  id: string
+  provider_id: string
+  type: string | null
+  brand: string | null
+  last4: string | null
+  exp_month: number | null
+  exp_year: number | null
+  created_at: number | null
+}
+
+export type SubscriptionAccountHolderRecord = {
+  id: string
+  provider_id: string
+  external_id?: string | null
+  email?: string | null
+  data?: Record<string, unknown> | null
+  metadata?: Record<string, unknown> | null
+}
+
+export type SubscriptionPaymentMethodRecord = {
+  id: string
+  provider_id?: string | null
+  data?: Record<string, unknown> | null
+}
+
 export type SubscriptionPendingUpdateData = {
   variant_id: string
   variant_title: string
