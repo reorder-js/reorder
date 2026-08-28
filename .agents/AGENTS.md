@@ -5,7 +5,7 @@ This file defines how coding agents should work in the official `reorder` reposi
 ## Always
 
 - Write all code, comments, specs, markdown files, lessons, and commit messages in English only, regardless of the language used in the chat.
-- **Before proposing a commit or git push, present a commit message in the Conventional Commits format `type(scope): description` (e.g., `feat(ai): add create-spec skill`, `fix(dunning): resolve retry loop`) and wait for explicit user approval.**
+- **When the user approves changes after code review, propose a commit message in the Conventional Commits format `type(scope): description` (e.g., `feat(ai): add create-spec skill`, `fix(dunning): resolve retry loop`). Wait for explicit user approval of the commit message before committing and pushing changes to the repository.**
 - Identify which Reorder area you are changing and check the Task Router below before starting.
 - Read the relevant runtime documentation in `docs/` before reading implementation files.
 - Refer to `docs/README.md` for plugin overview, current scope, and implemented domains.
@@ -13,6 +13,7 @@ This file defines how coding agents should work in the official `reorder` reposi
 - Check `.agents/lessons.md` at the start of the session to avoid repeating past mistakes.
 - After fixing any bug or resolving a complex issue, update `.agents/lessons.md` with the lesson learned and a rule to prevent it in the future.
 - Use Medusa agentic skills whenever they fit the task.
+- After successfully pushing code to GitHub, **always** ask the user if the public Mintlify documentation needs to be updated. If yes, execute the `sync-docs` skill.
 - Keep changes minimal and local to the affected area.
 - Follow Medusa conventions (file-based routing with `route.ts`, Awilix resolve, custom modules under `src/modules/<domain>/`, models in `models/`, migrations in `migrations/`, workflows in `src/workflows/`, jobs in `src/jobs/`).
 - Write integration tests for new features (preferring HTTP integration tests in `integration-tests/http/`). Keep them self-contained.
@@ -20,6 +21,7 @@ This file defines how coding agents should work in the official `reorder` reposi
 
 ## Ask First
 
+- Ask and obtain explicit confirmation before executing destructive data wipe scripts (e.g., `wipe-test-data`).
 - Ask before changing branch/PR automation, pipeline labels, QA flows, or release behaviors.
 - Ask before making changes that span multiple domains or modules without an existing spec.
 - Ask before adding new external dependencies to `package.json`.

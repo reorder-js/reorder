@@ -1,30 +1,55 @@
 <div align="center">
-  <a href="https://www.reorderjs.com">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/f3420397-bfb7-4358-be41-aa2d9d22623c">
-    <source media="(prefers-color-scheme: light)" srcset="https://github.com/user-attachments/assets/60cebea7-3f45-40cb-8382-301b52376e82">
-    <img alt="Reorder logo" src="https://github.com/user-attachments/assets/f3420397-bfb7-4358-be41-aa2d9d22623c">
-  </picture>
+    <img alt="Reorder — Subscriptions for Medusa, done right." src="assets/screenshots/reorder-hero-new.png" />
+</div>
+
+<h1 align="center">Open-source subscription plugin built on standard Medusa primitives</h1>
+
+<div align="center">
+  <a href="https://medusajs.com/blog/reorder">
+    <img alt="Featured on Medusa Blog" src="https://img.shields.io/badge/Featured_on-Medusa_Blog-7C3AED.svg" />
   </a>
-  <h1> Open Source Subscription Medusa Plugin </h1> 
   <a href="https://github.com/reorder-js/reorder?tab=MIT-1-ov-file">
     <img alt="License" src="https://img.shields.io/badge/license-MIT-blue.svg" />
   </a>
   <a href="https://github.com/reorder-js/reorder/issues">
     <img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat" alt="PRs welcome!" />
-  <a href="https://www.reorderjs.com/contact">
+  </a>
+  <a href="https://www.reorderjs.com/get-started">
     <img alt="Support" src="https://img.shields.io/badge/support-contact%20author-blue.svg" />
   </a>
 </div>
 
-<h4 align="center">
-  <a href="https://www.reorderjs.com">Website</a> | 
-  <a href="https://docs.reorderjs.com">Documentation</a>
-  
-  &nbsp;
-  
-  <img width="800" height="600" alt="subscriptions-page-crop" src="https://github.com/user-attachments/assets/a7817f86-7524-4ccf-90f2-9beca34b50c4" />
-</h4>
+&nbsp;
+
+<div align="center">
+  <a href="https://medusajs.com/blog/reorder">
+    <img width="800" alt="Nicklas Gellner, Co-founder & COO Medusa — featured on the Medusa Blog" src="assets/screenshots/reorder-social.png" />
+  </a>
+</div>
+
+&nbsp;
+
+<div align="center">
+  <a href="https://www.reorderjs.com">Website</a> &nbsp;·&nbsp;
+  <a href="https://docs.reorderjs.com">Documentation</a> &nbsp;·&nbsp;
+  <a href="https://www.youtube.com/watch?v=KY43_6Q3560">Video Demo</a>
+</div>
+
+&nbsp;
+
+## Why Reorder?
+
+- **Native Medusa plugin** — built entirely on Medusa modules, workflows, and Admin UI extensions. No second source of truth, no external subscription platform to sync with.
+- **Open-source, MIT licensed** — no revenue cut, no per-transaction fees, no vendor lock-in.
+- **AI-native** — every domain is mapped in `AGENTS.md`, documented with specs, and covered by HTTP integration tests. Designed for agentic development from day one.
+- **Officially featured by Medusa** — recognized by the Medusa team as the reference example of how a Medusa plugin should be built.
+- **Production-ready** — Roastloop launched coffee subscriptions in 7 days using Reorder. [See the full story →](https://medusajs.com/blog/reorder)
+
+&nbsp;
+
+<div align="center">
+  <img width="800" alt="Reorder Admin — subscriptions list" src="assets/screenshots/admin-subscriptions.png" />
+</div>
 
 &nbsp;
 
@@ -40,13 +65,43 @@ It adds recurring commerce capabilities to a Medusa store, including subscriptio
 
 ## What it includes
 
-- `Subscriptions`
-- `Plans & Offers`
-- `Renewals`
-- `Dunning`
-- `Cancellation & Retention`
-- `Activity Log`
-- `Analytics`
+- **Subscriptions** — Create, pause, resume, skip, and cancel subscriptions, with full lifecycle state tracked in the Admin.
+- **Plans & Offers** — Configure frequencies, per-frequency discounts, trials, and minimum cycle rules per plan.
+- **Renewals** — Scheduler-backed renewal execution with manual override, approval queues, and full attempt history.
+- **Dunning** — Payment retry scheduling with configurable intervals and manual recovery tooling.
+- **Cancellation & Retention** — Pause offers, discounts, and bonuses shown to subscribers before cancellation is final.
+- **Activity Log** — A complete operational history of every subscription event, accessible in the Admin.
+- **Analytics** — MRR, churn rate, LTV, and active subscription counts with filterable trend charts.
+- **Self-service Store APIs** — Subscription checkout, offer selection, and customer portal endpoints for your storefront.
+- **Storefront building blocks** — Cart, checkout, and customer portal integration guides for your own frontend.
+
+&nbsp;
+
+<div align="center">
+  <img width="800" alt="Feature grid — everything the subscription lifecycle needs" src="assets/screenshots/feature-grid.png" />
+</div>
+
+&nbsp;
+
+<div align="center">
+  <img width="800" alt="Storefront subscribe & save" src="assets/screenshots/storefront-subscribe-save.png" />
+</div>
+
+&nbsp;
+
+## AI-native
+
+Every domain in `Reorder` is mapped in `AGENTS.md` — linking architecture, API contracts, workflow docs, and integration tests so an AI agent reads documented behavior before touching implementation files.
+
+<div align="center">
+  <img width="800" alt="AI-native — optimized for agentic development" src="assets/screenshots/ai-native.png" />
+</div>
+
+&nbsp;
+
+## Medusa Cloud compatible
+
+`Reorder` is compatible with Medusa Cloud. No self-hosting required — deploy your Medusa project to Medusa Cloud and install the plugin as you would locally.
 
 &nbsp;
 
@@ -55,18 +110,6 @@ It adds recurring commerce capabilities to a Medusa store, including subscriptio
 `Reorder` currently focuses on recurring commerce operations managed from the Medusa Admin.
 
 Today, the plugin provides strong Admin coverage across the implemented domains. Customer self-service flows will be introduced in the near future as a `Reorder Subscription Starter`.
-
-&nbsp;
-
-## Feature highlights
-
-- Subscription lifecycle management
-- Configurable plans and offers
-- Renewal orchestration
-- Dunning retries and recovery tooling
-- Cancellation flows with retention offers
-- Operational activity logs
-- Subscription analytics and reporting
 
 &nbsp;
 
@@ -104,19 +147,21 @@ plugins: [
 
 With `npm`:
 
-```bash npm
+```bash
 npx medusa db:migrate
 ```
 
 With `yarn`:
 
-```bash yarn
+```bash
 yarn medusa db:migrate
 ```
 
 ### 4. Start your Medusa app
 
 After adding the plugin, run your normal Medusa setup flow in your store project.
+
+&nbsp;
 
 ## Local development
 
@@ -189,6 +234,14 @@ yarn dev
 - Admin API routes for plugin operations
 - Admin UI extensions for management flows
 - scheduled jobs for renewals, dunning, and analytics processing
+
+&nbsp;
+
+## Community & Support
+
+- **GitHub Issues** — bug reports and feature requests: [github.com/reorder-js/reorder/issues](https://github.com/reorder-js/reorder/issues)
+- **GitHub Discussions** — questions, ideas, and general help: [github.com/reorder-js/reorder/discussions](https://github.com/reorder-js/reorder/discussions)
+- **Contact** — reach the author directly at [reorderjs.com/get-started](https://www.reorderjs.com/get-started)
 
 &nbsp;
 

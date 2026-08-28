@@ -288,6 +288,8 @@ async function listSubscriptionsForDay(
       "started_at",
       "paused_at",
       "cancel_effective_at",
+      "orders.id",
+      "orders.created_at",
     ],
     filters: {
       started_at: {
@@ -512,11 +514,36 @@ async function rebuildSingleDay(
       }
     }
 
-    const orderIds = [...latestRenewalBySubscription.values()]
-      .map((cycle) => cycle.generated_order_id)
-      .filter((id): id is string => Boolean(id))
+    const orderIdsToFetch = new Set<string>()
+    for (const cycle of latestRenewalBySubscription.values()) {
+      if (cycle.generated_order_id) {
+        orderIdsToFetch.add(cycle.generated_order_id)
+      }
+    }
 
-    const orders = await listOrders(container, orderIds)
+    const latestOrderBySubscription = new Map<string, string>()
+    
+    for (const subscription of subscriptions) {
+      const orders = (subscription as any).orders ?? []
+      let latestId: string | null = null
+      let latestCreatedAt = 0
+
+      for (const order of orders) {
+        const createdAt = new Date(order.created_at).getTime()
+        if (createdAt <= dayEnd.getTime() && createdAt > latestCreatedAt) {
+          latestCreatedAt = createdAt
+          latestId = order.id
+        }
+      }
+
+      if (latestId) {
+        latestOrderBySubscription.set(subscription.id, latestId as string)
+        orderIdsToFetch.add(latestId as string)
+      }
+    }
+
+    const orders = await listOrders(container, Array.from(orderIdsToFetch))
+
     const ordersById = new Map<string, OrderAnalyticsRecord>(
       orders.map((order) => [order.id, order])
     )
@@ -533,14 +560,18 @@ async function rebuildSingleDay(
       const isActive = derivedStatus === SubscriptionStatus.ACTIVE
       const churnEvent = churnBySubscription.get(subscription.id) ?? null
       const latestRenewal = latestRenewalBySubscription.get(subscription.id) ?? null
-      const latestOrder = latestRenewal?.generated_order_id
-        ? ordersById.get(latestRenewal.generated_order_id) ?? null
-        : null
-      const orderTotal = latestOrder ? Number(latestOrder.total ?? 0) : null
+      
+      const latestOrderId =
+        latestRenewal?.generated_order_id ??
+        latestOrderBySubscription.get(subscription.id) ??
+        null
+      const latestOrder = latestOrderId ? ordersById.get(latestOrderId as string) ?? null : null
+      
+      const orderTotal = latestOrder ? Number(latestOrder?.total ?? 0) : null
       const mrrAmount =
         isActive && latestOrder && Number.isFinite(orderTotal)
           ? normalizeMonthlyRecurringValue(
-              orderTotal!,
+              orderTotal as number,
               subscription.frequency_interval,
               subscription.frequency_value
             )
@@ -565,7 +596,7 @@ async function rebuildSingleDay(
           lifecycle_event_type: lifecycleEvent?.event_type ?? null,
           dunning_open_at_day_end: openDunningBySubscription.get(subscription.id) ?? false,
           renewal_order_id: latestRenewal?.generated_order_id ?? null,
-          revenue_source: latestOrder ? "latest_successful_renewal_order" : "unavailable",
+          revenue_source: latestOrderId ? "order" : "unavailable",
           churn_source: churnEvent ? "cancellation_case" : null,
         },
         metadata: {

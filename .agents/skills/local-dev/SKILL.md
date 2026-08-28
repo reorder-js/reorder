@@ -1,42 +1,68 @@
 ---
 name: local-dev
-description: Guidelines for local development and testing of the reorder plugin in an external Medusa backend project. Use this skill only when the task involves deploying, syncing, or locally running the plugin with a backend.
+description: Guidelines for local development, syncing, and testing of the reorder plugin with an external Medusa backend project and subscription storefront as background tasks in Antigravity.
 ---
 
-# Local development in Medusa backend
+# Local development in Medusa backend & Storefront
 
-This skill describes how to sync local changes in the `reorder` plugin with an external Medusa backend during local development.
+This skill describes how to sync local changes in the `reorder` plugin with an external Medusa backend and run both the Medusa backend and the subscription storefront as separate Antigravity background tasks.
 
-## Prerequisites
+## Workflow Execution Steps for Agents
 
-In the Medusa backend's `package.json` file, declare the plugin dependency using a local file path:
-```json
-"@reorderjs/reorder": "file:../reorder"
+When requested to run `/local-dev` or start the local development environment:
+
+### Step 1: Initial Sync or Plugin Rebuild (Only when code changed)
+If you modified the `reorder` plugin code and need to rebuild and push changes to `yalc`:
+```bash
+./.agents/scripts/sync-local-env.sh
 ```
-Ensure you run `yarn install` in the Medusa backend project after adding or updating this path.
+> [!NOTE]
+> If the user simply requests to **restart** or **start** the backend/storefront without code changes, **do NOT** run `sync-local-env.sh`. Skip directly to Step 2 and restart the process.
 
-## Synchronization Workflow
+### Step 2: Start Medusa Backend (Background Task)
+Start the Medusa backend dev server using `run_command` with `IsDaemon: true` and working directory set to the backend directory (`Cwd: /Users/tomaszkasperski/Desktop/Development/medusa-reorder/my-medusa-store`):
+```bash
+yarn dev
+```
 
-When you modify code in this repository (`reorder`) and want the external Medusa backend to import the newest changes:
+### Step 3: Wait for Backend Readiness
+Poll `http://localhost:9000/health` until the backend responds with HTTP 200 OK before starting the storefront:
+```bash
+until curl -s -f http://localhost:9000/health >/dev/null 2>&1; do sleep 1; done
+```
 
-1. In the `reorder` repository, run:
-   ```bash
-   yarn medusa plugin:publish
+### Step 4: Start Subscription Storefront (Background Task)
+Start the storefront dev server as a separate background daemon task using `run_command` with `IsDaemon: true` and working directory set to the storefront directory (`Cwd: /Users/tomaszkasperski/Desktop/Development/medusa-reorder/subscription-storefront`):
+```bash
+yarn dev
+```
+
+### Step 5: Report URLs to the User
+Always immediately provide the clickable URLs:
+- **Medusa Backend API**: `http://localhost:9000`
+- **Medusa Admin Dashboard**: `http://localhost:9000/app`
+- **Subscription Storefront**: `http://localhost:8000`
+
+---
+
+## Manual Setup & Storefront Connection Requirements
+
+### 1. Medusa Backend
+1. Install `yalc` globally if needed: `npm i yalc -g`
+2. In the Medusa backend's `package.json`, declare the plugin dependency using yalc:
+   ```json
+   "@reorderjs/reorder": "file:.yalc/@reorderjs/reorder"
    ```
-2. In the Medusa backend project directory, run:
-   ```bash
-   yarn medusa db:migrate
+3. Ensure the plugin is registered in `medusa-config.ts`.
+4. Ensure PostgreSQL database is running and `DATABASE_URL` is configured in `.env`.
+5. Ensure CORS settings in backend `.env` allow storefront access (`STORE_CORS=http://localhost:8000,...`).
+
+### 2. Subscription Storefront (`subscription-storefront`)
+1. Ensure `.env.local` is present in the storefront directory with:
+   ```env
+   MEDUSA_BACKEND_URL=http://localhost:9000
+   NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY=<active_publishable_api_key>
+   NEXT_PUBLIC_BASE_URL=http://localhost:8000
+   NEXT_PUBLIC_DEFAULT_REGION=us
    ```
-3. In the Medusa backend project directory, reinstall the package from the filesystem:
-   ```bash
-   yarn install
-   ```
-
-> [!IMPORTANT]
-> Do not assume the Medusa backend is using the newest local plugin code until this entire command sequence has successfully completed.
-
-## Useful Plugin Commands
-
-In the `reorder` directory, you can run:
-- `yarn dev` – Runs the process in development mode.
-- `yarn build` – Builds the plugin files for production.
+2. The publishable API key in the storefront must match an active publishable key in the Medusa backend database that is linked to the appropriate sales channel.
