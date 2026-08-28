@@ -16,7 +16,7 @@ moduleIntegrationTestRunner<ActivityLogModuleService>({
   moduleName: ACTIVITY_LOG_MODULE,
   moduleModels: [SubscriptionLog],
   resolve: "./src/modules/activity-log",
-  testSuite: ({ service, container }) => {
+  testSuite: ({ service }) => {
     describe("createSubscriptionLogEventStep", () => {
       const stepContext = {
         container: {

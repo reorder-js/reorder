@@ -21,7 +21,7 @@ It should be reviewed at the start of a session and updated after fixing any bug
   - **Medusa Backend API**: `http://localhost:9000`
   - **Medusa Admin Dashboard**: `http://localhost:9000/app`
   - **Medusa Storefront**: `http://localhost:8000`
-  directly to the user.
+    directly to the user.
 - **Context**: Prevents leaving the user guessing where the dev server, admin panel, and storefront are hosted when processes run in the background.
 
 ### Mandatory Confirmation for Test Data Wipe
@@ -44,8 +44,11 @@ It should be reviewed at the start of a session and updated after fixing any bug
 
 ## General Lessons
 
+### Zod must be imported from the Medusa re-export in backend code
+
+- **Zod imports**: In backend code (`src/api/`, `src/workflows/`, `src/modules/`, `src/jobs/`), import Zod as `import { z } from "@medusajs/framework/zod"`, never from `"zod"`. Admin dashboard customizations under `src/admin/` keep importing from `"zod"` directly, since the dashboard supplies it.
+
 * **Publishable API Key Mismatch**: If Storefront throws `Error: A valid publishable key is required to proceed with the request`, the key in `.env.local` (`NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY`) is out of sync with the active key in the Medusa backend database (table `api_key` where `type = 'publishable'`).
 * **Missing Inventory on Cart Line Items**: In Medusa v2, `addToCartWorkflow` checks inventory levels for all variants with `manage_inventory: true`. If `inventory_item` or `inventory_level` rows are missing, `POST /store/carts/:id/line-items` will fail with a 500 error.
 * **Subscription MRR on First Billing Cycle**: Newly created subscriptions do not have a renewal cycle record yet (`latestRenewal` is null). Analytics daily snapshots must resolve the latest order from linked subscription orders (including the initial checkout order) rather than exclusively checking renewal cycles to avoid calculating MRR as unavailable or zero before the first renewal.
 * **Analytics Daily Snapshot Order Resolution**: When resolving `latestOrderId` for daily metric snapshots, always prefer `latestRenewal.generated_order_id` (representing the most recent renewal order) and fallback to `latestOrderBySubscription` (representing initial order creation) so that both renewal-generated orders and initial orders are properly captured.
-

@@ -1,5 +1,5 @@
 import { createFindParams } from "@medusajs/medusa/api/utils/validators"
-import { z } from "zod"
+import { z } from "@medusajs/framework/zod"
 
 const optionalIsoDateTime = z.string().datetime().optional()
 

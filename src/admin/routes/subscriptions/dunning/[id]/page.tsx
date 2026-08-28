@@ -899,8 +899,8 @@ const DunningDetailPage = () => {
 export default DunningDetailPage
 
 export const handle = {
-  breadcrumb: ({ params, data }: UIMatch<DunningCaseAdminDetailResponse>) =>
-    params?.id || data?.dunning_case?.id || "Dunning",
+  breadcrumb: ({ params, loaderData }: UIMatch<DunningCaseAdminDetailResponse>) =>
+    params?.id || loaderData?.dunning_case?.id || "Dunning",
 }
 
 const DetailRow = ({

@@ -1,4 +1,4 @@
-import { z } from "zod"
+import { z } from "@medusajs/framework/zod"
 import { AnalyticsGroupBy } from "../../../admin/types/analytics"
 
 const optionalIsoDateTime = z.string().datetime().optional()

@@ -87,7 +87,7 @@ const settingsSchema = z
     intervals.forEach((interval, index) => {
       if (!Number.isInteger(interval) || interval <= 0) {
         ctx.addIssue({
-          code: z.ZodIssueCode.custom,
+          code: "custom",
           message: "Retry interval must be a positive integer",
           path: ["dunning_retry_intervals", index, "value"],
         })
@@ -95,7 +95,7 @@ const settingsSchema = z
 
       if (index > 0 && interval <= intervals[index - 1]) {
         ctx.addIssue({
-          code: z.ZodIssueCode.custom,
+          code: "custom",
           message: "Retry intervals must be strictly increasing",
           path: ["dunning_retry_intervals", index, "value"],
         })
@@ -104,7 +104,7 @@ const settingsSchema = z
 
     if (values.max_dunning_attempts !== intervals.length) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         message:
           "Max dunning attempts must match the number of retry intervals",
         path: ["max_dunning_attempts"],
