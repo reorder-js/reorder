@@ -2249,8 +2249,8 @@ function formatUnknown(value: unknown) {
 }
 
 export const handle = {
-  breadcrumb: ({ data }: UIMatch<SubscriptionAdminDetailResponse>) =>
-    data?.subscription?.reference || "Subscription",
+  breadcrumb: ({ loaderData }: UIMatch<SubscriptionAdminDetailResponse>) =>
+    loaderData?.subscription?.reference || "Subscription",
 };
 
 export async function loader({ params }: LoaderFunctionArgs) {

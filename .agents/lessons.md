@@ -17,4 +17,12 @@ It should be reviewed at the start of a session and updated after fixing any bug
 
 ## General Lessons
 
-* (No lessons recorded yet. Will be updated as issues arise.)
+### Zod must be imported from the Medusa re-export in backend code
+
+- **Rule**: In backend code (`src/api/`, `src/workflows/`, `src/modules/`, `src/jobs/`), import Zod as `import { z } from "@medusajs/framework/zod"`, never from `"zod"`. Admin dashboard customizations under `src/admin/` keep importing from `"zod"` directly, since the dashboard supplies it.
+- **Context**: Medusa re-exports the exact Zod version the framework validates against, so `validateAndTransformBody` and the project's schemas can never drift apart. Importing `"zod"` in backend code relies on hoisting, which is how the project silently crossed Zod 3 -> 4 during the 2.13.6 -> 2.19.0 upgrade. Run `npx medusa codemod replace-zod-imports` to fix violations.
+
+### `plugin:build` type-checks more files since Medusa 2.19.0
+
+- **Rule**: Keep `scripts/` and `src/**/__tests__/` type-clean. Do not assume a type error there is harmless because the build is green.
+- **Context**: Up to 2.13.6, `medusa plugin:build` compiled only a subset of the project (one script, no spec files). From 2.19.0 it compiles all of `scripts/` and `__tests__/`, so latent type errors in those directories become build failures. Three pre-existing errors surfaced this way during the 2.19.0 upgrade. Side effect: spec files are now emitted into `.medusa/server` and therefore into the published package.
