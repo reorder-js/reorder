@@ -49,7 +49,7 @@ const ProductWidget = () => {
 }
 
 export const config = defineWidgetConfig({
-  zone: "product.details.before",
+  zone: "product.details",
 })
 
 export default ProductWidget
