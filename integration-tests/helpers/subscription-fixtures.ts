@@ -103,6 +103,51 @@ export async function createAdminAuthHeaders(container: MedusaContainer) {
     authorization: `Bearer ${token}`,
   }
 }
+export async function createStoreCustomerAuthHeaders(
+  container: MedusaContainer,
+  customer: { id: string; email?: string | null }
+) {
+  const authModule = container.resolve<AuthModuleService>(Modules.AUTH)
+  const email = customer.email || `customer-${Date.now()}@medusa.test`
+
+  const authIdentity = await authModule.createAuthIdentities({
+    provider_identities: [
+      {
+        provider: "emailpass",
+        entity_id: email,
+        provider_metadata: {
+          password: "supersecret",
+        },
+      },
+    ],
+    app_metadata: {
+      customer_id: customer.id,
+      roles: [],
+    },
+  })
+
+  const token = jwt.sign(
+    {
+      actor_id: customer.id,
+      actor_type: "customer",
+      auth_identity_id: authIdentity.id,
+      app_metadata: {
+        customer_id: customer.id,
+        roles: [],
+      },
+      user_metadata: {},
+    },
+    process.env.JWT_SECRET || "supersecret",
+    {
+      expiresIn: "1d",
+    }
+  )
+
+  return {
+    authorization: `Bearer ${token}`,
+  }
+}
+
 
 export async function createProductWithVariant(container: MedusaContainer) {
   const productModule = container.resolve<ProductModuleService>(Modules.PRODUCT)

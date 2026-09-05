@@ -460,6 +460,13 @@ export async function getStoreSubscriptionPaymentMethodsResponse(
   const providerId = subscription.payment_context?.payment_provider_id ?? null
   const currentPaymentMethodId =
     subscription.payment_context?.payment_method_reference ?? null
+  if (!providerId) {
+    return {
+      payment_provider_id: null,
+      payment_methods: [],
+    }
+  }
+
   const paymentMethods = await listCustomerPaymentMethods(scope, {
     customer_id: input.customer_id,
     provider_id: providerId,

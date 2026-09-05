@@ -945,6 +945,13 @@ export async function getAdminSubscriptionPaymentMethods(
   const providerId = paymentContext?.payment_provider_id ?? null
   const currentPaymentMethodId =
     paymentContext?.payment_method_reference ?? null
+  if (!providerId) {
+    return {
+      payment_provider_id: null,
+      payment_methods: [],
+    }
+  }
+
   const paymentMethods = await listCustomerPaymentMethods(container, {
     customer_id: subscription.customer_id,
     provider_id: providerId,

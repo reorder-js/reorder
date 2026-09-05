@@ -354,7 +354,7 @@ const SubscriptionDetailPage = () => {
   });
 
   const updatePaymentMethodMutation = useMutation({
-    mutationFn: async (body: { payment_method_id: string }) =>
+    mutationFn: async (body: { payment_method_id: string; provider_id?: string }) =>
       sdk.client.fetch<SubscriptionAdminDetailResponse>(
         `/admin/subscriptions/${id}/payment-method`,
         {
@@ -1865,8 +1865,13 @@ const SubscriptionDetailPage = () => {
                     return;
                   }
 
+                  const selectedMethod = paymentMethods.find(
+                    (m) => m.id === selectedPaymentMethodId
+                  );
+
                   updatePaymentMethodMutation.mutate({
                     payment_method_id: selectedPaymentMethodId,
+                    provider_id: selectedMethod?.provider_id,
                   });
                 }}
                 isLoading={updatePaymentMethodMutation.isPending}
