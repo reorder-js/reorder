@@ -205,7 +205,7 @@ The user can:
 ### Rules Section
 
 The rules area supports:
-- minimum cycles
+- minimum cycles: optional positive integer defining the minimum subscription period before cancellation; empty input evaluates to `null` (no minimum period)
 - trial enabled / disabled
 - trial days
 - stacking policy
@@ -215,6 +215,7 @@ Client-side validation enforces rule consistency before submission.
 ### Modal Behavior
 
 The create modal:
+- provides `Cancel` and `Create` submit actions in the modal header
 - resets form state when closed
 - keeps product and variant selection separate from the main display query
 - disables submit while the mutation is pending

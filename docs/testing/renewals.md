@@ -81,6 +81,17 @@ Current files:
 
 This layer is the main protection for the implemented Admin behavior and the renewal execution boundary.
 
+### 3.3 E2E Browser Tests
+
+Purpose:
+- verify the actual Admin UI behavior running in a real browser via Playwright
+- exercise critical merchant operational flows, specifically manual revenue recovery (forcing/approving renewals)
+
+Current files:
+- [renewal-force.spec.ts](../../e2e/renewal-force.spec.ts) (exercises force-run and approval)
+- [RenewalDetailPage.ts](../../e2e/pages/RenewalDetailPage.ts) (Page Object Model)
+
+This layer relies on direct PostgreSQL inserts (`psql`) to isolate complex state without bloating the Admin API.
 ## 4. Fixture Strategy
 
 Test data helpers are defined in:
@@ -217,13 +228,12 @@ TEST_TYPE=integration:modules NODE_OPTIONS=--experimental-vm-modules yarn jest -
 ## 7. What Is Intentionally Not Covered
 
 The current test strategy does not include:
-- Playwright
-- browser-based Admin UI automation
+- exhaustive browser-based UI coverage (every validation state, every tooltip)
 - visual regression testing
 
 Reason:
-- the project currently follows the officially supported Medusa testing path based on `@medusajs/test-utils`
-- the main Admin flow is validated through HTTP integration tests rather than browser automation
+- the main backend flows are thoroughly validated through HTTP integration tests, making exhaustive UI tests redundant and brittle
+- E2E browser tests are reserved strictly for high-value merchant operational flows (like manual revenue recovery) to ensure the UI boundary is intact
 
 ## 8. How to Add New Tests
 
@@ -258,7 +268,7 @@ then the corresponding integration tests should be updated in the same change se
 
 ## 10. Summary
 
-The `Renewals` area is currently tested through Medusa-supported integration layers rather than browser automation.
+The `Renewals` area is tested through Medusa-supported integration layers, augmented by targeted E2E browser automation for critical paths.
 
 This provides strong protection for:
 - domain behavior
@@ -266,5 +276,6 @@ This provides strong protection for:
 - Admin API contract
 - the main Admin operational flow
 - the integration boundary with `Subscriptions` and `Plans & Offers`
+- the merchant's ability to manually force or approve renewals in the Admin UI
 
-It does not attempt to validate rendering details in the browser.
+It avoids brittle exhaustive UI testing, focusing browser automation only on critical operational recovery.

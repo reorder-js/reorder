@@ -17,16 +17,15 @@ The testing setup for `Plans & Offers` is designed to protect the plugin at the 
 The project currently relies on:
 - module integration tests
 - HTTP integration tests
-
-It does not currently include browser-based UI tests.
+- Playwright E2E browser tests (for Admin UI)
 
 ## 1. Testing Strategy
 
-The `Plans & Offers` area is tested in two main layers:
+The `Plans & Offers` area is tested in three main layers:
 
 1. module/service layer
 2. Medusa application integration layer
-
+3. Playwright E2E browser testing layer
 This gives coverage for:
 - data model behavior
 - service behavior
@@ -41,17 +40,20 @@ This layer is the main protection for the implemented Admin behavior and the cur
 
 ## 2. Test Tooling
 
-The current setup uses Medusa-supported testing tools:
+The current setup uses Medusa-supported testing tools alongside Playwright:
 - `Jest`
 - `@medusajs/test-utils`
 - `moduleIntegrationTestRunner`
 - `medusaIntegrationTestRunner`
-
+- `@playwright/test`
 Repository files involved in the setup:
 - [package.json](../../package.json)
 - [jest.config.js](../../jest.config.js)
 - [integration-tests/setup.js](../../integration-tests/setup.js)
 - [integration-tests/medusa-config.ts](../../integration-tests/medusa-config.ts)
+- [playwright.config.ts](../../playwright.config.ts)
+- [e2e/pages/PlanFormPage.ts](../../e2e/pages/PlanFormPage.ts)
+- [e2e/plans-offers.spec.ts](../../e2e/plans-offers.spec.ts)
 
 ## 3. Test Layers
 
@@ -84,6 +86,23 @@ Current files:
 Related integration coverage for cross-area behavior:
 - [subscriptions-workflows.spec.ts](../../integration-tests/http/subscriptions-workflows.spec.ts)
 - [subscriptions-routes.spec.ts](../../integration-tests/http/subscriptions-routes.spec.ts)
+
+### 3.3 E2E Browser Tests (Playwright)
+
+Purpose:
+- run browser automation against a live Medusa Admin dashboard
+- authenticate as admin via session-based auth (`storageState` cached in `e2e/.auth/admin.json`)
+- seed test products via Admin API (`POST /admin/products`) for test data independence
+- verify the plan offer creation flow via Page Object Model (`PlanFormPage`)
+- intercept and validate the `POST /admin/subscription-offers` request payload
+- assert UI success feedback and immediate display of the created plan in the data table
+
+Current files:
+- [auth.setup.ts](../../e2e/auth.setup.ts)
+- [PlanFormPage.ts](../../e2e/pages/PlanFormPage.ts)
+- [plans-offers.spec.ts](../../e2e/plans-offers.spec.ts)
+
+This layer protects the actual operator experience in the browser, complementing backend integration flows.
 
 ## 4. Fixture Strategy
 
@@ -158,6 +177,18 @@ This is not a browser test.
 It is an integration-level backend flow using the same custom Admin endpoints used by the UI.
 
 ### Subscriptions Smoke-Check
+### E2E Browser Coverage
+
+Covered through Playwright browser tests:
+- open plan creation modal from the list toolbar
+- select product through the structured modal picker
+- set frequency interval and value
+- configure per-frequency discount (type and value)
+- submit form via modal header action
+- API intercept and payload validation for `POST /admin/subscription-offers`
+- success toast notification (`Plan offer created`)
+- data table search and visibility of newly created plan
+
 
 The current test strategy also includes smoke-level integration with `Subscriptions`.
 
@@ -204,17 +235,27 @@ Run the module test file:
 TEST_TYPE=integration:modules NODE_OPTIONS=--experimental-vm-modules yarn jest --runInBand src/modules/plan-offer/__tests__/service.spec.ts
 ```
 
+Run Playwright E2E tests:
+
+```bash
+yarn test:e2e
+```
+
+Run only Plans & Offers E2E test:
+
+```bash
+npx playwright test e2e/plans-offers.spec.ts
+```
+
 ## 7. What Is Intentionally Not Covered
 
 The current test strategy does not include:
-- Playwright
-- browser-based Admin UI automation
-- visual regression testing
+- visual regression testing / screenshot diffing
+- edit drawer E2E flows in Playwright (scheduled for subsequent iterations)
+- storefront browser testing (managed in the storefront workspace)
 
 Reason:
-- the project currently follows the officially supported Medusa testing path based on `@medusajs/test-utils`
-- the main Admin flow is validated through HTTP integration tests rather than browser automation
-
+- the initial Plans & Offers Playwright suite focuses on the critical offer creation path before expanding to full drawer edit and toggle flows
 ## 8. How to Add New Tests
 
 Use this rule of thumb:
@@ -247,7 +288,7 @@ then the corresponding integration tests should be updated in the same change se
 
 ## 10. Summary
 
-The `Plans & Offers` area is currently tested through Medusa-supported integration layers rather than browser automation.
+The `Plans & Offers` area is tested through Medusa-supported integration layers alongside Playwright browser automation for the Admin UI creation flow.
 
 This provides strong protection for:
 - domain behavior
@@ -255,9 +296,8 @@ This provides strong protection for:
 - workflow behavior
 - Admin API contract
 - the main Admin operator flow
+- browser-rendered Admin UI plan creation flow
 - integration with `Subscriptions`
-
-It does not attempt to validate rendering details in the browser.
 
 ## Related Documents
 

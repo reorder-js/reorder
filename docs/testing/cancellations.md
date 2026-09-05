@@ -14,10 +14,9 @@ It covers:
 
 The testing setup for `Cancellation & Retention` is designed to protect the plugin at the layers officially supported by Medusa's testing tooling.
 
-The project currently relies on:
+The project relies on:
 - HTTP integration tests
-
-It does not currently include browser-based UI tests.
+- Playwright browser E2E tests for the Admin cancellation workflow
 
 ## 1. Testing Strategy
 
@@ -31,10 +30,11 @@ This gives coverage for:
 
 ## 2. Test Tooling
 
-The current setup uses Medusa-supported testing tools:
+The current setup uses:
 - `Jest`
 - `@medusajs/test-utils`
 - `medusaIntegrationTestRunner`
+- `Playwright`
 
 Repository files involved in the setup:
 - [package.json](../../package.json)
@@ -42,20 +42,26 @@ Repository files involved in the setup:
 - [integration-tests/setup.js](../../integration-tests/setup.js)
 - [integration-tests/medusa-config.ts](../../integration-tests/medusa-config.ts)
 
-## 3. HTTP Integration Tests
+## 3. Automated Test Coverage
+
+### HTTP Integration Tests
 
 Purpose:
 - run a full Medusa application in test mode
 - call the real custom Admin routes
 - verify workflows, read models, and API behavior as used by the Admin UI
 
-Current files:
+Current HTTP integration files:
 - [cancellations-workflows.spec.ts](../../integration-tests/http/cancellations-workflows.spec.ts)
 - [cancellations-routes.spec.ts](../../integration-tests/http/cancellations-routes.spec.ts)
 - [cancellations-admin-flow.spec.ts](../../integration-tests/http/cancellations-admin-flow.spec.ts)
 - [cancellations-smoke.spec.ts](../../integration-tests/http/cancellations-smoke.spec.ts)
 
 This layer is the main protection for the implemented cancellation and retention behavior.
+
+### Browser E2E Test
+
+The focused Playwright scenario [cancellation-retention.spec.ts](../../e2e/cancellation-retention.spec.ts) seeds an active subscription and linked cancellation case with isolated timestamp-based references. It covers the Admin queue, detail actions, confirmation prompts, mutation payloads, toasts, final case outcomes, and linked subscription lifecycle state.
 
 ## 4. Fixture Strategy
 
@@ -123,6 +129,14 @@ This is not a browser test.
 
 It is an integration-level flow test using Medusa-supported tooling and the same custom Admin endpoints used by the UI.
 
+### Browser E2E Coverage
+
+The Playwright scenario [cancellation-retention.spec.ts](../../e2e/cancellation-retention.spec.ts) covers:
+- applying a pause retention offer and verifying the case outcome is `Paused` and the linked subscription is `Paused`
+- finalizing cancellation with a free-text reason and `Price` category
+- verifying the `Canceled` case outcome in the queue and `Cancelled` subscription lifecycle state
+- intercepting `apply-offer` and `finalize` requests to assert the Admin UI sends the workflow contract
+
 ### Cross-Area Smoke Coverage
 
 The file [cancellations-smoke.spec.ts](../../integration-tests/http/cancellations-smoke.spec.ts) protects the main runtime boundary with other plugin areas.
@@ -169,36 +183,40 @@ Run the smoke-check file:
 TEST_TYPE=integration:http NODE_OPTIONS=--experimental-vm-modules yarn jest --runInBand integration-tests/http/cancellations-smoke.spec.ts
 ```
 
+Run the focused browser E2E scenario against a running Medusa backend:
+
+```bash
+yarn test:e2e e2e/cancellation-retention.spec.ts --project=chromium
+```
+
 ## 7. What Is Intentionally Not Covered
 
 The current test strategy does not include:
-- Playwright
-- browser-based Admin UI automation
 - visual regression testing
 - separate module-service tests under `src/modules/cancellation/__tests__`
 
 Reason:
-- the project currently follows the officially supported Medusa testing path based on `@medusajs/test-utils`
-- the main Admin flow is validated through HTTP integration tests rather than browser automation
-- the highest-value protection for this feature is at the workflow, route, and cross-module integration boundary
+- HTTP integration coverage remains the primary protection for workflows, API contracts, and cross-module behavior
+- the focused browser E2E scenario protects the operator UI path for applying offers and finalizing cancellations
+- visual and module-service coverage do not currently add protection beyond the established integration boundaries
 
 ## 8. How to Add New Tests
 
 Use this rule of thumb:
 
 - add or extend an HTTP integration test when behavior depends on real routes, workflows, auth, validation, or linked Medusa modules
-- add a scenario test when you want to protect a full operational Admin flow across multiple endpoints
+- add or extend the browser E2E scenario when an Admin queue, drawer, confirmation prompt, mutation payload, or operator-visible lifecycle state changes
 - extend the smoke-check when changes affect the runtime boundary with `Subscriptions`, `Renewals`, or `Dunning`
 
 For new `Cancellation & Retention` functionality:
-- prefer extending the existing `cancellations-*` test files if the change matches their scope
-- create a new focused test file only when the flow becomes large enough to deserve its own scenario
+- prefer extending the existing `cancellations-*` integration tests for backend behavior
+- keep browser scenarios focused on complete operator workflows with self-contained SQL or Admin API fixtures
 
 ## 9. Practical Guidance for Future Contributors
 
 When changing the `Cancellation & Retention` area:
 1. update or add an HTTP integration test if route behavior, validators, queries, or workflows change
-2. update the scenario flow if the main Admin operator flow changes
+2. update the browser E2E scenario if the main Admin operator flow changes
 3. update the smoke-check if cancellation semantics change at the boundary with `Subscriptions`, `Renewals`, or `Dunning`
 
 If a feature changes the contract of:
@@ -213,10 +231,10 @@ then the corresponding integration tests should be updated in the same change se
 
 ## 10. Summary
 
-The `Cancellation & Retention` area is currently tested through Medusa-supported HTTP integration layers rather than browser automation.
+The `Cancellation & Retention` area is tested through Medusa-supported HTTP integration layers and a focused Playwright Admin UI scenario.
 
 This provides strong protection for:
 - cancellation and retention workflows
 - Admin read and mutation routes
-- scenario-style operator flows
+- end-to-end operator flows for pause retention and final cancellation
 - the runtime integration boundary with `Subscriptions`, `Renewals`, and `Dunning`

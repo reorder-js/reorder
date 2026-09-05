@@ -33,7 +33,8 @@
     "dev": "medusa plugin:develop",
     "prepublishOnly": "medusa plugin:build",
     "test:integration:http": "TEST_TYPE=integration:http NODE_OPTIONS=--experimental-vm-modules jest --silent=false --runInBand --forceExit",
-    "test:integration:modules": "TEST_TYPE=integration:modules NODE_OPTIONS=--experimental-vm-modules jest --silent=false --runInBand --forceExit"
+    "test:integration:modules": "TEST_TYPE=integration:modules NODE_OPTIONS=--experimental-vm-modules jest --silent=false --runInBand --forceExit",
+    "test:e2e": "npx playwright test"
   },
   "devDependencies": {
     "@medusajs/admin-sdk": "2.19.0",
@@ -43,6 +44,7 @@
     "@medusajs/medusa": "2.19.0",
     "@medusajs/test-utils": "2.19.0",
     "@medusajs/ui": "4.2.1",
+    "@playwright/test": "^1.62.1",
     "@swc/core": "^1.7.28",
     "@swc/jest": "^0.2.39",
     "@types/jest": "^29.5.14",

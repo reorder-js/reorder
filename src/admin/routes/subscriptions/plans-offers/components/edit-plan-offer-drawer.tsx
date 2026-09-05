@@ -415,7 +415,9 @@ export const EditPlanOfferDrawer = ({
                           step={1}
                           {...form.register("minimum_cycles", {
                             setValueAs: (value) =>
-                              value === "" ? null : Number(value),
+                              value === "" || value === null || value === undefined
+                                ? null
+                                : Number(value),
                           })}
                         />
                         <Text
@@ -652,7 +654,9 @@ export const EditPlanOfferDrawer = ({
                                     `frequency_rows.${index}.discount_value`,
                                     {
                                       setValueAs: (value) =>
-                                        value === "" ? null : Number(value),
+                                        value === "" || value === null || value === undefined
+                                          ? null
+                                          : Number(value),
                                     }
                                   )}
                                 />

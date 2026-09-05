@@ -44,6 +44,7 @@ Run the smallest relevant validation command for your changes:
 yarn build
 yarn test:integration:http
 yarn test:integration:modules
+yarn test:e2e                                      # Requires running Medusa backend (ADMIN_BASE_URL)
 ```
 
 ## Task router
@@ -63,6 +64,7 @@ Match the task to all relevant rows before researching or coding.
 | Subscription settings changes | `docs/architecture/settings.md`, `docs/api/admin-subscription-settings.md`, `docs/testing/subscription-settings.md` |
 | Storefront and customer account subscription APIs | `docs/api/store-subscription-checkout.md`, `docs/api/store-subscription-offers.md`, `docs/api/store-customer-cancellations.md`, `docs/architecture/subscriptions.md` |
 | Admin UI routes and widgets | matching files in `docs/admin/`, then `src/admin/README.md` |
+| Admin UI E2E browser tests | `playwright.config.ts`, `e2e/`, matching `docs/testing/*.md` |
 | Admin or store API route implementation | `src/api/README.md`, then matching `docs/api/*.md` |
 | Workflow-backed mutations | `src/workflows/README.md`, then matching architecture and API docs |
 | Module or model changes | `src/modules/README.md`, then matching architecture doc |
@@ -83,6 +85,7 @@ Important areas:
 - `src/jobs/` scheduled processing
 - `src/links/` Medusa entity links
 - `integration-tests/` integration coverage
+- `e2e/` Playwright E2E browser tests, auth setup, and Page Object Models (`e2e/pages/`)
 - `docs/` runtime documentation
 
 ## Architecture rules
@@ -146,4 +149,7 @@ Important areas:
   - scheduler logic
   - cross-domain state transitions
 - Keep tests self-contained. Do not depend on pre-seeded data.
+- For Admin UI browser automation, write Playwright tests under `e2e/` using the Page Object Model (POM) pattern in `e2e/pages/`.
+- Keep E2E tests self-contained and data-independent: seed required test records (e.g. products, variants) via Medusa API in `beforeEach` hooks instead of relying on manual database state.
+- In UI mutation tests, assert both frontend feedback (toasts, modal closing, DataTable visibility) and intercept outgoing API requests (`waitForResponse`) to validate the payload against the backend contract.
 - If you change documented behavior, verify implementation and docs remain aligned.

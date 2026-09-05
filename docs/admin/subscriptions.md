@@ -358,10 +358,9 @@ The implemented UI is supported by integration coverage for the underlying Admin
 - edit shipping address
 - cancel
 
-The browser UI itself is not currently covered by Playwright.
+The browser UI is covered by Playwright E2E tests for the list view (`e2e/subscriptions-list.spec.ts`), verifying table rendering, column headers, status badges, search filtering, row actions, and detail navigation.
 
-The current project relies on Medusa-supported HTTP integration tests for end-to-end backend flow validation.
-
+Detailed backend lifecycle operations and mutation flows remain validated through Medusa-supported HTTP integration tests.
 ## 11. Boundary with Cancellation & Retention
 
 The `Subscriptions` Admin area still owns direct lifecycle actions such as:

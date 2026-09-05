@@ -13,6 +13,8 @@ For any non-trivial task (e.g., adding a new entity, modifying subscription rene
 
 ## Workflow
 
+**Language Requirement:** The specification file MUST ALWAYS be written 100% in English, regardless of the conversation language.
+
 1. **Create a Skeleton Spec**:
    - Create a file at `.agents/specs/{date}-{title}.md`.
    - Use the `YYYY-MM-DD` format for `date` and kebab-case for the `title`.
