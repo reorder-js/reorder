@@ -29,10 +29,10 @@ import {
 } from "../data-loading"
 
 const frequencyRowSchema = z.object({
-  interval: z.nativeEnum(PlanOfferFrequencyInterval),
+  interval: z.enum(PlanOfferFrequencyInterval),
   value: z.number().int().positive(),
   has_discount: z.boolean(),
-  discount_type: z.nativeEnum(PlanOfferDiscountType),
+  discount_type: z.enum(PlanOfferDiscountType),
   discount_value: z.number().positive().nullable(),
 })
 
@@ -58,7 +58,7 @@ const editPlanOfferSchema = z
 
       if (seen.has(key)) {
         ctx.addIssue({
-          code: z.ZodIssueCode.custom,
+          code: "custom",
           message: "Frequency must be unique",
           path: ["frequency_rows", index, "value"],
         })
@@ -68,7 +68,7 @@ const editPlanOfferSchema = z
 
       if (row.has_discount && row.discount_value === null) {
         ctx.addIssue({
-          code: z.ZodIssueCode.custom,
+          code: "custom",
           message: "Discount value is required",
           path: ["frequency_rows", index, "discount_value"],
         })
@@ -77,7 +77,7 @@ const editPlanOfferSchema = z
 
     if (values.trial_enabled && values.trial_days === null) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         message: "Trial days is required when trial is enabled",
         path: ["trial_days"],
       })
@@ -89,7 +89,7 @@ const editPlanOfferSchema = z
       values.trial_days <= 0
     ) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         message: "Trial days must be greater than 0",
         path: ["trial_days"],
       })

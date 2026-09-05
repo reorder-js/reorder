@@ -144,22 +144,12 @@ type RenewalOrderScenario = {
 
 type CustomerModuleService = {
   createCustomers(
-    data:
-      | Record<string, unknown>
-      | Record<string, unknown>[]
+    data: Record<string, unknown> | Record<string, unknown>[],
   ): Promise<Array<{ id: string; email: string }>>
 }
 
 type OrderModuleService = {
   createOrders(data: Record<string, unknown>): Promise<{ id: string }>
-}
-
-type PgConnection = {
-  (tableName: string): {
-    select(...columns: string[]): {
-      whereRaw(sql: string, bindings?: unknown[]): Promise<Array<{ id: string }>>
-    }
-  }
 }
 
 const FIXED_TIME = new Date("2026-04-15T10:00:00.000Z")
@@ -249,14 +239,15 @@ function buildSeedCustomerDefinition(input: SeedCustomerDefinition) {
 
 async function ensureSeedCustomers(
   container: MedusaContainer,
-  definitions: SeedCustomerDefinition[]
+  definitions: SeedCustomerDefinition[],
 ) {
   const query = container.resolve(ContainerRegistrationKeys.QUERY)
-  const customerModule =
-    container.resolve<CustomerModuleService>(Modules.CUSTOMER)
+  const customerModule = container.resolve<CustomerModuleService>(
+    Modules.CUSTOMER,
+  )
   const customerDefinitions = definitions.map(buildSeedCustomerDefinition)
   const emailToDefinition = new Map(
-    customerDefinitions.map((definition) => [definition.email, definition])
+    customerDefinitions.map((definition) => [definition.email, definition]),
   )
 
   const { data: existingCustomers } = await query.graph({
@@ -287,7 +278,7 @@ async function ensureSeedCustomers(
   }
 
   const missingDefinitions = customerDefinitions.filter(
-    (definition) => !customerMap.has(definition.key)
+    (definition) => !customerMap.has(definition.key),
   )
 
   if (missingDefinitions.length) {
@@ -301,7 +292,7 @@ async function ensureSeedCustomers(
           seed_key: definition.key,
           seed_reference: definition.reference,
         },
-      }))
+      })),
     )
 
     for (const customer of result) {
@@ -344,7 +335,7 @@ async function listPlanOfferTargets(container: MedusaContainer) {
 
 function pickSeedTargets(
   products: ProductRecord[],
-  offers: PlanOfferRecord[]
+  offers: PlanOfferRecord[],
 ): { success: TargetContext; blocked: TargetContext } {
   const offeredProductIds = new Set(offers.map((offer) => offer.product_id))
 
@@ -369,7 +360,7 @@ function pickSeedTargets(
 
   if (candidates.length < 2) {
     throw new Error(
-      "Seed requires at least two products with variants that don't already have plan offers."
+      "Seed requires at least two products with variants that don't already have plan offers.",
     )
   }
 
@@ -412,7 +403,9 @@ function buildSubscriptionRecord(input: {
     paused_at: input.paused_at === undefined ? null : input.paused_at,
     cancelled_at: input.cancelled_at === undefined ? null : input.cancelled_at,
     cancel_effective_at:
-      input.cancel_effective_at === undefined ? null : input.cancel_effective_at,
+      input.cancel_effective_at === undefined
+        ? null
+        : input.cancel_effective_at,
     skip_next_cycle: input.skip_next_cycle,
     is_trial: false,
     trial_ends_at: null,
@@ -452,7 +445,9 @@ function buildSubscriptionRecord(input: {
       customer_payment_reference: null,
     },
     pending_update_data:
-      input.pending_update_data === undefined ? null : input.pending_update_data,
+      input.pending_update_data === undefined
+        ? null
+        : input.pending_update_data,
     metadata: {
       seed_namespace: "subscriptions-test-data",
       seed_reference: input.reference,
@@ -473,23 +468,29 @@ async function resolveSeedOrderContext(container: MedusaContainer) {
     }),
   ])
 
-  const store = (storeData as Array<{
-    id: string
-    default_sales_channel_id?: string | null
-  }>)?.[0]
-  const region = (regionData as Array<{
-    id: string
-    currency_code: string
-  }>)?.[0]
+  const store = (
+    storeData as Array<{
+      id: string
+      default_sales_channel_id?: string | null
+    }>
+  )?.[0]
+  const region = (
+    regionData as Array<{
+      id: string
+      currency_code: string
+    }>
+  )?.[0]
 
   if (!store?.default_sales_channel_id) {
     throw new Error(
-      "Seed requires a store with default_sales_channel_id to create linked orders."
+      "Seed requires a store with default_sales_channel_id to create linked orders.",
     )
   }
 
   if (!region?.id || !region.currency_code) {
-    throw new Error("Seed requires at least one region to create linked orders.")
+    throw new Error(
+      "Seed requires at least one region to create linked orders.",
+    )
   }
 
   return {
@@ -501,7 +502,7 @@ async function resolveSeedOrderContext(container: MedusaContainer) {
 
 async function listSeededSubscriptions(
   container: MedusaContainer,
-  subscriptionIds: string[]
+  subscriptionIds: string[],
 ) {
   const query = container.resolve(ContainerRegistrationKeys.QUERY)
   const { data } = await query.graph({
@@ -527,7 +528,7 @@ async function listSeededSubscriptions(
 async function ensureInitialSubscriptionOrders(
   container: MedusaContainer,
   subscriptions: SeededSubscriptionRecord[],
-  orderContext: SeedOrderContext
+  orderContext: SeedOrderContext,
 ) {
   const query = container.resolve(ContainerRegistrationKeys.QUERY)
   const link = container.resolve(ContainerRegistrationKeys.LINK)
@@ -584,12 +585,12 @@ async function ensureRenewalOrders(
   container: MedusaContainer,
   subscriptions: SeededSubscriptionRecord[],
   scenarios: RenewalOrderScenario[],
-  orderContext: SeedOrderContext
+  orderContext: SeedOrderContext,
 ) {
   const query = container.resolve(ContainerRegistrationKeys.QUERY)
   const link = container.resolve(ContainerRegistrationKeys.LINK)
-  const pgConnection = container.resolve<PgConnection>(
-    ContainerRegistrationKeys.PG_CONNECTION
+  const pgConnection = container.resolve(
+    ContainerRegistrationKeys.PG_CONNECTION,
   )
   const subscriptionById = new Map(subscriptions.map((sub) => [sub.id, sub]))
   const renewalOrderIds = new Map<string, string>()
@@ -626,7 +627,7 @@ async function ensureRenewalOrders(
 
   if (unlinkedCycleIds.length > 0) {
     const existingRenewalLinks = await pgConnection(
-      "renewal_renewal_cycle_order_order"
+      "renewal_renewal_cycle_order_order",
     )
       .select("renewal_cycle_id", "order_id")
       .whereIn("renewal_cycle_id", unlinkedCycleIds)
@@ -664,7 +665,7 @@ async function ensureRenewalOrders(
       .select("id")
       .whereRaw(
         "metadata->>'seed_namespace' = ? and metadata->>'seed_order_role' = ? and metadata->>'seed_renewal_cycle_id' = ?",
-        ["subscriptions-test-data", "renewal", scenario.cycle_id]
+        ["subscriptions-test-data", "renewal", scenario.cycle_id],
       )
 
     const existingSeedOrderId = existingSeedOrders[0]?.id
@@ -678,7 +679,7 @@ async function ensureRenewalOrders(
 
     if (!subscription) {
       throw new Error(
-        `Seed couldn't resolve subscription '${scenario.subscription_id}' for renewal order creation.`
+        `Seed couldn't resolve subscription '${scenario.subscription_id}' for renewal order creation.`,
       )
     }
 
@@ -723,19 +724,19 @@ async function createSeedOrder(
     role: "initial" | "renewal"
     scenario: string
     renewal_cycle_id?: string
-  }
+  },
 ) {
   const orderModule = container.resolve<OrderModuleService>(Modules.ORDER)
   const customerEmail = input.subscription.customer_snapshot?.email
 
   if (!customerEmail) {
     throw new Error(
-      `Seed subscription '${input.subscription.id}' is missing customer email required for order creation.`
+      `Seed subscription '${input.subscription.id}' is missing customer email required for order creation.`,
     )
   }
 
   const shippingAddress = buildSeedOrderShippingAddress(
-    input.subscription.shipping_address
+    input.subscription.shipping_address,
   )
 
   return await orderModule.createOrders({
@@ -753,12 +754,13 @@ async function createSeedOrder(
         quantity: 1,
         product_id: input.subscription.product_id,
         product_title:
-          input.subscription.product_snapshot?.product_title ?? "Seeded product",
+          input.subscription.product_snapshot?.product_title ??
+          "Seeded product",
         variant_id: input.subscription.variant_id,
         variant_title:
-          input.subscription.product_snapshot?.variant_title ?? "Default variant",
-        variant_sku:
-          input.subscription.product_snapshot?.sku ?? undefined,
+          input.subscription.product_snapshot?.variant_title ??
+          "Default variant",
+        variant_sku: input.subscription.product_snapshot?.sku ?? undefined,
         unit_price: 10,
         requires_shipping: true,
         is_discountable: true,
@@ -785,7 +787,7 @@ async function createSeedOrder(
 }
 
 function buildSeedOrderShippingAddress(
-  shippingAddress?: Record<string, unknown> | null
+  shippingAddress?: Record<string, unknown> | null,
 ) {
   const value =
     (shippingAddress as Record<string, unknown> | null | undefined) ?? {}
@@ -796,7 +798,8 @@ function buildSeedOrderShippingAddress(
     company: typeof value.company === "string" ? value.company : undefined,
     address_1:
       typeof value.address_1 === "string" ? value.address_1 : "Seed Street 1",
-    address_2: typeof value.address_2 === "string" ? value.address_2 : undefined,
+    address_2:
+      typeof value.address_2 === "string" ? value.address_2 : undefined,
     city: typeof value.city === "string" ? value.city : "Warsaw",
     postal_code:
       typeof value.postal_code === "string" ? value.postal_code : "00-001",
@@ -809,7 +812,7 @@ function buildSeedOrderShippingAddress(
 
 async function upsertPlanOffer(
   service: PlanOfferModuleService,
-  input: Record<string, unknown>
+  input: Record<string, unknown>,
 ) {
   try {
     await service.retrievePlanOffer(String(input.id))
@@ -821,7 +824,7 @@ async function upsertPlanOffer(
 
 async function upsertSubscription(
   service: SubscriptionModuleService,
-  input: Record<string, unknown>
+  input: Record<string, unknown>,
 ) {
   try {
     await service.retrieveSubscription(String(input.id))
@@ -833,7 +836,7 @@ async function upsertSubscription(
 
 async function upsertRenewalCycle(
   service: RenewalModuleService,
-  input: Record<string, unknown>
+  input: Record<string, unknown>,
 ) {
   try {
     await service.retrieveRenewalCycle(String(input.id))
@@ -845,7 +848,7 @@ async function upsertRenewalCycle(
 
 async function upsertRenewalAttempt(
   service: RenewalModuleService,
-  input: Record<string, unknown>
+  input: Record<string, unknown>,
 ) {
   try {
     await service.retrieveRenewalAttempt(String(input.id))
@@ -857,7 +860,7 @@ async function upsertRenewalAttempt(
 
 async function upsertDunningCase(
   service: DunningModuleService,
-  input: Record<string, unknown>
+  input: Record<string, unknown>,
 ) {
   try {
     await service.retrieveDunningCase(String(input.id))
@@ -869,7 +872,7 @@ async function upsertDunningCase(
 
 async function upsertDunningAttempt(
   service: DunningModuleService,
-  input: Record<string, unknown>
+  input: Record<string, unknown>,
 ) {
   try {
     await service.retrieveDunningAttempt(String(input.id))
@@ -881,7 +884,7 @@ async function upsertDunningAttempt(
 
 async function upsertCancellationCase(
   service: CancellationModuleService,
-  input: Record<string, unknown>
+  input: Record<string, unknown>,
 ) {
   try {
     await service.retrieveCancellationCase(String(input.id))
@@ -893,7 +896,7 @@ async function upsertCancellationCase(
 
 async function upsertRetentionOfferEvent(
   service: CancellationModuleService,
-  input: Record<string, unknown>
+  input: Record<string, unknown>,
 ) {
   try {
     await service.retrieveRetentionOfferEvent(String(input.id))
@@ -905,7 +908,7 @@ async function upsertRetentionOfferEvent(
 
 async function upsertSubscriptionLog(
   service: ActivityLogModuleService,
-  input: Record<string, unknown>
+  input: Record<string, unknown>,
 ) {
   try {
     await service.retrieveSubscriptionLog(String(input.id))
@@ -917,7 +920,7 @@ async function upsertSubscriptionLog(
 
 async function upsertSubscriptionMetricsDaily(
   service: AnalyticsModuleService,
-  input: Record<string, unknown>
+  input: Record<string, unknown>,
 ) {
   try {
     await service.retrieveSubscriptionMetricsDaily(String(input.id))
@@ -929,7 +932,7 @@ async function upsertSubscriptionMetricsDaily(
 
 async function upsertSubscriptionSettings(
   service: SettingsModuleService,
-  input: Record<string, unknown>
+  input: Record<string, unknown>,
 ) {
   const [existing] = (await service.listSubscriptionSettings({
     settings_key: "global",
@@ -984,7 +987,8 @@ function buildAnalyticsSnapshotRecord(input: {
     source_snapshot: {
       source: "seed-script",
       scenario: input.scenario,
-      revenue_source: input.mrr_amount === null ? "seeded-unavailable" : "seeded-fixed-value",
+      revenue_source:
+        input.mrr_amount === null ? "seeded-unavailable" : "seeded-fixed-value",
     },
     metadata: {
       seed_namespace: "subscriptions-test-data",
@@ -994,7 +998,9 @@ function buildAnalyticsSnapshotRecord(input: {
   }
 }
 
-function buildRetrySchedule(input?: Partial<DunningRetrySchedule>): DunningRetrySchedule {
+function buildRetrySchedule(
+  input?: Partial<DunningRetrySchedule>,
+): DunningRetrySchedule {
   return {
     strategy: "fixed_intervals",
     intervals: input?.intervals ?? [1440, 4320, 10080],
@@ -1029,10 +1035,8 @@ export default async function seedSubscriptionsTestData({
     container.resolve<PlanOfferModuleService>(PLAN_OFFER_MODULE)
   const subscriptionModule =
     container.resolve<SubscriptionModuleService>(SUBSCRIPTION_MODULE)
-  const renewalModule =
-    container.resolve<RenewalModuleService>(RENEWAL_MODULE)
-  const dunningModule =
-    container.resolve<DunningModuleService>(DUNNING_MODULE)
+  const renewalModule = container.resolve<RenewalModuleService>(RENEWAL_MODULE)
+  const dunningModule = container.resolve<DunningModuleService>(DUNNING_MODULE)
   const cancellationModule =
     container.resolve<CancellationModuleService>(CANCELLATION_MODULE)
   const activityLogModule =
@@ -1051,11 +1055,13 @@ export default async function seedSubscriptionsTestData({
 
   if (!shouldSeedSettings) {
     logger.warn(
-      "[subscriptions-test-data] Skipping SubscriptionSettings seed because a non-seeded global singleton already exists."
+      "[subscriptions-test-data] Skipping SubscriptionSettings seed because a non-seeded global singleton already exists.",
     )
   }
 
-  logger.info("[subscriptions-test-data] Resolving products and existing offers")
+  logger.info(
+    "[subscriptions-test-data] Resolving products and existing offers",
+  )
 
   const products = await listProductsWithVariants(container)
   const offers = await listPlanOfferTargets(container)
@@ -1067,18 +1073,42 @@ export default async function seedSubscriptionsTestData({
     { key: IDS.subApprovalPending, reference: "SUB-QA-REN-APPROVAL-PENDING" },
     { key: IDS.subPolicyBlocked, reference: "SUB-QA-REN-POLICY-BLOCKED" },
     { key: IDS.subFailedHistory, reference: "SUB-QA-REN-FAILED-HISTORY" },
-    { key: IDS.subDunningRetryScheduled, reference: "SUB-QA-DUN-RETRY-SCHEDULED" },
-    { key: IDS.subDunningAwaitingManual, reference: "SUB-QA-DUN-AWAITING-MANUAL" },
+    {
+      key: IDS.subDunningRetryScheduled,
+      reference: "SUB-QA-DUN-RETRY-SCHEDULED",
+    },
+    {
+      key: IDS.subDunningAwaitingManual,
+      reference: "SUB-QA-DUN-AWAITING-MANUAL",
+    },
     { key: IDS.subDunningRecovered, reference: "SUB-QA-DUN-RECOVERED" },
     { key: IDS.subDunningUnrecovered, reference: "SUB-QA-DUN-UNRECOVERED" },
-    { key: IDS.subDunningManualOverride, reference: "SUB-QA-DUN-MANUAL-OVERRIDE" },
-    { key: IDS.subCancellationOpenBilling, reference: "SUB-QA-CAN-OPEN-BILLING" },
-    { key: IDS.subCancellationRetainedDiscount, reference: "SUB-QA-CAN-RETAINED-DISCOUNT" },
+    {
+      key: IDS.subDunningManualOverride,
+      reference: "SUB-QA-DUN-MANUAL-OVERRIDE",
+    },
+    {
+      key: IDS.subCancellationOpenBilling,
+      reference: "SUB-QA-CAN-OPEN-BILLING",
+    },
+    {
+      key: IDS.subCancellationRetainedDiscount,
+      reference: "SUB-QA-CAN-RETAINED-DISCOUNT",
+    },
     { key: IDS.subCancellationPaused, reference: "SUB-QA-CAN-PAUSED" },
-    { key: IDS.subCancellationCanceledImmediate, reference: "SUB-QA-CAN-CANCELED-IMMEDIATE" },
-    { key: IDS.subCancellationCanceledEndCycle, reference: "SUB-QA-CAN-CANCELED-END-CYCLE" },
+    {
+      key: IDS.subCancellationCanceledImmediate,
+      reference: "SUB-QA-CAN-CANCELED-IMMEDIATE",
+    },
+    {
+      key: IDS.subCancellationCanceledEndCycle,
+      reference: "SUB-QA-CAN-CANCELED-END-CYCLE",
+    },
     { key: IDS.subCancellationOpenPrice, reference: "SUB-QA-CAN-OPEN-PRICE" },
-    { key: IDS.subCancellationOpenPaused, reference: "SUB-QA-CAN-OPEN-PAUSED-SUB" },
+    {
+      key: IDS.subCancellationOpenPaused,
+      reference: "SUB-QA-CAN-OPEN-PAUSED-SUB",
+    },
     { key: IDS.subAnalyticsBiMonthly, reference: "SUB-QA-ANL-BI-MONTHLY" },
   ])
 
@@ -1093,7 +1123,7 @@ export default async function seedSubscriptionsTestData({
   }
 
   logger.info(
-    `[subscriptions-test-data] Using success target ${targets.success.product_id}/${targets.success.variant_id} and blocked target ${targets.blocked.product_id}/${targets.blocked.variant_id}`
+    `[subscriptions-test-data] Using success target ${targets.success.product_id}/${targets.success.variant_id} and blocked target ${targets.blocked.product_id}/${targets.blocked.variant_id}`,
   )
 
   await upsertPlanOffer(planOfferModule, {
@@ -1165,13 +1195,11 @@ export default async function seedSubscriptionsTestData({
               {
                 field: "default_renewal_behavior",
                 from: SubscriptionRenewalBehavior.PROCESS_IMMEDIATELY,
-                to:
-                  SubscriptionRenewalBehavior.REQUIRE_REVIEW_FOR_PENDING_CHANGES,
+                to: SubscriptionRenewalBehavior.REQUIRE_REVIEW_FOR_PENDING_CHANGES,
               },
               {
                 field: "default_cancellation_behavior",
-                from:
-                  SubscriptionCancellationBehavior.RECOMMEND_RETENTION_FIRST,
+                from: SubscriptionCancellationBehavior.RECOMMEND_RETENTION_FIRST,
                 to: SubscriptionCancellationBehavior.ALLOW_DIRECT_CANCELLATION,
               },
             ],
@@ -1198,13 +1226,11 @@ export default async function seedSubscriptionsTestData({
             {
               field: "default_renewal_behavior",
               from: SubscriptionRenewalBehavior.PROCESS_IMMEDIATELY,
-              to:
-                SubscriptionRenewalBehavior.REQUIRE_REVIEW_FOR_PENDING_CHANGES,
+              to: SubscriptionRenewalBehavior.REQUIRE_REVIEW_FOR_PENDING_CHANGES,
             },
             {
               field: "default_cancellation_behavior",
-              from:
-                SubscriptionCancellationBehavior.RECOMMEND_RETENTION_FIRST,
+              from: SubscriptionCancellationBehavior.RECOMMEND_RETENTION_FIRST,
               to: SubscriptionCancellationBehavior.ALLOW_DIRECT_CANCELLATION,
             },
           ],
@@ -1271,7 +1297,7 @@ export default async function seedSubscriptionsTestData({
       frequency_value: 1,
       next_renewal_at: successScheduledFor,
       skip_next_cycle: true,
-    })
+    }),
   )
 
   await upsertSubscription(
@@ -1287,7 +1313,7 @@ export default async function seedSubscriptionsTestData({
       next_renewal_at: pausedScheduledFor,
       skip_next_cycle: true,
       paused_at: addDays(FIXED_TIME, -1),
-    })
+    }),
   )
 
   await upsertSubscription(
@@ -1303,7 +1329,7 @@ export default async function seedSubscriptionsTestData({
       next_renewal_at: cancelScheduledFor,
       skip_next_cycle: true,
       cancel_effective_at: addDays(cancelScheduledFor, -1),
-    })
+    }),
   )
 
   await upsertSubscription(
@@ -1328,7 +1354,7 @@ export default async function seedSubscriptionsTestData({
         requested_at: FIXED_TIME.toISOString(),
         requested_by: "qa-seed",
       },
-    })
+    }),
   )
 
   await upsertSubscription(
@@ -1353,7 +1379,7 @@ export default async function seedSubscriptionsTestData({
         requested_at: FIXED_TIME.toISOString(),
         requested_by: "qa-seed",
       },
-    })
+    }),
   )
 
   await upsertSubscription(
@@ -1369,7 +1395,7 @@ export default async function seedSubscriptionsTestData({
       next_renewal_at: failedHistoryScheduledFor,
       skip_next_cycle: false,
       cart_id: null,
-    })
+    }),
   )
 
   await upsertSubscription(
@@ -1386,7 +1412,7 @@ export default async function seedSubscriptionsTestData({
       skip_next_cycle: false,
       cart_id: "cart_seed_dunning_retry_scheduled",
       payment_provider_id: "pp_stripe_stripe",
-    })
+    }),
   )
 
   await upsertSubscription(
@@ -1403,7 +1429,7 @@ export default async function seedSubscriptionsTestData({
       skip_next_cycle: false,
       cart_id: "cart_seed_cancellation_open_billing",
       payment_provider_id: "pp_stripe_stripe",
-    })
+    }),
   )
 
   await upsertSubscription(
@@ -1419,7 +1445,7 @@ export default async function seedSubscriptionsTestData({
       next_renewal_at: cancellationRetainedDiscountAt,
       skip_next_cycle: false,
       cart_id: "cart_seed_cancellation_retained_discount",
-    })
+    }),
   )
 
   await upsertSubscription(
@@ -1436,7 +1462,7 @@ export default async function seedSubscriptionsTestData({
       skip_next_cycle: false,
       paused_at: addDays(FIXED_TIME, -2),
       cart_id: "cart_seed_cancellation_paused",
-    })
+    }),
   )
 
   await upsertSubscription(
@@ -1454,7 +1480,7 @@ export default async function seedSubscriptionsTestData({
       cancelled_at: FIXED_TIME,
       cancel_effective_at: FIXED_TIME,
       cart_id: "cart_seed_cancellation_canceled_immediate",
-    })
+    }),
   )
 
   await upsertSubscription(
@@ -1472,7 +1498,7 @@ export default async function seedSubscriptionsTestData({
       cancelled_at: FIXED_TIME,
       cancel_effective_at: cancellationCanceledEndCycleAt,
       cart_id: "cart_seed_cancellation_canceled_end_cycle",
-    })
+    }),
   )
 
   await upsertSubscription(
@@ -1488,7 +1514,7 @@ export default async function seedSubscriptionsTestData({
       next_renewal_at: cancellationOpenPriceAt,
       skip_next_cycle: false,
       cart_id: "cart_seed_cancellation_open_price",
-    })
+    }),
   )
 
   await upsertSubscription(
@@ -1505,7 +1531,7 @@ export default async function seedSubscriptionsTestData({
       skip_next_cycle: false,
       paused_at: addDays(FIXED_TIME, -5),
       cart_id: "cart_seed_cancellation_open_paused",
-    })
+    }),
   )
 
   await upsertSubscription(
@@ -1522,7 +1548,7 @@ export default async function seedSubscriptionsTestData({
       skip_next_cycle: false,
       cart_id: "cart_seed_dunning_awaiting_manual",
       payment_provider_id: "pp_stripe_stripe",
-    })
+    }),
   )
 
   await upsertSubscription(
@@ -1539,7 +1565,7 @@ export default async function seedSubscriptionsTestData({
       skip_next_cycle: false,
       cart_id: "cart_seed_dunning_recovered",
       payment_provider_id: "pp_adyen_adyen",
-    })
+    }),
   )
 
   await upsertSubscription(
@@ -1556,7 +1582,7 @@ export default async function seedSubscriptionsTestData({
       skip_next_cycle: false,
       cart_id: "cart_seed_dunning_unrecovered",
       payment_provider_id: "pp_paypal_paypal",
-    })
+    }),
   )
 
   await upsertSubscription(
@@ -1573,7 +1599,7 @@ export default async function seedSubscriptionsTestData({
       skip_next_cycle: false,
       cart_id: "cart_seed_dunning_manual_override",
       payment_provider_id: "pp_stripe_stripe",
-    })
+    }),
   )
 
   await upsertSubscription(
@@ -1589,7 +1615,7 @@ export default async function seedSubscriptionsTestData({
       next_renewal_at: addDays(FIXED_TIME, 18),
       skip_next_cycle: false,
       cart_id: "cart_seed_analytics_bimonthly",
-    })
+    }),
   )
 
   const orderContext = await resolveSeedOrderContext(container)
@@ -1618,7 +1644,7 @@ export default async function seedSubscriptionsTestData({
   await ensureInitialSubscriptionOrders(
     container,
     seededSubscriptions,
-    orderContext
+    orderContext,
   )
 
   await upsertRenewalCycle(renewalModule, {
@@ -1886,7 +1912,8 @@ export default async function seedSubscriptionsTestData({
     approval_reason: null,
     generated_order_id: null,
     applied_pending_update_data: null,
-    last_error: "Subscription is missing 'cart_id' required for renewal order creation",
+    last_error:
+      "Subscription is missing 'cart_id' required for renewal order creation",
     attempt_count: 1,
     metadata: {
       seed_namespace: "subscriptions-test-data",
@@ -1991,7 +2018,8 @@ export default async function seedSubscriptionsTestData({
     approval_reason: null,
     generated_order_id: null,
     applied_pending_update_data: null,
-    last_error: "Retry schedule was manually overridden after repeated soft declines",
+    last_error:
+      "Retry schedule was manually overridden after repeated soft declines",
     attempt_count: 1,
     metadata: {
       seed_namespace: "subscriptions-test-data",
@@ -2034,7 +2062,7 @@ export default async function seedSubscriptionsTestData({
         scenario: "dunning-manual-override",
       },
     ],
-    orderContext
+    orderContext,
   )
 
   await upsertRenewalCycle(renewalModule, {
@@ -2054,8 +2082,7 @@ export default async function seedSubscriptionsTestData({
   })
   await upsertRenewalCycle(renewalModule, {
     id: IDS.cycleDunningRecovered,
-    generated_order_id:
-      renewalOrderIds.get(IDS.cycleDunningRecovered) ?? null,
+    generated_order_id: renewalOrderIds.get(IDS.cycleDunningRecovered) ?? null,
   })
   await upsertRenewalCycle(renewalModule, {
     id: IDS.cycleDunningUnrecovered,
@@ -2076,7 +2103,8 @@ export default async function seedSubscriptionsTestData({
     finished_at: addDays(FIXED_TIME, -1),
     status: RenewalAttemptStatus.FAILED,
     error_code: "renewal_failed",
-    error_message: "Subscription is missing 'cart_id' required for renewal order creation",
+    error_message:
+      "Subscription is missing 'cart_id' required for renewal order creation",
     payment_reference: null,
     order_id: null,
     metadata: {
@@ -2097,7 +2125,8 @@ export default async function seedSubscriptionsTestData({
     retry_schedule: buildRetrySchedule(),
     next_retry_at: addDays(FIXED_TIME, 1),
     last_payment_error_code: "card_declined",
-    last_payment_error_message: "Issuer declined the renewal authorization attempt.",
+    last_payment_error_message:
+      "Issuer declined the renewal authorization attempt.",
     last_attempt_at: null,
     recovered_at: null,
     closed_at: null,
@@ -2146,7 +2175,8 @@ export default async function seedSubscriptionsTestData({
     retry_schedule: buildRetrySchedule(),
     next_retry_at: null,
     last_payment_error_code: "requires_more",
-    last_payment_error_message: "Customer action is required before another retry can succeed.",
+    last_payment_error_message:
+      "Customer action is required before another retry can succeed.",
     last_attempt_at: addDays(FIXED_TIME, -2),
     recovered_at: null,
     closed_at: null,
@@ -2162,8 +2192,7 @@ export default async function seedSubscriptionsTestData({
     id: IDS.dunningRecovered,
     subscription_id: IDS.subDunningRecovered,
     renewal_cycle_id: IDS.cycleDunningRecovered,
-    renewal_order_id:
-      renewalOrderIds.get(IDS.cycleDunningRecovered) ?? null,
+    renewal_order_id: renewalOrderIds.get(IDS.cycleDunningRecovered) ?? null,
     status: DunningCaseStatus.RECOVERED,
     attempt_count: 1,
     max_attempts: 3,
@@ -2186,15 +2215,15 @@ export default async function seedSubscriptionsTestData({
     id: IDS.dunningUnrecovered,
     subscription_id: IDS.subDunningUnrecovered,
     renewal_cycle_id: IDS.cycleDunningUnrecovered,
-    renewal_order_id:
-      renewalOrderIds.get(IDS.cycleDunningUnrecovered) ?? null,
+    renewal_order_id: renewalOrderIds.get(IDS.cycleDunningUnrecovered) ?? null,
     status: DunningCaseStatus.UNRECOVERED,
     attempt_count: 3,
     max_attempts: 3,
     retry_schedule: buildRetrySchedule(),
     next_retry_at: null,
     last_payment_error_code: "expired_card",
-    last_payment_error_message: "The saved payment method expired and recovery attempts were exhausted.",
+    last_payment_error_message:
+      "The saved payment method expired and recovery attempts were exhausted.",
     last_attempt_at: addDays(FIXED_TIME, -8),
     recovered_at: null,
     closed_at: addDays(FIXED_TIME, -8),
@@ -2221,7 +2250,8 @@ export default async function seedSubscriptionsTestData({
     }),
     next_retry_at: addDays(FIXED_TIME, 2),
     last_payment_error_code: "insufficient_funds",
-    last_payment_error_message: "Soft decline after a manual retry schedule override.",
+    last_payment_error_message:
+      "Soft decline after a manual retry schedule override.",
     last_attempt_at: addDays(FIXED_TIME, -3),
     recovered_at: null,
     closed_at: null,
@@ -2241,7 +2271,8 @@ export default async function seedSubscriptionsTestData({
     finished_at: addDays(FIXED_TIME, -2),
     status: DunningAttemptStatus.FAILED,
     error_code: "requires_more",
-    error_message: "3DS authentication is required before another payment attempt.",
+    error_message:
+      "3DS authentication is required before another payment attempt.",
     payment_reference: "pay_seed_dunning_awaiting_manual_1",
     metadata: {
       seed_namespace: "subscriptions-test-data",
@@ -2253,7 +2284,8 @@ export default async function seedSubscriptionsTestData({
     id: IDS.cancellationOpenBilling,
     subscription_id: IDS.subCancellationOpenBilling,
     status: CancellationCaseStatus.EVALUATING_RETENTION,
-    reason: "Customer reports billing problems and wants to stop unless billing is stabilized.",
+    reason:
+      "Customer reports billing problems and wants to stop unless billing is stabilized.",
     reason_category: CancellationReasonCategory.BILLING,
     notes: "Use to validate active case detail with linked dunning summary.",
     final_outcome: null,
@@ -2272,7 +2304,8 @@ export default async function seedSubscriptionsTestData({
     status: CancellationCaseStatus.RETAINED,
     reason: "Customer said the current price is too high.",
     reason_category: CancellationReasonCategory.PRICE,
-    notes: "Use to validate retained detail, timeline, and discount-offer filtering.",
+    notes:
+      "Use to validate retained detail, timeline, and discount-offer filtering.",
     final_outcome: CancellationFinalOutcome.RETAINED,
     finalized_at: FIXED_TIME,
     finalized_by: "qa-seed",
@@ -2315,7 +2348,8 @@ export default async function seedSubscriptionsTestData({
     id: IDS.cancellationCanceledImmediate,
     subscription_id: IDS.subCancellationCanceledImmediate,
     status: CancellationCaseStatus.CANCELED,
-    reason: "Customer switched to another provider and requested immediate cancel.",
+    reason:
+      "Customer switched to another provider and requested immediate cancel.",
     reason_category: CancellationReasonCategory.SWITCHED_COMPETITOR,
     notes: "Use to compare immediate cancel semantics on detail.",
     final_outcome: CancellationFinalOutcome.CANCELED,
@@ -2355,9 +2389,11 @@ export default async function seedSubscriptionsTestData({
     id: IDS.cancellationOpenPrice,
     subscription_id: IDS.subCancellationOpenPrice,
     status: CancellationCaseStatus.REQUESTED,
-    reason: "Customer is considering cancellation because the price feels too high.",
+    reason:
+      "Customer is considering cancellation because the price feels too high.",
     reason_category: CancellationReasonCategory.PRICE,
-    notes: "Use to validate an open price-driven cancellation case before any offer is applied.",
+    notes:
+      "Use to validate an open price-driven cancellation case before any offer is applied.",
     final_outcome: null,
     finalized_at: null,
     finalized_by: null,
@@ -2372,7 +2408,8 @@ export default async function seedSubscriptionsTestData({
     id: IDS.cancellationOpenPaused,
     subscription_id: IDS.subCancellationOpenPaused,
     status: CancellationCaseStatus.REQUESTED,
-    reason: "Paused customer may still want final cancellation after the break.",
+    reason:
+      "Paused customer may still want final cancellation after the break.",
     reason_category: CancellationReasonCategory.OTHER,
     notes: "Use to validate an active case on an already paused subscription.",
     final_outcome: null,
@@ -2518,7 +2555,8 @@ export default async function seedSubscriptionsTestData({
     finished_at: addDays(FIXED_TIME, -3),
     status: DunningAttemptStatus.FAILED,
     error_code: "insufficient_funds",
-    error_message: "Retry failed due to insufficient funds before a manual override was applied.",
+    error_message:
+      "Retry failed due to insufficient funds before a manual override was applied.",
     payment_reference: "pay_seed_dunning_manual_override_1",
     metadata: {
       seed_namespace: "subscriptions-test-data",
@@ -2618,7 +2656,8 @@ export default async function seedSubscriptionsTestData({
     customer_name: "QA SUB-QA-DUN-RECOVERED",
     product_title: targets.success.product_title,
     variant_title: targets.success.variant_title,
-    reason: "Seeded recovery event to validate system-originated activity-log rows.",
+    reason:
+      "Seeded recovery event to validate system-originated activity-log rows.",
     dedupe_key: "seed:activity-log:dunning-recovered",
     previous_state: {
       status: "retry_scheduled",
@@ -2681,7 +2720,7 @@ export default async function seedSubscriptionsTestData({
         churned_subscriptions_count: 0,
         churn_reason_category: null,
         scenario: "analytics-active-monthly-baseline",
-      })
+      }),
     )
 
     await upsertSubscriptionMetricsDaily(
@@ -2701,7 +2740,7 @@ export default async function seedSubscriptionsTestData({
         churned_subscriptions_count: 0,
         churn_reason_category: null,
         scenario: "analytics-active-bimonthly-comparison",
-      })
+      }),
     )
 
     await upsertSubscriptionMetricsDaily(
@@ -2721,7 +2760,7 @@ export default async function seedSubscriptionsTestData({
         churned_subscriptions_count: 0,
         churn_reason_category: null,
         scenario: "analytics-status-segmentation-paused",
-      })
+      }),
     )
 
     await upsertSubscriptionMetricsDaily(
@@ -2741,7 +2780,7 @@ export default async function seedSubscriptionsTestData({
         churned_subscriptions_count: 0,
         churn_reason_category: null,
         scenario: "analytics-status-segmentation-past-due",
-      })
+      }),
     )
 
     await upsertSubscriptionMetricsDaily(
@@ -2762,7 +2801,7 @@ export default async function seedSubscriptionsTestData({
         churn_reason_category:
           date === "2026-04-10" ? CancellationReasonCategory.BILLING : null,
         scenario: "analytics-churn-billing",
-      })
+      }),
     )
 
     await upsertSubscriptionMetricsDaily(
@@ -2783,7 +2822,7 @@ export default async function seedSubscriptionsTestData({
         churn_reason_category:
           date === "2026-04-14" ? CancellationReasonCategory.PRICE : null,
         scenario: "analytics-churn-price",
-      })
+      }),
     )
   }
 
@@ -2815,7 +2854,8 @@ export default async function seedSubscriptionsTestData({
       scenario: "Cancel effective block",
       subscription_reference: "SUB-QA-REN-CANCEL-EFFECTIVE",
       renewal_cycle_id: IDS.cycleCancelEffective,
-      notes: "Use to verify that renewal is blocked when cancel_effective_at is already in effect.",
+      notes:
+        "Use to verify that renewal is blocked when cancel_effective_at is already in effect.",
     },
     {
       scenario: "Approval pending",
@@ -2979,6 +3019,6 @@ export default async function seedSubscriptionsTestData({
 
   logger.info("[subscriptions-test-data] Seed completed.")
   logger.info(
-    `[subscriptions-test-data] Scenario summary:\n${formatSummary(summary)}`
+    `[subscriptions-test-data] Scenario summary:\n${formatSummary(summary)}`,
   )
 }

@@ -1,4 +1,4 @@
-import { z } from "zod"
+import { z } from "@medusajs/framework/zod"
 import { CancellationReasonCategory } from "../../../../../modules/cancellation/types"
 
 const metadataSchema = z.record(z.string(), z.unknown()).optional()
