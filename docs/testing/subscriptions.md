@@ -56,9 +56,9 @@ Repository files involved in the setup:
 Purpose:
 - verify the `subscription` module service in isolation from full Admin flows
 
-Current file:
+Current files:
 - [service.spec.ts](../../src/modules/subscription/__tests__/service.spec.ts)
-
+- [payment-methods.spec.ts](../../src/modules/subscription/__tests__/payment-methods.spec.ts)
 This layer is the right place for:
 - service creation/update behavior
 - module-level persistence behavior
@@ -75,7 +75,7 @@ Current files:
 - [subscriptions-routes.spec.ts](../../integration-tests/http/subscriptions-routes.spec.ts)
 - [subscriptions-workflows.spec.ts](../../integration-tests/http/subscriptions-workflows.spec.ts)
 - [subscriptions-admin-flow.spec.ts](../../integration-tests/http/subscriptions-admin-flow.spec.ts)
-
+- [subscription-payment-methods.spec.ts](../../integration-tests/http/subscription-payment-methods.spec.ts)
 This layer is the main protection for the implemented Admin behavior.
 
 Store checkout now emits the initial `subscription.created` activity-log entry through the subscription checkout workflow. When changing that flow, extend the workflow or HTTP integration layer to protect the emitted event.
@@ -87,9 +87,9 @@ Test data helpers are defined in:
 
 Current helpers include:
 - admin auth header creation
+- store customer auth header creation
 - product and variant creation
 - subscription seed creation
-
 These helpers are used to:
 - reduce duplication across integration tests
 - keep admin route tests focused on behavior
@@ -103,7 +103,7 @@ Covered at the module/service layer:
 - subscription creation
 - subscription retrieval
 - subscription updates through the module service
-
+- customer payment method resolution and listing
 ### Query and Workflow Coverage
 
 Covered through integration tests:
@@ -115,6 +115,7 @@ Covered through integration tests:
 - cancel workflow
 - schedule plan change workflow
 - update shipping address workflow
+- update payment method workflow and payment provider isolation
 - invalid state transitions
 
 ### Admin API Coverage
