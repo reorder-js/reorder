@@ -47,6 +47,11 @@ It should be reviewed at the start of a session and updated after fixing any bug
 - **Rule**: Adding a value to `ActivityLogEventType` (or `ActivityLogActorType`) is not a types-only change. `subscription_log.event_type` is a Postgres check constraint, so every new value needs a migration in `src/modules/activity-log/migrations/` that drops and re-adds `subscription_log_event_type_check` with the full value list, plus a `down` that restores the previous list. Also add the new value to the Admin activity-log domain filter lists in `src/admin/routes/subscriptions/[id]/page.tsx` and `src/admin/routes/subscriptions/activity-log/page.tsx`, or the event will never be selectable in the timeline filters.
 - **Context**: Without the migration, writing the new event type fails at runtime with a check constraint violation even though the code type-checks and builds.
 
+### Payment Provider Isolation on Subscription Payment Method Queries
+
+- **Rule**: When querying or listing customer payment methods for a subscription, always verify that `provider_id` exists in the subscription's `payment_context`. If `provider_id` is null or not configured, return `{ payment_provider_id: null, payment_methods: [] }` immediately. Never pass `provider_id: null` to core Medusa Payment Module listing utilities, as Medusa treats a null provider ID as querying across all account holders and providers, which leaks unrelated customer payment methods across different gateways.
+- **Context**: In Store and Admin APIs, subscriptions that were created without an initialized payment provider context must not expose saved cards from other providers or gateways.
+
 ## General Lessons
 
 ### Zod must be imported from the Medusa re-export in backend code
