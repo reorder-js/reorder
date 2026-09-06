@@ -19,6 +19,7 @@ Completed:
 - `Subscriptions` domain model
 - `Subscriptions` admin API routes
 - `Subscriptions` Admin UI: list, details, actions, plan change, shipping address edit, and order-detail subscription widget
+- `Subscriptions` payment method management: saved payment method listing and payment method change on Store and Admin APIs and Admin UI
 - `Subscriptions` backend integration tests
 - `Subscriptions` admin flow integration test
 - `Subscriptions` Admin UI Playwright E2E test coverage (list view)
@@ -89,6 +90,9 @@ Runtime source-of-truth documents currently exist for:
   - `api/admin-subscriptions.md`
   - `admin/subscriptions.md`
   - `testing/subscriptions.md`
+- `Payments`
+  - `architecture/payments.md`
+  - `api/store-subscription-payment-methods.md`
 - `Plans & Offers`
   - `architecture/plan-offers.md`
   - `api/admin-plan-offers.md`

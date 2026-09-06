@@ -34,6 +34,7 @@ Returns storefront-safe subscription detail data:
 - `shipping_address`
 - `payment_status`
 - `payment_provider_id`
+- `payment_method`
 - `payment_recovery`
 - `scheduled_plan_change`
 - `active_cancellation_case`

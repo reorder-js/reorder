@@ -2,6 +2,7 @@ import type { MedusaContainer } from "@medusajs/framework/types"
 import type { GetAdminSubscriptionsSchemaType } from "./validators"
 import {
   getAdminSubscriptionDetail,
+  getAdminSubscriptionPaymentMethods,
   listAdminSubscriptions,
   type ListAdminSubscriptionsInput,
 } from "../../../modules/subscription/utils/admin-query"
@@ -43,6 +44,13 @@ export async function getAdminSubscriptionDetailResponse(
   id: string
 ) {
   return await getAdminSubscriptionDetail(container, id)
+}
+
+export async function getAdminSubscriptionPaymentMethodsResponse(
+  container: MedusaContainer,
+  id: string
+) {
+  return await getAdminSubscriptionPaymentMethods(container, id)
 }
 
 export async function getAdminSubscriptionsListResponse(

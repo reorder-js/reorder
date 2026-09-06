@@ -10,6 +10,7 @@ import {
   PostStoreResumeSubscriptionSchema,
   PostStoreRetrySubscriptionPaymentSchema,
   PostStoreStartCancellationSchema,
+  PostStoreUpdateSubscriptionPaymentMethodSchema,
   PostStoreSwapSubscriptionProductSchema,
 } from "./validators"
 
@@ -47,6 +48,13 @@ export const storeCustomerSubscriptionsMiddlewares: MiddlewareRoute[] = [
     method: "POST",
     middlewares: [
       validateAndTransformBody(PostStoreChangeSubscriptionAddressSchema),
+    ],
+  },
+  {
+    matcher: "/store/customers/me/subscriptions/:id/payment-method",
+    method: "POST",
+    middlewares: [
+      validateAndTransformBody(PostStoreUpdateSubscriptionPaymentMethodSchema),
     ],
   },
   {

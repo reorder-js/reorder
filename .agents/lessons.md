@@ -42,6 +42,11 @@ It should be reviewed at the start of a session and updated after fixing any bug
   3. **Preserve Catalog Inventory**: In transactional data wipes (`wipe-test-data.ts`), never truncate `inventory_item` or catalog tables, as Medusa v2 requires inventory items and levels for cart item creation when `manage_inventory: true`.
 - **Context**: Prevents 401 "Invalid email or password" admin login failures, 400 "A valid publishable key is required to proceed with the request" storefront errors, and 500 cart item creation failures.
 
+### Activity Log Event Types Require a Migration
+
+- **Rule**: Adding a value to `ActivityLogEventType` (or `ActivityLogActorType`) is not a types-only change. `subscription_log.event_type` is a Postgres check constraint, so every new value needs a migration in `src/modules/activity-log/migrations/` that drops and re-adds `subscription_log_event_type_check` with the full value list, plus a `down` that restores the previous list. Also add the new value to the Admin activity-log domain filter lists in `src/admin/routes/subscriptions/[id]/page.tsx` and `src/admin/routes/subscriptions/activity-log/page.tsx`, or the event will never be selectable in the timeline filters.
+- **Context**: Without the migration, writing the new event type fails at runtime with a check constraint violation even though the code type-checks and builds.
+
 ## General Lessons
 
 ### Zod must be imported from the Medusa re-export in backend code
@@ -55,6 +60,8 @@ It should be reviewed at the start of a session and updated after fixing any bug
 * **Publishable API Key Mismatch**: If Storefront throws `Error: A valid publishable key is required to proceed with the request`, the key in `.env.local` (`NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY`) is out of sync with the active key in the Medusa backend database (table `api_key` where `type = 'publishable'`).
 * **Missing Inventory on Cart Line Items**: In Medusa v2, `addToCartWorkflow` checks inventory levels for all variants with `manage_inventory: true`. If `inventory_item` or `inventory_level` rows are missing, `POST /store/carts/:id/line-items` will fail with a 500 error.
 * **Subscription MRR on First Billing Cycle**: Newly created subscriptions do not have a renewal cycle record yet (`latestRenewal` is null). Analytics daily snapshots must resolve the latest order from linked subscription orders (including the initial checkout order) rather than exclusively checking renewal cycles to avoid calculating MRR as unavailable or zero before the first renewal.
+* **Yarn Version and Toolchain**: The repository pins `yarn@4.4.1` via `packageManager`, but the globally installed Yarn is `1.22`. Running `yarn install` or `yarn build` directly fails with a Corepack error and installs nothing. Use `corepack yarn <command>` (or enable Corepack once) for any Yarn invocation in this repository.
+* **Migration Generators Need a Live Database**: `medusa plugin:db:generate` connects to Postgres before generating anything, so it cannot be used to refresh `.snapshot-medusa-*.json` when the local database is down. Hand-written constraint migrations are still valid, but the module snapshot stays stale until the generator is run against a live database.
 * **Analytics Daily Snapshot Order Resolution**: When resolving `latestOrderId` for daily metric snapshots, always prefer `latestRenewal.generated_order_id` (representing the most recent renewal order) and fallback to `latestOrderBySubscription` (representing initial order creation) so that both renewal-generated orders and initial orders are properly captured.
 
 
