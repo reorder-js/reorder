@@ -19,8 +19,11 @@ Use this skill when the user asks to release a new version of the plugin, publis
 - Check if `gh` CLI is installed (`gh --version`). If not, advise the user to install it (`brew install gh`) and authenticate (`gh auth login`) before proceeding.
 ### 2. Validation & Build
 - Verify in `package.json` that the package has the correct keywords for the Medusa v2 ecosystem (e.g., `medusa-v2`, `medusa-plugin-integration`) and that the `exports` object points to the built files in the `./.medusa/server/src/...` directory (a Medusa v2 requirement).
+- Run all test suites automatically before building to ensure correctness:
+  - `yarn test:integration:modules`
+  - `yarn test:integration:http`
+  - `yarn test:e2e` (Note: Ensure the local Medusa backend is running or started as required by E2E tests).
 - Run `yarn build` (which internally runs `medusa plugin:build`) to compile the plugin code into the `.medusa/server` directory.
-- Ask the user if they want to run the test suite before releasing (e.g., `yarn test:integration:modules`), which is highly recommended.
 
 ### 3. Analysis & Proposal (Wait for User)
 - Find the previous Git tag (`git describe --tags --abbrev=0`).
