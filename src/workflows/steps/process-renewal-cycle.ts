@@ -1,4 +1,8 @@
-import { IPaymentModuleService, MedusaContainer } from "@medusajs/framework/types"
+import {
+  IPaymentModuleService,
+  MedusaContainer,
+  PaymentCollectionDTO,
+} from "@medusajs/framework/types"
 import { BigNumberInput } from "@medusajs/types"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
@@ -477,7 +481,13 @@ async function createRenewalOrder(
         },
       })
 
-    const paymentCollection = paymentCollections.result[0]
+    const rawPaymentCollection = paymentCollections.result as
+      | PaymentCollectionDTO
+      | PaymentCollectionDTO[]
+      | undefined
+    const paymentCollection = Array.isArray(rawPaymentCollection)
+      ? rawPaymentCollection[0]
+      : rawPaymentCollection
 
     if (!paymentCollection) {
       throw renewalErrors.renewalOrderCreationFailed(

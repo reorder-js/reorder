@@ -231,6 +231,9 @@ medusaIntegrationTestRunner({
         jest
           .spyOn(paymentModule, "capturePayment")
           .mockResolvedValue({ id: "pay_smoke_recovered" } as any)
+        mockCreateOrUpdateOrderPaymentCollectionRun.mockResolvedValue({
+          result: { id: "paycol_smoke_recovered" },
+        })
 
         const { result } = await runDunningRetryWorkflow(container).run({
           input: {
@@ -276,6 +279,9 @@ medusaIntegrationTestRunner({
           .spyOn(paymentModule, "authorizePaymentSession")
           .mockRejectedValue(new Error("Card declined again during dunning"))
 
+        mockCreateOrUpdateOrderPaymentCollectionRun.mockResolvedValue({
+          result: { id: "paycol_smoke_declined" },
+        })
         const { result } = await runDunningRetryWorkflow(container).run({
           input: {
             dunning_case_id: dunningCase.id,

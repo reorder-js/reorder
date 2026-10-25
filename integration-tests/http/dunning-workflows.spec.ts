@@ -261,7 +261,7 @@ medusaIntegrationTestRunner({
         })
 
         mockCreateOrUpdateOrderPaymentCollectionRun.mockResolvedValue({
-          result: [{ id: "paycol_1" }],
+          result: { id: "paycol_1" },
         })
         mockCreatePaymentSessionsRun.mockResolvedValue({
           result: { id: "payses_1", context: {}, status: "pending" },
