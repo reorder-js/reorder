@@ -23,14 +23,17 @@ Before updating public docs, ensure the internal source of truth is 100% accurat
    - `docs/api/` for Admin or Store route changes
    - `docs/admin/` for UI flow, filter, or widget changes
    - `docs/testing/` for new test utilities, scripts, or coverage
-   - `docs/README.md` for index and roadmap updates
+   - `docs/README.md` for index updates
+   - `docs/roadmap/README.md` for planned features and roadmap updates
 3. If changes were made to `reorder/docs/`, commit them to the `reorder` repository (propose Conventional Commit e.g. `docs: update internal documentation for <feature>`).
 
 ### Stage 2: Sync to Public Mintlify Repository (`../docs/`)
 Only after internal docs are accurate:
 1. Navigate to `../docs` and ensure your local branch is synchronized with remote before making any edits (`git pull`).
 2. Read `../docs/AGENTS.md` to review style guidelines, terminology, and content boundaries (do not expose internal locking/scheduler details).
-3. Update or create corresponding `.mdx` files in `../docs`.
+3. Update or create corresponding `.mdx` files in `../docs`:
+   - If domain behavior or API changed, update the relevant pages in `concepts/`, `admin/`, `api/`, or `storefront/`.
+   - If planned scope or roadmap changed in `docs/roadmap/README.md`, sync `../docs/roadmap.mdx`.
 4. Update `../docs/docs.json` navigation structure if new pages were introduced.
 5. Review changes with `git status` and `git diff`.
 6. Propose a Conventional Commit message (e.g. `docs: update <feature> guide`), wait for approval, and push to the `docs` remote repository (`git push`).

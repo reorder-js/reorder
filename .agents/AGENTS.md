@@ -54,6 +54,7 @@ Match the task to all relevant rows before researching or coding.
 | Task | Read first / Action |
 |------|------------|
 | Plugin overview, current scope, implemented domains | `docs/README.md` |
+| Roadmap, planned features, and future scope | `docs/roadmap/README.md` |
 | Subscription domain changes | `docs/architecture/subscriptions.md`, `docs/api/admin-subscriptions.md`, `docs/testing/subscriptions.md` |
 | Plan and offer changes | `docs/architecture/plan-offers.md`, `docs/api/admin-plan-offers.md`, `docs/testing/plan-offers.md` |
 | Renewal changes | `docs/architecture/renewals.md`, `docs/api/admin-renewals.md`, `docs/testing/renewals.md` |
@@ -87,7 +88,7 @@ Important areas:
 - `src/links/` Medusa entity links
 - `integration-tests/` integration coverage
 - `e2e/` Playwright E2E browser tests, auth setup, and Page Object Models (`e2e/pages/`)
-- `docs/` runtime documentation
+- `docs/` runtime documentation and public roadmap (`docs/roadmap/README.md`)
 
 ## Architecture rules
 

@@ -10,12 +10,14 @@ This skill enforces the "specification before code" approach inspired by OpenMer
 ## When to Create a Specification?
 
 For any non-trivial task (e.g., adding a new entity, modifying subscription renewal logic, integrating a payment gateway) that requires **at least 3 implementation steps** or **architectural decisions**, you must first write a technical specification.
+Before drafting, consult `docs/roadmap/README.md` to verify the planned phase (`Now`, `Next`, or `Later`) and ensure the proposed scope aligns with consciously deferred boundaries.
 
 ## Workflow
 
 **Language Requirement:** The specification file MUST ALWAYS be written 100% in English, regardless of the conversation language.
 
-1. **Create a Skeleton Spec**:
+1. **Check Roadmap & Create a Skeleton Spec**:
+   - Check `docs/roadmap/README.md` for existing architectural direction and boundaries.
    - Create a file at `.agents/specs/{date}-{title}.md`.
    - Use the `YYYY-MM-DD` format for `date` and kebab-case for the `title`.
    - The skeleton should include a brief description (TLDR/Overview) and key objectives.
