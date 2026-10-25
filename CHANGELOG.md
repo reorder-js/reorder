@@ -1,3 +1,12 @@
+## [1.1.1] - 2026-10-25
+
+### Fixes
+- **dunning:** handle single payment collection object returned on retry workflow (e887a1c, closes #11)
+
+### Chores & Docs
+- **docs(roadmap):** simplify and consolidate public roadmap (ecd3707)
+- **docs(agents):** update sync-docs, create-spec, and AGENTS.md with roadmap guidelines (f093393)
+
 ## [1.1.0] - 2026-09-06
 
 ### Features
