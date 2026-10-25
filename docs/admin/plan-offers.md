@@ -383,4 +383,4 @@ The page follows the same practical Medusa admin layout approach used elsewhere 
 - [Plans & Offers Architecture](../architecture/plan-offers.md)
 - [Plans & Offers Admin API](../api/admin-plan-offers.md)
 - [Plans & Offers Testing](../testing/plan-offers.md)
-- [Roadmap](../roadmap/implementation-plan.md)
+- [Roadmap](../roadmap/README.md)

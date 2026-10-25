@@ -375,5 +375,5 @@ It does not yet own:
 - [Plans & Offers Admin API](../api/admin-plan-offers.md)
 - [Plans & Offers Admin UI](../admin/plan-offers.md)
 - [Plans & Offers Testing](../testing/plan-offers.md)
-- [Roadmap](../roadmap/implementation-plan.md)
+- [Roadmap](../roadmap/README.md)
 - [Plans & Offers Specs](../specs/plan-offers/admin-spec.md)

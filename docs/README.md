@@ -82,6 +82,8 @@ Use these documents depending on what you need:
   Admin UI behavior, screens, actions, filters, and UX conventions.
 - `testing/`
   How tests are structured, what is covered, and how to run them.
+- `roadmap/`
+  Single consolidated implementation plan and public roadmap for planned capabilities.
 
 Runtime source-of-truth documents currently exist for:
 
@@ -118,7 +120,6 @@ Runtime source-of-truth documents currently exist for:
   - `api/admin-activity-log.md`
   - `admin/activity-log.md`
   - `testing/activity-log.md`
-  - `roadmap/activity-log.md`
 - `Analytics`
   - `architecture/analytics.md`
   - `api/admin-analytics.md`
@@ -243,4 +244,4 @@ This area includes:
 
 - The documents under `specs/` are design-time documents. They are useful for context, but they should not be treated as the final source of truth once implementation evolves.
 - The documents in `architecture/`, `api/`, `admin/`, and `testing/` are the runtime source of truth for implemented behavior.
-- The implementation plan remains the roadmap for future work, while the runtime documentation should describe the current state of the plugin.
+- The roadmap in `roadmap/README.md` documents planned future work, while the runtime documentation describes the current state of the plugin.

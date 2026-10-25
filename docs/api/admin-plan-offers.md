@@ -553,4 +553,4 @@ The `Plans & Offers` API enforces several domain rules beyond basic request vali
 - [Plans & Offers Architecture](../architecture/plan-offers.md)
 - [Plans & Offers Admin UI](../admin/plan-offers.md)
 - [Plans & Offers Testing](../testing/plan-offers.md)
-- [Roadmap](../roadmap/implementation-plan.md)
+- [Roadmap](../roadmap/README.md)

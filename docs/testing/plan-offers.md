@@ -305,4 +305,4 @@ This provides strong protection for:
 - [Plans & Offers Architecture](../architecture/plan-offers.md)
 - [Plans & Offers Admin API](../api/admin-plan-offers.md)
 - [Plans & Offers Admin UI](../admin/plan-offers.md)
-- [Roadmap](../roadmap/implementation-plan.md)
+- [Roadmap](../roadmap/README.md)
