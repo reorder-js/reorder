@@ -7,6 +7,7 @@ import type DunningModuleService from "../../src/modules/dunning/service"
 import { DunningCaseStatus } from "../../src/modules/dunning/types"
 import { RENEWAL_MODULE } from "../../src/modules/renewal"
 import type RenewalModuleService from "../../src/modules/renewal/service"
+import { listDueRenewalCyclesForProcessing } from "../../src/modules/renewal/utils/scheduler-query"
 import {
   RenewalAttemptStatus,
   RenewalCycleStatus,
@@ -259,6 +260,79 @@ medusaIntegrationTestRunner({
           recovery_reason: "payment_recovered",
         })
         expect(updatedSubscription.status).toEqual(SubscriptionStatus.ACTIVE)
+      })
+
+      it("does not run the failed cycle again while dunning owns it or after it recovered", async () => {
+        const container = getContainer()
+        const renewalModule =
+          container.resolve<RenewalModuleService>(RENEWAL_MODULE)
+        const subscriptionModule =
+          container.resolve<SubscriptionModuleService>(SUBSCRIPTION_MODULE)
+        const paymentModule =
+          container.resolve<IPaymentModuleService>(Modules.PAYMENT)
+        // The failed cycle is due, the cycle scheduled after recovery is not.
+        const schedulerNow = new Date("2026-04-21T00:00:00.000Z")
+
+        const { subscription, cycle, dunningCase } =
+          await prepareQualifyingFailedRenewal("SUB-DUN-SMOKE-004")
+
+        expect(mockCreateOrderRun).toHaveBeenCalledTimes(1)
+
+        // The cycle failed and is due, but its dunning case is retry_scheduled.
+        const beforeRecovery = await listDueRenewalCyclesForProcessing(container, {
+          limit: 50,
+          offset: 0,
+          now: schedulerNow,
+        })
+
+        expect(beforeRecovery.cycles.map((record) => record.id)).not.toContain(
+          cycle.id
+        )
+
+        jest
+          .spyOn(paymentModule, "authorizePaymentSession")
+          .mockResolvedValue({ id: "pay_smoke_no_double", amount: 129 } as any)
+        jest
+          .spyOn(paymentModule, "capturePayment")
+          .mockResolvedValue({ id: "pay_smoke_no_double" } as any)
+        mockCreateOrUpdateOrderPaymentCollectionRun.mockResolvedValue({
+          result: { id: "paycol_smoke_no_double" },
+        })
+
+        await runDunningRetryWorkflow(container).run({
+          input: {
+            dunning_case_id: dunningCase.id,
+            ignore_schedule: true,
+            triggered_by: "smoke_test",
+          },
+        })
+
+        const recoveredCycle = await renewalModule.retrieveRenewalCycle(cycle.id)
+        const recoveredSubscription = await subscriptionModule.retrieveSubscription(
+          subscription.id
+        )
+
+        expect(recoveredCycle).toMatchObject({
+          status: RenewalCycleStatus.SUCCEEDED,
+          generated_order_id: dunningCase.renewal_order_id,
+        })
+        expect(recoveredSubscription.next_renewal_at).toBeTruthy()
+        expect(
+          new Date(recoveredSubscription.next_renewal_at as Date).getTime()
+        ).toBeGreaterThan(new Date(cycle.scheduled_for).getTime())
+
+        // After recovery nothing is due, so the scheduler cannot create and
+        // charge a second renewal order for the same period.
+        const afterRecovery = await listDueRenewalCyclesForProcessing(container, {
+          limit: 50,
+          offset: 0,
+          now: schedulerNow,
+        })
+
+        expect(afterRecovery.cycles.map((record) => record.id)).not.toContain(
+          cycle.id
+        )
+        expect(mockCreateOrderRun).toHaveBeenCalledTimes(1)
       })
 
       it("closes the case as unrecovered and keeps the subscription past_due after permanent retry failure", async () => {

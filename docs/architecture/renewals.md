@@ -189,6 +189,7 @@ It selects due cycles by:
 - `status in [scheduled, failed]`
 - `scheduled_for <= now`
 - approval-eligible state when approval is required
+- no owning `Dunning` case for `failed` cycles: a failed cycle whose dunning case is `open`, `retry_scheduled`, `retrying`, `awaiting_manual_resolution`, or `recovered` is skipped, because retries and recovery are owned by `Dunning`. Re-running such a cycle would create a new renewal order and a new charge. Failed cycles without a case, or with an `unrecovered` case, are still selected.
 
 This keeps scheduler discovery lightweight and separate from Admin display concerns.
 

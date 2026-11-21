@@ -1,9 +1,11 @@
 import {
   createWorkflow,
   transform,
+  when,
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
 import { acquireLockStep, releaseLockStep } from "@medusajs/medusa/core-flows"
+import { ensureNextRenewalCycleStep } from "./steps/ensure-next-renewal-cycle"
 import {
   runDunningRetryStep,
   type RunDunningRetryStepInput,
@@ -23,6 +25,20 @@ export const runDunningRetryWorkflow = createWorkflow(
     })
 
     const result = runDunningRetryStep(input)
+
+    // A recovered retry closes the renewal cycle and advances the subscription,
+    // so the next upcoming cycle has to be scheduled like after a successful renewal.
+    when(
+      "ensure-next-cycle-after-dunning-recovery",
+      { result },
+      ({ result }) => result.outcome === "recovered"
+    ).then(() => {
+      const ensureInput = transform({ result }, ({ result }) => ({
+        subscription_id: result.subscription_id,
+      }))
+
+      ensureNextRenewalCycleStep(ensureInput)
+    })
 
     releaseLockStep({
       key: lockKey,

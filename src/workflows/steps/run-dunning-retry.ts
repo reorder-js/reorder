@@ -28,13 +28,19 @@ import {
 import { calculateNextRetryAt } from "../../modules/dunning/utils/retry-schedule"
 import { SUBSCRIPTION_MODULE } from "../../modules/subscription"
 import type SubscriptionModuleService from "../../modules/subscription/service"
-import { SubscriptionStatus } from "../../modules/subscription/types"
+import {
+  SubscriptionFrequencyInterval,
+  SubscriptionStatus,
+} from "../../modules/subscription/types"
 import { subscriptionErrors } from "../../modules/subscription/utils/errors"
+import { closeRecoveredRenewalCycle } from "../utils/close-recovered-renewal-cycle"
 
 type SubscriptionRecord = {
   id: string
   status: SubscriptionStatus
   customer_id: string
+  frequency_interval: SubscriptionFrequencyInterval
+  frequency_value: number
   payment_context: {
     payment_provider_id: string | null
     payment_method_reference: string | null
@@ -123,6 +129,7 @@ export type RunDunningRetryStepInput = {
 
 type RunDunningRetryStepOutput = {
   dunning_case_id: string
+  subscription_id: string
   dunning_attempt_id: string
   outcome: "recovered" | "retry_scheduled" | "unrecovered"
   subscription_status: SubscriptionStatus
@@ -659,6 +666,13 @@ export const runDunningRetryStep = createStep(
           })
         }
 
+        await closeRecoveredRenewalCycle(container, {
+          renewal_cycle_id: dunningCase.renewal_cycle_id,
+          renewal_order_id: dunningCase.renewal_order_id,
+          subscription,
+          finished_at: finishedAt,
+        })
+
         const createdAt = updatedCase.created_at
           ? new Date(updatedCase.created_at)
           : dunningCase.created_at
@@ -689,6 +703,7 @@ export const runDunningRetryStep = createStep(
 
         return new StepResponse<RunDunningRetryStepOutput>({
           dunning_case_id: updatedCase.id,
+          subscription_id: subscription.id,
           dunning_attempt_id: attempt.id,
           outcome: "recovered",
           subscription_status: SubscriptionStatus.ACTIVE,
@@ -750,6 +765,7 @@ export const runDunningRetryStep = createStep(
 
         return new StepResponse<RunDunningRetryStepOutput>({
           dunning_case_id: updatedCase.id,
+          subscription_id: subscription.id,
           dunning_attempt_id: attempt.id,
           outcome: "unrecovered",
           subscription_status: subscription.status,
@@ -800,6 +816,7 @@ export const runDunningRetryStep = createStep(
 
         return new StepResponse<RunDunningRetryStepOutput>({
           dunning_case_id: updatedCase.id,
+          subscription_id: subscription.id,
           dunning_attempt_id: attempt.id,
           outcome: "unrecovered",
           subscription_status: subscription.status,
@@ -845,6 +862,7 @@ export const runDunningRetryStep = createStep(
 
       return new StepResponse<RunDunningRetryStepOutput>({
         dunning_case_id: updatedCase.id,
+        subscription_id: subscription.id,
         dunning_attempt_id: attempt.id,
         outcome: "retry_scheduled",
         subscription_status: subscription.status,

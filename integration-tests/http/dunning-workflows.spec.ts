@@ -245,7 +245,9 @@ medusaIntegrationTestRunner({
         const cycle = await createRenewalCycleSeed(container, {
           subscription_id: subscription.id,
           status: RenewalCycleStatus.FAILED,
+          scheduled_for: new Date("2026-03-30T10:00:00.000Z"),
           generated_order_id: "ord_dun_success",
+          last_error: "Card declined",
         })
         const dunningCase = await createDunningCaseSeed(container, {
           subscription_id: subscription.id,
@@ -319,13 +321,42 @@ medusaIntegrationTestRunner({
           payment_reference: "pay_1",
         })
         expect(updatedSubscription.status).toEqual(SubscriptionStatus.ACTIVE)
-        expect(updatedCycle.status).toEqual(RenewalCycleStatus.FAILED)
+        expect(result.subscription_id).toEqual(subscription.id)
+
+        // Recovery closes the renewal cycle like a first-attempt success.
+        expect(updatedCycle).toMatchObject({
+          status: RenewalCycleStatus.SUCCEEDED,
+          generated_order_id: "ord_dun_success",
+          last_error: null,
+        })
+        expect(updatedCycle.processed_at).toBeTruthy()
+
+        // ...and advances the subscription by one cadence from the cycle date.
+        expect(new Date(updatedSubscription.next_renewal_at as Date).toISOString()).toEqual(
+          "2026-04-30T10:00:00.000Z"
+        )
+        expect(updatedSubscription.last_renewal_at).toBeTruthy()
+
+        // ...and schedules the next upcoming renewal cycle.
+        const cycles = await renewalModule.listRenewalCycles({
+          subscription_id: subscription.id,
+        } as any)
+        const upcomingCycles = cycles.filter(
+          (record) => record.status === RenewalCycleStatus.SCHEDULED
+        )
+
+        expect(upcomingCycles).toHaveLength(1)
+        expect(new Date(upcomingCycles[0].scheduled_for).toISOString()).toEqual(
+          "2026-04-30T10:00:00.000Z"
+        )
       })
 
       it("reschedules retry after a temporary payment failure", async () => {
         const container = getContainer()
         const dunningModule =
           container.resolve<DunningModuleService>(DUNNING_MODULE)
+        const renewalModule =
+          container.resolve<RenewalModuleService>(RENEWAL_MODULE)
         const paymentModule =
           container.resolve<IPaymentModuleService>(Modules.PAYMENT)
         const query = container.resolve<any>(ContainerRegistrationKeys.QUERY)
@@ -385,8 +416,15 @@ medusaIntegrationTestRunner({
         const attempts = await dunningModule.listDunningAttempts({
           dunning_case_id: dunningCase.id,
         } as any)
+        const stillFailedCycle = await renewalModule.retrieveRenewalCycle(cycle.id)
+        const upcomingCycles = await renewalModule.listRenewalCycles({
+          subscription_id: subscription.id,
+          status: RenewalCycleStatus.SCHEDULED,
+        } as any)
 
         expect(result.outcome).toEqual("retry_scheduled")
+        expect(stillFailedCycle.status).toEqual(RenewalCycleStatus.FAILED)
+        expect(upcomingCycles).toHaveLength(0)
         expect(updatedCase).toMatchObject({
           status: DunningCaseStatus.RETRY_SCHEDULED,
           attempt_count: 1,
