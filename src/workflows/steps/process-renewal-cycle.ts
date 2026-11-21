@@ -38,6 +38,7 @@ import SubscriptionModuleService from "../../modules/subscription/service"
 import {
   SubscriptionFrequencyInterval,
   SubscriptionPendingUpdateData,
+  SubscriptionPricingSnapshot,
   SubscriptionStatus,
 } from "../../modules/subscription/types"
 import { addSubscriptionCadence } from "../../modules/subscription/utils/effective-next-renewal"
@@ -45,6 +46,7 @@ import { subscriptionErrors } from "../../modules/subscription/utils/errors"
 import { startDunningWorkflow } from "../start-dunning"
 import { persistSubscriptionLogEvent } from "./create-subscription-log-event"
 import { toISOStringOrNull } from "../utils/date-output"
+import { applySubscriptionDiscountToRenewalOrder } from "../utils/renewal-subscription-discount"
 
 type CartRecord = {
   id: string
@@ -105,6 +107,7 @@ type SubscriptionRecord = {
   }
   shipping_address: Record<string, unknown>
   pending_update_data: SubscriptionPendingUpdateData | null
+  pricing_snapshot: SubscriptionPricingSnapshot | null
   payment_context: {
     payment_provider_id: string | null
     source_payment_collection_id: string | null
@@ -458,6 +461,13 @@ async function createRenewalOrder(
   })
 
   const order = orderResult.result
+
+  await applySubscriptionDiscountToRenewalOrder(
+    container,
+    order.id,
+    subscription.pricing_snapshot
+  )
+
   const total = await loadOrderTotal(container, order.id)
 
   if (total > 0) {

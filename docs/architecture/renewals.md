@@ -111,6 +111,7 @@ The current implementation follows these rules:
 - pending changes are only considered when they are effective for the cycle date
 - approval is enforced when the cycle requires it
 - `Plans & Offers` are re-resolved at execution time before pending changes are applied
+- the renewal order is created from the catalog price, then the subscription discount stored in `subscription.pricing_snapshot` is re-applied as an order line item adjustment before the order total is read and charged
 - successful execution updates the subscription’s active cadence and clears applied `pending_update_data`
 - the cycle records whether pending changes were actually applied
 
@@ -240,6 +241,7 @@ It is responsible for:
 - creating the renewal attempt
 - updating cycle status
 - creating the renewal order when applicable
+- re-applying the subscription discount from `pricing_snapshot` to the renewal order line items (same `subscription_discount` adjustment shape and maths as checkout, skipped for items that already carry one)
 - starting `Dunning` when payment-qualified renewal failures happen after order creation
 - updating subscription cadence and snapshots
 - recording success or failure
