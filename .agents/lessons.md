@@ -80,3 +80,13 @@ It should be reviewed at the start of a session and updated after fixing any bug
 - **Rule**: Never assume `createOrUpdateOrderPaymentCollectionWorkflow` returns an array at runtime. Always unwrap its result using an array guard:
   `const raw = paymentCollections.result as PaymentCollectionDTO | PaymentCollectionDTO[] | undefined; const paymentCollection = Array.isArray(raw) ? raw[0] : raw;`
 - **Context**: In Medusa v2 (`@medusajs/core-flows`), `createOrUpdateOrderPaymentCollectionWorkflow` has two branches. When creating a new payment collection, it delegates to `createOrderPaymentCollectionWorkflow` (which returns an array). When updating an existing collection (e.g. during dunning retries or order updates), it calls `updatePaymentCollectionStep`, which delegates to `paymentModuleService.updatePaymentCollections(selector, data)`. Because `data` is a single object, `@medusajs/payment` returns a single `PaymentCollectionDTO` object rather than an array. Indexing with `[0]` on an object evaluates to `undefined`, causing dunning retries to fail before contacting the payment provider.
+
+### Renewal Orders Do Not Inherit Checkout Pricing
+
+- **Rule**: Anything checkout adds to the first order (for example the `subscription_discount` line item adjustment from `sync-subscription-cart-pricing`) is not carried over to renewal orders, because `process-renewal-cycle` rebuilds the order from the catalog price. Re-apply it from `subscription.pricing_snapshot` before the order total is read and charged (`applySubscriptionDiscountToRenewalOrder`).
+- **Context**: Without it, every renewal after the first is charged at full price. When reading order lines with `query.graph`, request `items.detail.quantity`: a field-limited query does not return `items.quantity`, so a missing quantity silently falls back to 1.
+
+### Integration Tests Run the Built Plugin, Not `src/`
+
+- **Rule**: Run `yarn build` before `yarn test:integration:http` whenever you change workflow steps, jobs or modules. The test app loads the plugin from `.medusa/server`, and a workflow with the same name imported from `src/` in a spec does not replace the one registered from the build.
+- **Context**: Without a rebuild the specs keep exercising the previous code and a fix appears to have no effect.

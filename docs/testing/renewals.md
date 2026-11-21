@@ -78,6 +78,7 @@ Current files:
 - [renewals-routes.spec.ts](../../integration-tests/http/renewals-routes.spec.ts)
 - [renewals-admin-flow.spec.ts](../../integration-tests/http/renewals-admin-flow.spec.ts)
 - [renewals-smoke.spec.ts](../../integration-tests/http/renewals-smoke.spec.ts)
+- [renewals-subscription-discount.spec.ts](../../integration-tests/http/renewals-subscription-discount.spec.ts)
 
 This layer is the main protection for the implemented Admin behavior and the renewal execution boundary.
 
@@ -135,6 +136,7 @@ Covered through integration tests:
 - already processing conflict
 - approval required, approved, and rejected transitions
 - force execution route and workflow behavior
+- subscription discount re-applied to the renewal order from `pricing_snapshot` (percentage, fixed, capped fixed, no snapshot, no duplicate adjustment) and reflected in the charged amount
 
 ### Admin API Coverage
 
