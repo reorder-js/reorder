@@ -85,13 +85,14 @@ Covered through integration tests:
 - `start-dunning` success path
 - idempotent update of an existing case for the same renewal cycle
 - duplicate active case blocked
-- `run-dunning-retry` recovery path
+- `run-dunning-retry` recovery path, including closing the renewal cycle, advancing the subscription, and scheduling the next cycle
 - `run-dunning-retry` temporary failure and reschedule path
 - max-attempt exhaustion and unrecovered closure
 - manual `mark-recovered`
 - manual `mark-unrecovered`
 - retry-schedule override
 - dunning read-model query helpers
+- renewal scheduler does not re-run a failed cycle that dunning owns or already recovered (no second renewal order or charge)
 
 Current payment classification assumptions:
 - `insufficient_funds`, `generic_decline`, and `do_not_honor` are retryable and should reschedule the case

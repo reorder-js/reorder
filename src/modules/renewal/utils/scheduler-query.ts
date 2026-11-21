@@ -1,5 +1,6 @@
 import { MedusaContainer } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import { DunningCaseStatus } from "../../dunning/types"
 import {
   RenewalApprovalStatus,
   RenewalCycleStatus,
@@ -36,12 +37,48 @@ const schedulerCycleFields = [
   "approval_status",
 ] as const
 
+// A failed cycle whose dunning case is in one of these states is owned by
+// `Dunning`: it is either still being retried or was already paid through a
+// retry, so the scheduler must not run it again and charge a new renewal order.
+const dunningOwnedCaseStatuses = [
+  DunningCaseStatus.OPEN,
+  DunningCaseStatus.RETRY_SCHEDULED,
+  DunningCaseStatus.RETRYING,
+  DunningCaseStatus.AWAITING_MANUAL_RESOLUTION,
+  DunningCaseStatus.RECOVERED,
+] as const
+
 function isApprovalEligible(record: DueRenewalCycleRecord) {
   if (!record.approval_required) {
     return true
   }
 
   return record.approval_status === RenewalApprovalStatus.APPROVED
+}
+
+async function listCycleIdsOwnedByDunning(
+  container: MedusaContainer,
+  failedCycleIds: string[]
+): Promise<Set<string>> {
+  if (!failedCycleIds.length) {
+    return new Set()
+  }
+
+  const query = container.resolve(ContainerRegistrationKeys.QUERY)
+  const { data } = await query.graph({
+    entity: "dunning_case",
+    fields: ["id", "renewal_cycle_id", "status"],
+    filters: {
+      renewal_cycle_id: failedCycleIds,
+      status: [...dunningOwnedCaseStatuses],
+    },
+  })
+
+  return new Set(
+    (data as Array<{ renewal_cycle_id: string }>).map(
+      (dunningCase) => dunningCase.renewal_cycle_id
+    )
+  )
 }
 
 export async function listDueRenewalCyclesForProcessing(
@@ -72,7 +109,18 @@ export async function listDueRenewalCyclesForProcessing(
     },
   })
 
-  const cycles = (data as DueRenewalCycleRecord[]).filter(isApprovalEligible)
+  const approvalEligibleCycles = (data as DueRenewalCycleRecord[]).filter(
+    isApprovalEligible
+  )
+  const cycleIdsOwnedByDunning = await listCycleIdsOwnedByDunning(
+    container,
+    approvalEligibleCycles
+      .filter((cycle) => cycle.status === RenewalCycleStatus.FAILED)
+      .map((cycle) => cycle.id)
+  )
+  const cycles = approvalEligibleCycles.filter(
+    (cycle) => !cycleIdsOwnedByDunning.has(cycle.id)
+  )
 
   return {
     cycles,

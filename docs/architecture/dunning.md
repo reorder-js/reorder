@@ -114,7 +114,8 @@ The current implementation follows these rules:
 - qualifying renewal failures are currently surfaced from payment-session, authorization, and capture failures after the renewal order exists
 - `start-dunning` marks the subscription as `past_due` when entering recovery
 - `run-dunning-retry` retries payment on the existing renewal order rather than re-running the whole renewal workflow
-- successful recovery closes the case as `recovered` and restores the subscription to `active`
+- successful recovery closes the case as `recovered`, restores the subscription to `active`, and closes the originating renewal cycle like a first-attempt success: the cycle becomes `succeeded` (with `processed_at` and `generated_order_id` set to the recovered renewal order) and the subscription advances (`next_renewal_at` moves one cadence forward from the cycle's `scheduled_for`, `last_renewal_at` is set)
+- while a case is active or `recovered`, the renewal scheduler skips the failed cycle, so the renewal order is not recreated and charged again
 - unrecovered closure leaves the originating renewal cycle as `failed` and keeps the subscription in `past_due`
 
 Current retry classification:
@@ -247,6 +248,8 @@ It is responsible for:
 - authorizing and capturing payment
 - transitioning the case to `recovered`, `retry_scheduled`, or `unrecovered`
 - restoring the subscription to `active` on recovery
+- closing the renewal cycle and advancing the subscription on recovery
+- scheduling the next upcoming renewal cycle (`ensure-next-renewal-cycle`) when the outcome is `recovered`
 
 Current implementation detail:
 - the workflow acquires a Medusa workflow lock with key `dunning:${dunning_case_id}`

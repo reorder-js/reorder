@@ -16,6 +16,9 @@ import {
   scheduleSubscriptionPlanChangeWorkflow,
 } from "../../src/workflows"
 import { createPlanOfferSeed } from "../helpers/plan-offer-fixtures"
+import { createDunningCaseSeed } from "../helpers/dunning-fixtures"
+import { DunningCaseStatus } from "../../src/modules/dunning/types"
+import { listDueRenewalCyclesForProcessing } from "../../src/modules/renewal/utils/scheduler-query"
 import {
   RenewalApprovalStatus,
   RenewalAttemptStatus,
@@ -766,6 +769,88 @@ medusaIntegrationTestRunner({
           })
         ).rejects.toMatchObject({
           message: expect.stringContaining("requires approved changes"),
+        })
+      })
+
+      describe("scheduler discovery of due cycles", () => {
+        const schedulerNow = new Date("2026-04-21T00:00:00.000Z")
+        const dueAt = new Date("2026-04-20T10:00:00.000Z")
+
+        async function seedFailedDueCycle(
+          reference: string,
+          dunningStatus?: DunningCaseStatus
+        ) {
+          const container = getContainer()
+          const subscription = await createSubscriptionSeed(container, {
+            reference,
+          })
+          const cycle = await createRenewalCycleSeed(container, {
+            subscription_id: subscription.id,
+            status: RenewalCycleStatus.FAILED,
+            scheduled_for: dueAt,
+          })
+
+          if (dunningStatus) {
+            await createDunningCaseSeed(container, {
+              subscription_id: subscription.id,
+              renewal_cycle_id: cycle.id,
+              renewal_order_id: `ord_${reference}`,
+              status: dunningStatus,
+            })
+          }
+
+          return cycle
+        }
+
+        async function listDueIds() {
+          const result = await listDueRenewalCyclesForProcessing(getContainer(), {
+            limit: 100,
+            offset: 0,
+            now: schedulerNow,
+          })
+
+          return result.cycles.map((cycle) => cycle.id)
+        }
+
+        it.each([
+          DunningCaseStatus.OPEN,
+          DunningCaseStatus.RETRY_SCHEDULED,
+          DunningCaseStatus.RETRYING,
+          DunningCaseStatus.AWAITING_MANUAL_RESOLUTION,
+          DunningCaseStatus.RECOVERED,
+        ])(
+          "skips a failed cycle whose dunning case is %s",
+          async (dunningStatus) => {
+            const cycle = await seedFailedDueCycle(
+              `SUB-REN-SCHED-${dunningStatus}`,
+              dunningStatus
+            )
+
+            expect(await listDueIds()).not.toContain(cycle.id)
+          }
+        )
+
+        it("still picks up failed cycles without an owning dunning case", async () => {
+          const withoutCase = await seedFailedDueCycle("SUB-REN-SCHED-NONE")
+          const unrecovered = await seedFailedDueCycle(
+            "SUB-REN-SCHED-UNRECOVERED",
+            DunningCaseStatus.UNRECOVERED
+          )
+          const container = getContainer()
+          const scheduledSubscription = await createSubscriptionSeed(container, {
+            reference: "SUB-REN-SCHED-SCHEDULED",
+          })
+          const scheduled = await createRenewalCycleSeed(container, {
+            subscription_id: scheduledSubscription.id,
+            status: RenewalCycleStatus.SCHEDULED,
+            scheduled_for: dueAt,
+          })
+
+          const ids = await listDueIds()
+
+          expect(ids).toEqual(
+            expect.arrayContaining([withoutCase.id, unrecovered.id, scheduled.id])
+          )
         })
       })
     })

@@ -135,6 +135,7 @@ Covered through integration tests:
 - already processing conflict
 - approval required, approved, and rejected transitions
 - force execution route and workflow behavior
+- scheduler discovery skips failed cycles with an `open`, `retry_scheduled`, `retrying`, `awaiting_manual_resolution`, or `recovered` dunning case, and still selects failed cycles with no case or an `unrecovered` case
 
 ### Admin API Coverage
 
